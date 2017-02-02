@@ -28,6 +28,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.berrycloud.acl.AclLogic;
 import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
+import com.berrycloud.acl.AclUserGrantEvaluator;
+import com.berrycloud.acl.AclUserPermissionSpecification;
 import com.berrycloud.acl.security.SimpleAclUserDetailsService;
 import com.github.lothar.security.acl.SimpleAclStrategy;
 
@@ -35,47 +37,52 @@ import com.github.lothar.security.acl.SimpleAclStrategy;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class AclConfiguration {
 
-    @Bean
-    public AclLogic aclLogic() {
-	return new AclLogic();
-    }
 
-    @Bean
-    public SimpleAclStrategy aclUserStrategy() {
-	return new SimpleAclStrategy();
-    }
+  @Bean
+  public SimpleAclStrategy aclUserStrategy() {
+    return new SimpleAclStrategy();
+  }
 
-    @Bean
-    public SimpleAclStrategy aclGroupStrategy() {
-	return new SimpleAclStrategy();
-    }
+  @Bean
+  public SimpleAclStrategy aclGroupStrategy() {
+    return new SimpleAclStrategy();
+  }
 
-    @Bean
-    public EntityManagerFactoryBuilder entityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
-	    ObjectProvider<PersistenceUnitManager> persistenceUnitManagerProvider, JpaProperties properties) {
-	EntityManagerFactoryBuilder builder = new EntityManagerFactoryBuilder(jpaVendorAdapter,
-		properties.getProperties(), persistenceUnitManagerProvider.getIfAvailable());
-	builder.setCallback(new EntityManagerFactoryBeanCallback() {
+  @Bean
+  public EntityManagerFactoryBuilder entityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
+      ObjectProvider<PersistenceUnitManager> persistenceUnitManagerProvider, JpaProperties properties) {
+    EntityManagerFactoryBuilder builder = new EntityManagerFactoryBuilder(jpaVendorAdapter, properties.getProperties(),
+        persistenceUnitManagerProvider.getIfAvailable());
+    builder.setCallback(new EntityManagerFactoryBeanCallback() {
 
-	    @Override
-	    public void execute(LocalContainerEntityManagerFactoryBean factory) {
-		factory.setPersistenceUnitPostProcessors(new AclPersistenceUnitPostProcessor());
-	    }
+      @Override
+      public void execute(LocalContainerEntityManagerFactoryBean factory) {
+        factory.setPersistenceUnitPostProcessors(new AclPersistenceUnitPostProcessor());
+      }
 
-	});
-	System.out.println("QWQWQWQWQWQWQWQWQWQWQWQWQWQWQWWQWQ");
-    System.out.println("QWQWQWQWQWQWQWQWQWQWQWQWQWQWQWWQWQ");
-    System.out.println("QWQWQWQWQWQWQWQWQWQWQWQWQWQWQWWQWQ");
-    System.out.println("QWQWQWQWQWQWQWQWQWQWQWQWQWQWQWWQWQ");
-    System.out.println("QWQWQWQWQWQWQWQWQWQWQWQWQWQWQWWQWQ");
-	return builder;
-    }
-    
-    @Bean
-    @ConditionalOnMissingBean(UserDetailsService.class)
-    public SimpleAclUserDetailsService aclUserDetailsService() {
-	return new SimpleAclUserDetailsService();
-    }
-	    
+    });
+    return builder;
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(UserDetailsService.class)
+  public SimpleAclUserDetailsService aclUserDetailsService() {
+    return new SimpleAclUserDetailsService();
+  }
+
+  @Bean
+  public AclLogic aclLogic() {
+    return new AclLogic();
+  }
+  
+  @Bean
+  public AclUserPermissionSpecification aclUserPermissionSpecification() {
+    return new AclUserPermissionSpecification();
+  }
+
+  @Bean
+  public AclUserGrantEvaluator aclUserGrantEvaluator() {
+    return new AclUserGrantEvaluator();
+  }
 
 }

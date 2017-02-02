@@ -1,25 +1,26 @@
 package com.berrycloud.acl;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.Order;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 
 import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.security.SimpleAclUserDetails;
 import com.github.lothar.security.acl.SimpleAclStrategy;
 import com.github.lothar.security.acl.jpa.JpaSpecFeature;
 
-@Component
 public class AclUserPermissionSpecification implements Specification<AclEntity> {
 
     @Autowired
@@ -43,8 +44,12 @@ public class AclUserPermissionSpecification implements Specification<AclEntity> 
 		.getUserId();
 
 	query.distinct(true);
-//	query.orderBy(new Order("id"));
 
+	// Add an extra ordering to the query
+	List<Order> orderList = new ArrayList<>(query.getOrderList());
+	orderList.add(cb.asc(root.get("id")));
+	query.orderBy(orderList);
+	
 	// Create permission predicates
 	Root<? extends AclEntity> currentUser = query.from(aclLogic.getAclUserType());
 	Predicate admin = cb.and(cb.equal(currentUser.get("id"), userId),

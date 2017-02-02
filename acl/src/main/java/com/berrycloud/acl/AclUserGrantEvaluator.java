@@ -7,13 +7,11 @@ import javax.persistence.EntityManager;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Component;
 
 import com.berrycloud.acl.domain.AclUser;
 import com.github.lothar.security.acl.SimpleAclStrategy;
 import com.github.lothar.security.acl.grant.GrantEvaluatorFeature;
 
-@Component
 public class AclUserGrantEvaluator extends AbstractGrantEvaluator<AclUser<?,?>, Serializable> {
 
     @Autowired
