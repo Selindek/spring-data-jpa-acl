@@ -1,0 +1,60 @@
+package com.berrycloud.acl;
+
+import java.io.Serializable;
+
+import javax.annotation.PostConstruct;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+import com.berrycloud.acl.domain.AclEntity;
+import com.berrycloud.acl.security.SimpleAclUserDetails;
+import com.github.lothar.security.acl.SimpleAclStrategy;
+import com.github.lothar.security.acl.jpa.JpaSpecFeature;
+
+@Component
+public class AclUserPermissionSpecification implements Specification<AclEntity> {
+
+    @Autowired
+    private JpaSpecFeature<AclEntity> jpaSpecFeature;
+
+    @Autowired
+    private SimpleAclStrategy aclUserStrategy;
+
+    @Autowired
+    private AclLogic aclLogic;
+
+    @PostConstruct
+    public void init() {
+	aclUserStrategy.install(jpaSpecFeature, this);
+    }
+
+    @Override
+    public Predicate toPredicate(Root<AclEntity> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+	// Gather id of current user
+	Serializable userId = ((SimpleAclUserDetails) (SecurityContextHolder.getContext().getAuthentication().getPrincipal()))
+		.getUserId();
+
+	query.distinct(true);
+//	query.orderBy(new Order("id"));
+
+	// Create permission predicates
+	Root<? extends AclEntity> currentUser = query.from(aclLogic.getAclUserType());
+	Predicate admin = cb.and(cb.equal(currentUser.get("id"), userId),
+		cb.equal(currentUser.join("aclRoles", JoinType.LEFT).get("roleName"), "ROLE_ADMIN"));
+	Predicate self = cb.equal(root.get("id"), userId);
+	Predicate creator = cb.equal(root.get("createdBy").get("id"), userId);
+	Predicate personPermission = cb
+		.equal(root.join("personPermissionOwners", JoinType.LEFT).get("owner").get("id"), userId);
+
+	return cb.or(self, creator, personPermission, admin);
+    }
+
+}
