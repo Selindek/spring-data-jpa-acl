@@ -6,6 +6,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 public interface AclUserDetails extends UserDetails {
 
-    Serializable getUserId();
+  Serializable getUserId();
 
 }

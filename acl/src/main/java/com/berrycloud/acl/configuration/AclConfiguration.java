@@ -27,7 +27,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
-import com.berrycloud.acl.AclLogic;
+import com.berrycloud.acl.AclLogicImpl;
 import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
 import com.berrycloud.acl.AclUserGrantEvaluator;
 import com.berrycloud.acl.AclUserPermissionSpecification;
@@ -74,8 +74,8 @@ public class AclConfiguration {
   }
   
   @Bean
-  public AclLogic aclLogic() {
-    return new AclLogic();
+  public AclLogicImpl aclLogic() {
+    return new AclLogicImpl();
   }
   
   @Bean
