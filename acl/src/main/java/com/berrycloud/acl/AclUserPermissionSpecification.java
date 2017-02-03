@@ -16,7 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.domain.AclEntity;
+import com.berrycloud.acl.domain.AclRole;
+import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.security.SimpleAclUserDetails;
 import com.github.lothar.security.acl.SimpleAclStrategy;
 import com.github.lothar.security.acl.jpa.JpaSpecFeature;
@@ -29,8 +32,11 @@ public class AclUserPermissionSpecification implements Specification<AclEntity> 
     @Autowired
     private SimpleAclStrategy aclUserStrategy;
 
+//    @Autowired
+//    private AclLogic aclLogic;
+
     @Autowired
-    private AclLogic aclLogic;
+    private AclMetaData aclMetaData;
 
     @PostConstruct
     public void init() {
@@ -51,7 +57,8 @@ public class AclUserPermissionSpecification implements Specification<AclEntity> 
 	query.orderBy(orderList);
 	
 	// Create permission predicates
-	Root<? extends AclEntity> currentUser = query.from(aclLogic.getAclUserType());
+	Root<? extends AclUser<Serializable, AclRole<Serializable>>> currentUser = query.from(aclMetaData.getAclUserType());
+	
 	Predicate admin = cb.and(cb.equal(currentUser.get("id"), userId),
 		cb.equal(currentUser.join("aclRoles", JoinType.LEFT).get("roleName"), "ROLE_ADMIN"));
 	Predicate self = cb.equal(root.get("id"), userId);

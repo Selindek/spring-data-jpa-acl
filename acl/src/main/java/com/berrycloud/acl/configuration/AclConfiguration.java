@@ -24,16 +24,19 @@ import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.persistenceunit.PersistenceUnitManager;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.berrycloud.acl.AclLogic;
 import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
 import com.berrycloud.acl.AclUserGrantEvaluator;
 import com.berrycloud.acl.AclUserPermissionSpecification;
+import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.security.SimpleAclUserDetailsService;
 import com.github.lothar.security.acl.SimpleAclStrategy;
 
 @Configuration
+@EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class AclConfiguration {
 
@@ -69,10 +72,15 @@ public class AclConfiguration {
   public SimpleAclUserDetailsService aclUserDetailsService() {
     return new SimpleAclUserDetailsService();
   }
-
+  
   @Bean
   public AclLogic aclLogic() {
     return new AclLogic();
+  }
+  
+  @Bean
+  public AclMetaData aclMetaData() {
+    return aclLogic().createAclMetaData();
   }
   
   @Bean

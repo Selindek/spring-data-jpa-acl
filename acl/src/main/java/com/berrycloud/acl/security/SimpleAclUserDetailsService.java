@@ -14,7 +14,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.berrycloud.acl.AclLogic;
+import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 
@@ -27,8 +27,8 @@ public class SimpleAclUserDetailsService implements UserDetailsService {
     private Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType;
 
     @Autowired
-    private void setAclUserType(AclLogic aclLogic) {
-	aclUserType = aclLogic.getAclUserType();
+    private void setAclUserType(AclMetaData aclMetaData) {
+	aclUserType = aclMetaData.getAclUserType();
     }
 
     @Override
