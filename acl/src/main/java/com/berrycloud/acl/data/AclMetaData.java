@@ -14,10 +14,10 @@ public class AclMetaData {
   private Class<AclRole<Serializable>> aclRoleType;
   private Class<AclPermission<Serializable>> aclPermissionType;
   
-  private Map<Class<? extends AclEntity>, AclEntityMetaData> metaDataMap;
+  private Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap;
 
   public AclMetaData(Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType, Class<AclRole<Serializable>> aclRoleType,
-      Class<AclPermission<Serializable>> aclPermissionType, Map<Class<? extends AclEntity>, AclEntityMetaData> metaDataMap) {
+      Class<AclPermission<Serializable>> aclPermissionType, Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap) {
     super();
     this.aclUserType = aclUserType;
     this.aclRoleType = aclRoleType;
@@ -37,15 +37,15 @@ public class AclMetaData {
     return aclPermissionType;
   }
 
-  public Map<Class<? extends AclEntity>, AclEntityMetaData> getMetaDataMap() {
+  public Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> getMetaDataMap() {
     return metaDataMap;
   }
   
-  public AclEntityMetaData getAclEntityMetaData(Class<? extends AclEntity> entityClass) {
+  public AclEntityMetaData getAclEntityMetaData(Class<? extends AclEntity<Serializable>> entityClass) {
     return metaDataMap.get(entityClass);
   }
 
-  public AclEntityMetaData getAclEntityMetaData(AclEntity entity) {
+  public AclEntityMetaData getAclEntityMetaData(AclEntity<Serializable> entity) {
     return metaDataMap.get(entity.getClass());
   }
 

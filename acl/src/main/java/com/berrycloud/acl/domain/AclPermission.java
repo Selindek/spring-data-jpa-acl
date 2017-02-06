@@ -13,54 +13,54 @@ import javax.persistence.Id;
 @Entity
 public abstract class AclPermission<ID extends Serializable> {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private ID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
+  private ID id;
 
-    @Column(unique = true)
-    private String permissionName;
+  @Column(unique = true)
+  private String permissionName;
 
-    public AclPermission() {
+  public AclPermission() {
+  }
+
+  public AclPermission(final String permissionName) {
+    this.permissionName = permissionName;
+  }
+
+  public ID getId() {
+    return id;
+  }
+
+  public void setId(ID id) {
+    this.id = id;
+  }
+
+  public String getPermissionName() {
+    return permissionName;
+  }
+
+  public void setPermissionName(final String permissionName) {
+    this.permissionName = permissionName;
+  }
+
+  @Override
+  public String toString() {
+    return permissionName;
+  }
+
+  @Override
+  public int hashCode() {
+    return getId() == null ? 0 : getId().hashCode();
+  }
+
+  @Override
+  public boolean equals(final Object object) {
+    if (object == null || !object.getClass().equals(this.getClass())) {
+      return false;
     }
-
-    public AclPermission(final String permissionName) {
-	this.permissionName = permissionName;
+    if (getId() == null) {
+      return ((AclPermission<?>) object).getId() == null;
     }
-
-    public ID getId() {
-	return id;
-    }
-
-    public void setId(ID id) {
-	this.id = id;
-    }
-
-    public String getPermissionName() {
-	return permissionName;
-    }
-
-    public void setPermissionName(final String permissionName) {
-	this.permissionName = permissionName;
-    }
-
-    @Override
-    public String toString() {
-	return permissionName;
-    }
-
-    @Override
-    public int hashCode() {
-	return getId() == null ? 0 : getId().hashCode();
-    }
-
-    @Override
-    public boolean equals(final Object object) {
-	if (object == null || !object.getClass().equals(this.getClass())) {
-	    return false;
-	}
-	if (getId() == null) {
-	    return ((AclPermission<?>) object).getId() == null;
-	}
-	return getId().equals(((AclPermission<?>) object).getId());
-    }
+    return getId().equals(((AclPermission<?>) object).getId());
+  }
 }

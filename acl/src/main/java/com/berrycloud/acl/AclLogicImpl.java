@@ -22,6 +22,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.berrycloud.acl.annotation.AclOwner;
+import com.berrycloud.acl.annotation.AclParent;
 import com.berrycloud.acl.data.AclEntityMetaData;
 import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.data.OwnerData;
@@ -29,6 +30,7 @@ import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.domain.AclPermission;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
+import com.berrycloud.acl.domain.PermissionLink;
 import com.berrycloud.acl.security.AclUserDetails;
 import com.berrycloud.acl.security.AclUserDetailsService;
 
@@ -51,7 +53,7 @@ public class AclLogicImpl implements AclLogic {
     Class<AclPermission<Serializable>> aclPermissionType = (Class<AclPermission<Serializable>>) searchEntityType(entities, AclPermission.class);
     // TODO add default user if using SimpleAclUser
 
-    Map<Class<? extends AclEntity>, AclEntityMetaData> metaDataMap = createMetaDataMap(entities);
+    Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = createMetaDataMap(entities);
 
     return new AclMetaData(aclUserType, aclRoleType, aclPermissionType, metaDataMap);
   }
@@ -73,14 +75,14 @@ public class AclLogicImpl implements AclLogic {
   }
 
   @SuppressWarnings("unchecked")
-  private Map<Class<? extends AclEntity>, AclEntityMetaData> createMetaDataMap(Set<EntityType<?>> entities) {
-    Map<Class<? extends AclEntity>, AclEntityMetaData> metaDataMap = new HashMap<>();
+  private Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> createMetaDataMap(Set<EntityType<?>> entities) {
+    Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = new HashMap<>();
     for (EntityType<?> et : entities) {
       Class<?> javaType = et.getJavaType();
       // Collect MetaData for AclEntities only
       if (!Modifier.isAbstract(javaType.getModifiers()) && AclEntity.class.isAssignableFrom(javaType)) {
         LOG.info("Create metadata for {}", javaType);
-        metaDataMap.put((Class<? extends AclEntity>) javaType, createAclEntityMetaData(et));
+        metaDataMap.put((Class<? extends AclEntity<Serializable>>) javaType, createAclEntityMetaData(et));
       }
     }
     return metaDataMap;
@@ -97,11 +99,33 @@ public class AclLogicImpl implements AclLogic {
         final String propertyName = propertyDescriptor.getName();
         final TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(propertyName);
         checkAclOwner(metaData, javaType, propertyName, typeDescriptor);
+        checkAclParent(metaData, javaType, propertyName, typeDescriptor);
       }
     } catch (InstantiationException | IllegalAccessException e) {
       LOG.error("Cannot instantiate {} ", javaType);
     }
+
+    checkAclPermissionsLinks(metaData, javaType);
+
     return metaData;
+  }
+
+  private void checkAclPermissionsLinks(AclEntityMetaData metaData, Class<?> javaType) {
+    for (EntityType<?> et : em.getMetamodel().getEntities()) {
+      Class<?> type = et.getJavaType();
+      if (!Modifier.isAbstract(type.getModifiers()) && PermissionLink.class.isAssignableFrom(type)) {
+        try {
+          if (type.getMethod("getTarget").getReturnType().equals(javaType)) {
+            metaData.getOwnerPermissionList().add(type);
+          }
+          if (type.getMethod("getOwner").getReturnType().equals(javaType)) {
+            metaData.getTargetPermissionList().add(type);
+          }
+        } catch (NoSuchMethodException | SecurityException e) {
+          LOG.error("Cannot find mandatory acl method: ", e);
+        }
+      }
+    }
   }
 
   private void checkAclOwner(AclEntityMetaData metaData, Class<?> javaType, final String propertyName, final TypeDescriptor typeDescriptor) {
@@ -111,6 +135,17 @@ public class AclLogicImpl implements AclLogic {
         metaData.getOwnerDataList().add(new OwnerData(propertyName, Arrays.asList(aclOwner.value())));
       } else {
         LOG.warn("Non-AclUser property '{}' in {} is annotated by @AclOwner ... ignored", propertyName, javaType);
+      }
+    }
+  }
+
+  private void checkAclParent(AclEntityMetaData metaData, Class<?> javaType, final String propertyName, final TypeDescriptor typeDescriptor) {
+    final AclParent aclParent = typeDescriptor.getAnnotation(AclParent.class);
+    if (aclParent != null) {
+      if (AclEntity.class.isAssignableFrom(typeDescriptor.getObjectType())) {
+        metaData.getParentList().add(propertyName);
+      } else {
+        LOG.warn("Non-AclEntity property '{}' in {} is annotated by @AclParent ... ignored", propertyName, javaType);
       }
     }
   }
