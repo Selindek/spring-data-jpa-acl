@@ -6,7 +6,7 @@ import org.springframework.hateoas.Identifiable;
 
 import com.github.lothar.security.acl.Acl;
 
-@Acl("aclUserStrategy")
+@Acl("aclStrategy")
 public abstract class AclEntity<ID extends Serializable> implements Identifiable<ID>{
   
 }

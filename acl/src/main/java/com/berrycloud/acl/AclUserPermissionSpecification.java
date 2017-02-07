@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.From;
@@ -13,6 +12,8 @@ import javax.persistence.criteria.Order;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -23,16 +24,10 @@ import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.data.OwnerData;
 import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.domain.AclUser;
-import com.github.lothar.security.acl.SimpleAclStrategy;
-import com.github.lothar.security.acl.jpa.JpaSpecFeature;
 
 public class AclUserPermissionSpecification implements Specification<AclEntity<Serializable>> {
 
-  @Autowired
-  private JpaSpecFeature<AclEntity<Serializable>> jpaSpecFeature;
-
-  @Autowired
-  private SimpleAclStrategy aclUserStrategy;
+  private static Logger LOG = LoggerFactory.getLogger(AclUserPermissionSpecification.class);
 
   @Autowired
   private AclLogic aclLogic;
@@ -40,34 +35,32 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   @Autowired
   private AclMetaData aclMetaData;
 
-  @PostConstruct
-  public void init() {
-    aclUserStrategy.install(jpaSpecFeature, this);
-  }
-
   @Override
   public Predicate toPredicate(Root<AclEntity<Serializable>> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
-    return toInnerPredicate(root, query, cb);
-  }
-  
-  protected Predicate toInnerPredicate(From<AclEntity<Serializable>,AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb) {
     // Skip all predicate constructions if the current user is an admin
+    LOG.trace("Creating predicates for {}", query);
     if (aclLogic.isAdmin()) {
+      LOG.trace("Access granted for ADMIN user");
       return cb.conjunction();
     }
-
-    // Gather the id of current user
-    Serializable userId = aclLogic.getCurrentUser().getUserId();
-
     query.distinct(true);
 
     // TODO check id sorting
     List<Order> orderList = new ArrayList<>(query.getOrderList());
     if (orderList.isEmpty()) {
       // Need ordering for pagination
-      orderList.add(cb.asc(from.get("id")));
+      orderList.add(cb.asc(root.get("id")));
       query.orderBy(orderList);
     }
+
+    // Gather the id of current user
+    Serializable userId = aclLogic.getCurrentUser().getUserId();
+
+    return toSubPredicate(root, query, cb, userId);
+  }
+
+  protected Predicate toSubPredicate(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+      Serializable userId) {
 
     List<Predicate> predicates = new ArrayList<>();
 
@@ -82,9 +75,11 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   /**
    * Creates predicates for current user
    */
-  private List<Predicate> createSelfPredicates(From<AclEntity<Serializable>,AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb, Serializable userId) {
+  private List<Predicate> createSelfPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+      Serializable userId) {
     List<Predicate> predicates = new ArrayList<>();
     if (AclUser.class.isAssignableFrom(from.getJavaType())) {
+      LOG.trace("Adding 'self' predicate for {}", from);
       predicates.add(cb.equal(from.get("id"), userId));
     }
     return predicates;
@@ -93,38 +88,44 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   /**
    * Creates predicates for direct owners defined by {@link AclOwner} annotation
    */
-  private List<Predicate> createOwnerPredicates(From<AclEntity<Serializable>,AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb, Serializable userId) {
+  private List<Predicate> createOwnerPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+      Serializable userId) {
     List<Predicate> predicates = new ArrayList<>();
     AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
     for (OwnerData ownerData : metaData.getOwnerDataList()) {
+      LOG.trace("Adding 'owner' predicate for {}.{}", from, ownerData.getAttributeName());
       predicates.add(cb.equal(from.get(ownerData.getAttributeName()).get("id"), userId));
-    }
-    return predicates;
-  }
-  
-  /**
-   * Creates predicates for parent objects defined by {@link AclParent} annotation
-   * 
-   */
-  private List<Predicate> createParentPredicates(From<AclEntity<Serializable>,AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb, Serializable userId) {
-    List<Predicate> predicates = new ArrayList<>();
-    AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
-    for (String parent: metaData.getParentList()) {
-      predicates.add(toInnerPredicate(from.join(parent,JoinType.LEFT), query, cb));
     }
     return predicates;
   }
 
   /**
-   * Creates predicates for permissions
+   * Creates predicates for parent objects defined by {@link AclParent} annotation
+   * 
    */
-  private List<Predicate> createPermissionPredicates(From<AclEntity<Serializable>,AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb, Serializable userId) {
+  private List<Predicate> createParentPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+      Serializable userId) {
     List<Predicate> predicates = new ArrayList<>();
-    
     AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
-    for(Class<?> ownerPermissionClass: metaData.getOwnerPermissionList()) {
+    for (String parent : metaData.getParentList()) {
+      LOG.trace("Adding 'parent' predicates for {}.{}", from, parent);
+      predicates.add(toSubPredicate(from.join(parent, JoinType.LEFT), query, cb, userId));
+    }
+    return predicates;
+  }
+
+  /**
+   * Creates predicates for permissionLinks
+   */
+  private List<Predicate> createPermissionPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+      Serializable userId) {
+    List<Predicate> predicates = new ArrayList<>();
+
+    AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
+    for (Class<?> ownerPermissionClass : metaData.getOwnerPermissionList()) {
+      LOG.trace("Adding 'permission-link' predicate for {} - {}", ownerPermissionClass, from);
       Root<?> permissionLink = query.from(ownerPermissionClass);
-      predicates.add(cb.and(cb.equal(permissionLink.get("target"),from.get("id")),cb.equal(permissionLink.get("owner"),userId)));
+      predicates.add(cb.and(cb.equal(permissionLink.get("target"), from.get("id")), cb.equal(permissionLink.get("owner"), userId)));
     }
 
     return predicates;

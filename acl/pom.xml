@@ -51,13 +51,15 @@
     <dependency>
       <groupId>com.github.lothar.security.acl</groupId>
       <artifactId>strategy-spring-security-acl-grant</artifactId>
-      <version>LATEST</version>
+      <version>1.6.0-SNAPSHOT</version>
+<!--       <version>LATEST</version> -->
     </dependency>
 
     <dependency>
       <groupId>com.github.lothar.security.acl</groupId>
       <artifactId>strategy-spring-security-acl-jpa</artifactId>
-      <version>LATEST</version>
+      <version>1.6.0-SNAPSHOT</version>
+<!--       <version>LATEST</version> -->
     </dependency>
   </dependencies>
 
@@ -70,14 +72,14 @@
     </plugins>
   </build>
 
-  <repositories>
-    <repository>
-      <id>strategy-spring-security-acl-github-repo</id>
-      <url>https://raw.github.com/lordlothar99/mvn-repo/master/</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
+<!--   <repositories> -->
+<!--     <repository> -->
+<!--       <id>strategy-spring-security-acl-github-repo</id> -->
+<!--       <url>https://raw.github.com/lordlothar99/mvn-repo/master/</url> -->
+<!--       <snapshots> -->
+<!--         <enabled>false</enabled> -->
+<!--       </snapshots> -->
+<!--     </repository> -->
+<!--   </repositories> -->
 
 </project>

@@ -2,41 +2,30 @@ package com.berrycloud.acl;
 
 import java.io.Serializable;
 
-import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 
 import com.berrycloud.acl.domain.AclUser;
-import com.github.lothar.security.acl.SimpleAclStrategy;
-import com.github.lothar.security.acl.grant.GrantEvaluatorFeature;
 
-public class AclUserGrantEvaluator extends AbstractGrantEvaluator<AclUser<?,?>, Serializable> {
+public class AclUserGrantEvaluator extends AbstractGrantEvaluator<AclUser<?, ?>, Serializable> {
 
-    @Autowired
-    GrantEvaluatorFeature grantEvaluatorFeature;
+  private static Logger LOG = LoggerFactory.getLogger(AclUserGrantEvaluator.class);
 
-    @Autowired
-    private SimpleAclStrategy aclUserStrategy;
+  @Autowired
+  private EntityManager em;
 
-    @Autowired
-    private EntityManager em;
+  @Override
+  public boolean isGranted(String permission, Authentication authentication, AclUser<?, ?> domainObject) {
+    LOG.warn("GrantEvaluator is not implemented yet. Access granted by default.");
+    return true;
+  }
 
-    @PostConstruct
-    public void init() {
-	aclUserStrategy.install(grantEvaluatorFeature, this);
-    }
-    
-    @Override
-    public boolean isGranted(String permission, Authentication authentication, AclUser<?,?> domainObject) {
-	System.out.println("grant evaluator...");
-	return true;
-    }
-
-    @Override
-    public boolean isGranted(String permission, Authentication authentication, Serializable targetId,
-	    Class<? extends AclUser<?,?>> targetType) {
-	return isGranted(permission, authentication, em.find(targetType, targetId));
-    }
+  @Override
+  public boolean isGranted(String permission, Authentication authentication, Serializable targetId, Class<? extends AclUser<?, ?>> targetType) {
+    return isGranted(permission, authentication, em.find(targetType, targetId));
+  }
 }
