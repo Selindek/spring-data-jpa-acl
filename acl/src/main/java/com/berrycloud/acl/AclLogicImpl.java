@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -48,7 +49,7 @@ public class AclLogicImpl implements AclLogic {
   @SuppressWarnings("unchecked")
   public AclMetaData createAclMetaData() {
     Set<Class<?>> javaTypes = createJavaTypeSet();
-    
+
     Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(javaTypes,
         AclUser.class);
     Class<AclRole<Serializable>> aclRoleType = (Class<AclRole<Serializable>>) searchEntityType(javaTypes, AclRole.class);
@@ -59,7 +60,6 @@ public class AclLogicImpl implements AclLogic {
 
     return new AclMetaData(aclUserType, aclRoleType, aclPermissionType, metaDataMap);
   }
-
 
   private Set<Class<?>> createJavaTypeSet() {
     Set<Class<?>> javaTypes = new HashSet<>();
@@ -90,10 +90,10 @@ public class AclLogicImpl implements AclLogic {
   @SuppressWarnings("unchecked")
   private Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> createMetaDataMap(Set<Class<?>> javaTypes) {
     Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = new HashMap<>();
-    for (Class<?> javaType: javaTypes) {
+    for (Class<?> javaType : javaTypes) {
       // Collect MetaData for AclEntities only
-      if ( AclEntity.class.isAssignableFrom(javaType)) {
-        LOG.info("Create metadata for {}", javaType);
+      if (AclEntity.class.isAssignableFrom(javaType)) {
+        LOG.debug("Create metadata for {}", javaType);
         metaDataMap.put((Class<? extends AclEntity<Serializable>>) javaType, createAclEntityMetaData(javaType));
       }
     }
@@ -105,7 +105,6 @@ public class AclLogicImpl implements AclLogic {
     try {
       // We use BeanWrapper for checking annotations on fields AND getters and setters too
       BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(javaType.newInstance());
-
       for (final PropertyDescriptor propertyDescriptor : beanWrapper.getPropertyDescriptors()) {
         final String propertyName = propertyDescriptor.getName();
         final TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(propertyName);
@@ -122,17 +121,16 @@ public class AclLogicImpl implements AclLogic {
   }
 
   private void checkAclPermissionsLinks(AclEntityMetaData metaData, Class<?> javaType) {
+    LOG.trace("Collect permissionlinks for {}", javaType);
     for (Class<?> type : createJavaTypeSet()) {
       if (PermissionLink.class.isAssignableFrom(type)) {
-        try {
-          if (type.getMethod("getTarget").getReturnType().equals(javaType)) {
-            metaData.getOwnerPermissionList().add(type);
-          }
-          if (type.getMethod("getOwner").getReturnType().equals(javaType)) {
-            metaData.getTargetPermissionList().add(type);
-          }
-        } catch (NoSuchMethodException | SecurityException e) {
-          LOG.error("Cannot find mandatory acl method: ", e);
+        // Check generic parameter 'target' of PermissionLink class 
+        if (javaType.equals(ResolvableType.forClass(type).as(PermissionLink.class).getGeneric(1).getRawClass())) {
+          metaData.getOwnerPermissionList().add(type);
+        }
+        // Check generic parameter 'owner' of PermissionLink class 
+        if (javaType.equals(ResolvableType.forClass(type).as(PermissionLink.class).getGeneric(0).getRawClass())) {
+          metaData.getTargetPermissionList().add(type);
         }
       }
     }

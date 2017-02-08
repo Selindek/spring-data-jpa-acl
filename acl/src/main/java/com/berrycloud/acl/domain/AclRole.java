@@ -3,20 +3,18 @@ package com.berrycloud.acl.domain;
 import java.io.Serializable;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.MappedSuperclass;
 
-@Embeddable
-@Entity
+@MappedSuperclass
 public abstract class AclRole<ID extends Serializable> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private ID id;
-    @Column(unique = true)
+    @Column(unique = true, nullable= false)
     private String roleName;
 
     public AclRole() {
@@ -40,5 +38,21 @@ public abstract class AclRole<ID extends Serializable> {
 
     public void setRoleName(String roleName) {
 	this.roleName = roleName;
+    }
+    
+    @Override
+    public int hashCode() {
+      return getId() == null ? 0 : getId().hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object object) {
+      if (object == null || !object.getClass().equals(this.getClass())) {
+        return false;
+      }
+      if (getId() == null) {
+        return ((AclPermission<?>) object).getId() == null;
+      }
+      return getId().equals(((AclPermission<?>) object).getId());
     }
 }

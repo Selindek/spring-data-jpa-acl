@@ -4,24 +4,22 @@ import java.io.Serializable;
 import java.util.Set;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
+import javax.persistence.MappedSuperclass;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-@Entity
-@Embeddable
-public abstract class AclUser<ID extends Serializable, R extends AclRole<? extends Serializable>> extends AclOwner<ID>{
+@MappedSuperclass
+public abstract class AclUser<ID extends Serializable, R extends AclRole<? extends Serializable>> extends AclOwner<ID> {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
   private ID id;
 
-  @Column(unique = true)
+  @Column(unique = true, nullable = false)
   private String username;
   @JsonIgnore
   private String password;
@@ -41,6 +39,7 @@ public abstract class AclUser<ID extends Serializable, R extends AclRole<? exten
     this.password = password;
   }
 
+  @Override
   public ID getId() {
     return id;
   }

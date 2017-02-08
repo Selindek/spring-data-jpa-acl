@@ -1,23 +1,16 @@
 package com.berrycloud.acl.domain;
 
-import java.io.Serializable;
-
-import javax.persistence.AttributeOverride;
-import javax.persistence.AttributeOverrides;
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.MappedSuperclass;
 
-import org.springframework.hateoas.Identifiable;
+@MappedSuperclass
+public abstract class PermissionLink<O extends AclOwner<?>, T extends AclEntity<?>, P extends AclPermission<?>> {
 
-@Entity
-@Embeddable
-public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serializable, T extends AclEntity<TID>, TID extends Serializable, P extends AclPermission<PID>, PID extends Serializable> implements Identifiable<PermissionId<OID, TID, PID>> {
-
-  private PermissionId<OID, TID, PID> id;
+  private Integer id;
   private O owner;
   private T target;
   private P permission;
@@ -25,7 +18,7 @@ public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serial
   public PermissionLink() {
   }
 
-  public PermissionLink(PermissionId<OID, TID, PID> id) {
+  public PermissionLink(Integer id) {
     this.id = id;
   }
   
@@ -33,24 +26,20 @@ public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serial
     this.owner = owner;
     this.target = target;
     this.permission = permission;
-    this.id = new PermissionId<OID,TID,PID>(owner.getId(), target.getId(), permission.getId());
   }
 
-  @Override
-  @EmbeddedId
-  @AttributeOverrides({ @AttributeOverride(name = "owner", column = @Column(name = "owner", nullable = false)),
-      @AttributeOverride(name = "target", column = @Column(name = "target", nullable = false)),
-      @AttributeOverride(name = "permission", column = @Column(name = "permission", nullable = false)) })
-  public PermissionId<OID, TID, PID> getId() {
+  @Id
+  @GeneratedValue(strategy=GenerationType.AUTO)
+  public Integer getId() {
     return id;
   }
 
-  public void setId(final PermissionId<OID, TID, PID> id) {
+  public void setId(final Integer id) {
     this.id = id;
   }
 
   @ManyToOne()
-  @JoinColumn( name = "owner", nullable = false, insertable = false, updatable = false)
+  @JoinColumn( nullable = false, updatable = false)
   public O getOwner() {
     return owner;
   }
@@ -60,7 +49,7 @@ public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serial
   }
 
   @ManyToOne()
-  @JoinColumn( name = "target", nullable = false, insertable = false, updatable = false)
+  @JoinColumn( nullable = false, updatable = false)
   public T getTarget() {
     return target;
   }
@@ -70,7 +59,7 @@ public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serial
   }
 
   @ManyToOne()
-  @JoinColumn(name = "permission", nullable = false, insertable = false, updatable = false)
+  @JoinColumn(nullable = false, updatable = false)
   public P getPermission() {
     return permission;
   }

@@ -25,7 +25,7 @@ public class PermissionId<O extends Serializable, T extends Serializable, P exte
     this.target = target;
     this.permission = permission;
   }
-
+  
   @Column(nullable = false)
   public O getOwner() {
     return owner;
@@ -82,8 +82,4 @@ public class PermissionId<O extends Serializable, T extends Serializable, P exte
     return result;
   }
 
-  @Override
-  public String toString() {
-    return "/search/findAllByIdOwnerAndIdTargetAndIdPermission?owner=" + owner + "&target=" + target + "&permission=" + permission;
-  }
 }
