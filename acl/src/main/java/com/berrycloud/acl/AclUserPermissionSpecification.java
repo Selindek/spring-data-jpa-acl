@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.GrantedAuthority;
 
 import com.berrycloud.acl.annotation.AclOwner;
 import com.berrycloud.acl.annotation.AclParent;
@@ -24,13 +25,14 @@ import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.data.OwnerData;
 import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.domain.AclUser;
+import com.berrycloud.acl.security.AclUserDetailsService;
 
 public class AclUserPermissionSpecification implements Specification<AclEntity<Serializable>> {
 
   private static Logger LOG = LoggerFactory.getLogger(AclUserPermissionSpecification.class);
 
   @Autowired
-  private AclLogic aclLogic;
+  private AclUserDetailsService<? extends GrantedAuthority> aclUserDetailsService;
 
   @Autowired
   private AclMetaData aclMetaData;
@@ -39,7 +41,7 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   public Predicate toPredicate(Root<AclEntity<Serializable>> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
     // Skip all predicate constructions if the current user is an admin
     LOG.trace("Creating predicates for {}", root.getJavaType());
-    if (aclLogic.isAdmin()) {
+    if (aclUserDetailsService.isAdmin()) {
       LOG.trace("Access granted for ADMIN user");
       return cb.conjunction();
     }
@@ -54,7 +56,7 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
     }
 
     // Gather the id of current user
-    Serializable userId = aclLogic.getCurrentUser().getUserId();
+    Serializable userId = aclUserDetailsService.getCurrentUser().getUserId();
 
     return toSubPredicate(root, query, cb, userId);
   }

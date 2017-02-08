@@ -8,6 +8,13 @@ public interface AclUserDetailsService<A extends GrantedAuthority> extends UserD
 
     @Override
     AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
-    
+
     A createGrantedAuthority(String authority);
+    
+    AclUserDetails getCurrentUser();
+
+    boolean isAdmin();
+
+    boolean hasAuthority(String authority);
+
 }

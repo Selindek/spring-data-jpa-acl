@@ -1,13 +1,15 @@
 package com.berrycloud.acl;
 
-import com.berrycloud.acl.security.AclUserDetails;
+import java.io.Serializable;
+import java.util.Set;
+
+import com.berrycloud.acl.domain.AclRole;
+import com.berrycloud.acl.domain.AclUser;
 
 public interface AclLogic {
 
-  AclUserDetails getCurrentUser();
+  AclUser<Serializable, AclRole<Serializable>> loadUserByUsername(String username);
 
-  boolean isAdmin();
-
-  boolean hasAuthority(String authority);
+  Set<AclRole<Serializable>> getAllRoles(AclUser<Serializable, AclRole<Serializable>> aclUser);
 
 }

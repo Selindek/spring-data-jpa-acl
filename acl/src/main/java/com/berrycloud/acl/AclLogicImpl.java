@@ -11,17 +11,19 @@ import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import javax.persistence.metamodel.EntityType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.TypeDescriptor;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.berrycloud.acl.annotation.AclOwner;
 import com.berrycloud.acl.annotation.AclParent;
@@ -33,8 +35,6 @@ import com.berrycloud.acl.domain.AclPermission;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.domain.PermissionLink;
-import com.berrycloud.acl.security.AclUserDetails;
-import com.berrycloud.acl.security.AclUserDetailsService;
 
 public class AclLogicImpl implements AclLogic {
 
@@ -43,14 +43,13 @@ public class AclLogicImpl implements AclLogic {
   @PersistenceContext
   private EntityManager em;
 
-  @Autowired
-  private AclUserDetailsService<? extends GrantedAuthority> aclUserDetailsService;
-
+  private Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType;
+  
   @SuppressWarnings("unchecked")
   public AclMetaData createAclMetaData() {
     Set<Class<?>> javaTypes = createJavaTypeSet();
 
-    Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(javaTypes,
+    aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(javaTypes,
         AclUser.class);
     Class<AclRole<Serializable>> aclRoleType = (Class<AclRole<Serializable>>) searchEntityType(javaTypes, AclRole.class);
     Class<AclPermission<Serializable>> aclPermissionType = (Class<AclPermission<Serializable>>) searchEntityType(javaTypes, AclPermission.class);
@@ -159,19 +158,34 @@ public class AclLogicImpl implements AclLogic {
   }
 
   @Override
-  public AclUserDetails getCurrentUser() {
-    return (AclUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+  public Set<AclRole<Serializable>> getAllRoles(AclUser<Serializable, AclRole<Serializable>> aclUser) {
+
+    Set<AclRole<Serializable>> roleSet = new HashSet<>(aclUser.getAclRoles());
+    
+    // TODO collect all roles from attached properties
+    
+    return roleSet;
   }
 
-  @Override
-  public boolean isAdmin() {
-    // TODO create constants for common authorities
-    return hasAuthority("ROLE_ADMIN");
-  }
 
+  /**
+   * Load AclUser by username without any permission checking.
+   * This method is for internal use only 
+   */
   @Override
-  public boolean hasAuthority(String authority) {
-    return getCurrentUser().getAuthorities().contains(aclUserDetailsService.createGrantedAuthority(authority));
+  @Transactional(readOnly = true)
+  public AclUser<Serializable, AclRole<Serializable>> loadUserByUsername(String username) {
+    CriteriaBuilder cb = em.getCriteriaBuilder();
+    CriteriaQuery<AclUser<Serializable, AclRole<Serializable>>> query = cb.createQuery(aclUserType);
+    Root<AclUser<Serializable, AclRole<Serializable>>> root = query.from(aclUserType);
+    query.select(root).where(cb.equal(root.get("username"), username));
+
+    AclUser<Serializable, AclRole<Serializable>> aclUser = em.createQuery(query).getSingleResult();
+   
+    if (aclUser == null) {
+      throw (new UsernameNotFoundException("User with username'" + username + "' cannot be found."));
+    }
+    return aclUser;
   }
 
 }

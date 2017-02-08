@@ -96,13 +96,5 @@ public class AclConfiguration {
     aclStrategy().install(grantEvaluatorFeature, aclUserGrantEvaluator);
     return aclUserGrantEvaluator;
   }
-//
-//  @Bean
-//  public StringToPermissionIdConverter stringToPermissionIdConverter(FormattingConversionService defaultConversionService) {
-//    StringToPermissionIdConverter stringToPermissionIdConverter= new StringToPermissionIdConverter();
-//  
-//    defaultConversionService.addConverter(stringToPermissionIdConverter);
-//    
-//    return stringToPermissionIdConverter;
-//  }
+
 }
