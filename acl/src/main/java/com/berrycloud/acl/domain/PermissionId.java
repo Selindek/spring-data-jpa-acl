@@ -82,4 +82,8 @@ public class PermissionId<O extends Serializable, T extends Serializable, P exte
     return result;
   }
 
+  @Override
+  public String toString() {
+    return "/search/findAllByIdOwnerAndIdTargetAndIdPermission?owner=" + owner + "&target=" + target + "&permission=" + permission;
+  }
 }

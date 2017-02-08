@@ -10,11 +10,12 @@ import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.Transient;
+
+import org.springframework.hateoas.Identifiable;
 
 @Entity
 @Embeddable
-public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serializable, T extends AclEntity<TID>, TID extends Serializable, P extends AclPermission<PID>, PID extends Serializable> {
+public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serializable, T extends AclEntity<TID>, TID extends Serializable, P extends AclPermission<PID>, PID extends Serializable> implements Identifiable<PermissionId<OID, TID, PID>> {
 
   private PermissionId<OID, TID, PID> id;
   private O owner;
@@ -24,6 +25,10 @@ public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serial
   public PermissionLink() {
   }
 
+  public PermissionLink(PermissionId<OID, TID, PID> id) {
+    this.id = id;
+  }
+  
   public PermissionLink(O owner, T target, P permission) {
     this.owner = owner;
     this.target = target;
@@ -31,6 +36,7 @@ public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serial
     this.id = new PermissionId<OID,TID,PID>(owner.getId(), target.getId(), permission.getId());
   }
 
+  @Override
   @EmbeddedId
   @AttributeOverrides({ @AttributeOverride(name = "owner", column = @Column(name = "owner", nullable = false)),
       @AttributeOverride(name = "target", column = @Column(name = "target", nullable = false)),
@@ -57,11 +63,6 @@ public abstract class PermissionLink<O extends AclOwner<OID>, OID extends Serial
   @JoinColumn( name = "target", nullable = false, insertable = false, updatable = false)
   public T getTarget() {
     return target;
-  }
-
-  @Transient
-  public String getFaszom() {
-    return "WWW";
   }
 
   public void setTarget(final T target) {

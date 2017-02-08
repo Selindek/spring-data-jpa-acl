@@ -96,5 +96,5 @@ public class AclConfiguration {
     aclStrategy().install(grantEvaluatorFeature, aclUserGrantEvaluator);
     return aclUserGrantEvaluator;
   }
-
+  
 }

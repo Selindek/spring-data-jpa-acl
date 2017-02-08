@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,23 +47,35 @@ public class AclLogicImpl implements AclLogic {
 
   @SuppressWarnings("unchecked")
   public AclMetaData createAclMetaData() {
-    Set<EntityType<?>> entities = em.getMetamodel().getEntities();
-    Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(entities,
+    Set<Class<?>> javaTypes = createJavaTypeSet();
+    
+    Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(javaTypes,
         AclUser.class);
-    Class<AclRole<Serializable>> aclRoleType = (Class<AclRole<Serializable>>) searchEntityType(entities, AclRole.class);
-    Class<AclPermission<Serializable>> aclPermissionType = (Class<AclPermission<Serializable>>) searchEntityType(entities, AclPermission.class);
+    Class<AclRole<Serializable>> aclRoleType = (Class<AclRole<Serializable>>) searchEntityType(javaTypes, AclRole.class);
+    Class<AclPermission<Serializable>> aclPermissionType = (Class<AclPermission<Serializable>>) searchEntityType(javaTypes, AclPermission.class);
     // TODO add default user if using SimpleAclUser
 
-    Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = createMetaDataMap(entities);
+    Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = createMetaDataMap(javaTypes);
 
     return new AclMetaData(aclUserType, aclRoleType, aclPermissionType, metaDataMap);
   }
 
-  private Class<?> searchEntityType(Set<EntityType<?>> entities, Class<?> checkType) {
-    Class<?> foundType = null;
-    for (EntityType<?> et : entities) {
+
+  private Set<Class<?>> createJavaTypeSet() {
+    Set<Class<?>> javaTypes = new HashSet<>();
+    for (EntityType<?> et : em.getMetamodel().getEntities()) {
       Class<?> type = et.getJavaType();
-      if (!Modifier.isAbstract(type.getModifiers()) && checkType.isAssignableFrom(type)) {
+      if (!Modifier.isAbstract(type.getModifiers())) {
+        javaTypes.add(type);
+      }
+    }
+    return javaTypes;
+  }
+
+  private Class<?> searchEntityType(Set<Class<?>> javaTypes, Class<?> checkType) {
+    Class<?> foundType = null;
+    for (Class<?> type : javaTypes) {
+      if (checkType.isAssignableFrom(type)) {
         if (foundType != null) {
           throw new IllegalStateException(
               "Multiple managed entity of class " + checkType.getSimpleName() + " found: " + foundType.getName() + " and " + type.getName());
@@ -75,22 +88,20 @@ public class AclLogicImpl implements AclLogic {
   }
 
   @SuppressWarnings("unchecked")
-  private Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> createMetaDataMap(Set<EntityType<?>> entities) {
+  private Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> createMetaDataMap(Set<Class<?>> javaTypes) {
     Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = new HashMap<>();
-    for (EntityType<?> et : entities) {
-      Class<?> javaType = et.getJavaType();
+    for (Class<?> javaType: javaTypes) {
       // Collect MetaData for AclEntities only
-      if (!Modifier.isAbstract(javaType.getModifiers()) && AclEntity.class.isAssignableFrom(javaType)) {
+      if ( AclEntity.class.isAssignableFrom(javaType)) {
         LOG.info("Create metadata for {}", javaType);
-        metaDataMap.put((Class<? extends AclEntity<Serializable>>) javaType, createAclEntityMetaData(et));
+        metaDataMap.put((Class<? extends AclEntity<Serializable>>) javaType, createAclEntityMetaData(javaType));
       }
     }
     return metaDataMap;
   }
 
-  private AclEntityMetaData createAclEntityMetaData(EntityType<?> et) {
+  private AclEntityMetaData createAclEntityMetaData(Class<?> javaType) {
     AclEntityMetaData metaData = new AclEntityMetaData();
-    Class<?> javaType = et.getJavaType();
     try {
       // We use BeanWrapper for checking annotations on fields AND getters and setters too
       BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(javaType.newInstance());
@@ -111,9 +122,8 @@ public class AclLogicImpl implements AclLogic {
   }
 
   private void checkAclPermissionsLinks(AclEntityMetaData metaData, Class<?> javaType) {
-    for (EntityType<?> et : em.getMetamodel().getEntities()) {
-      Class<?> type = et.getJavaType();
-      if (!Modifier.isAbstract(type.getModifiers()) && PermissionLink.class.isAssignableFrom(type)) {
+    for (Class<?> type : createJavaTypeSet()) {
+      if (PermissionLink.class.isAssignableFrom(type)) {
         try {
           if (type.getMethod("getTarget").getReturnType().equals(javaType)) {
             metaData.getOwnerPermissionList().add(type);
