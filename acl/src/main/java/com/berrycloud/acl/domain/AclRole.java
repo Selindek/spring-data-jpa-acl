@@ -8,6 +8,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 
+import org.springframework.core.style.ToStringCreator;
+
 @MappedSuperclass
 public abstract class AclRole<ID extends Serializable> {
 
@@ -54,5 +56,10 @@ public abstract class AclRole<ID extends Serializable> {
         return ((AclPermission<?>) object).getId() == null;
       }
       return getId().equals(((AclPermission<?>) object).getId());
+    }
+    
+    @Override
+    public String toString() { 
+      return new ToStringCreator(this).append("roleName", roleName).toString();
     }
 }

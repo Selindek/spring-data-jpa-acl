@@ -3,7 +3,9 @@ package com.berrycloud.acl;
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.berrycloud.acl.annotation.AclOwner;
 import com.berrycloud.acl.annotation.AclParent;
+import com.berrycloud.acl.annotation.AclRoleProvider;
 import com.berrycloud.acl.data.AclEntityMetaData;
 import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.data.OwnerData;
@@ -44,14 +47,14 @@ public class AclLogicImpl implements AclLogic {
   private EntityManager em;
 
   private Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType;
-  
+  private Class<AclRole<Serializable>> aclRoleType;
+
   @SuppressWarnings("unchecked")
   public AclMetaData createAclMetaData() {
     Set<Class<?>> javaTypes = createJavaTypeSet();
 
-    aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(javaTypes,
-        AclUser.class);
-    Class<AclRole<Serializable>> aclRoleType = (Class<AclRole<Serializable>>) searchEntityType(javaTypes, AclRole.class);
+    aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(javaTypes, AclUser.class);
+    aclRoleType = (Class<AclRole<Serializable>>) searchEntityType(javaTypes, AclRole.class);
     Class<AclPermission<Serializable>> aclPermissionType = (Class<AclPermission<Serializable>>) searchEntityType(javaTypes, AclPermission.class);
     // TODO add default user if using SimpleAclUser
 
@@ -123,11 +126,11 @@ public class AclLogicImpl implements AclLogic {
     LOG.trace("Collect permissionlinks for {}", javaType);
     for (Class<?> type : createJavaTypeSet()) {
       if (PermissionLink.class.isAssignableFrom(type)) {
-        // Check generic parameter 'target' of PermissionLink class 
+        // Check generic parameter 'target' of PermissionLink class
         if (javaType.equals(ResolvableType.forClass(type).as(PermissionLink.class).getGeneric(1).getRawClass())) {
           metaData.getOwnerPermissionList().add(type);
         }
-        // Check generic parameter 'owner' of PermissionLink class 
+        // Check generic parameter 'owner' of PermissionLink class
         if (javaType.equals(ResolvableType.forClass(type).as(PermissionLink.class).getGeneric(0).getRawClass())) {
           metaData.getTargetPermissionList().add(type);
         }
@@ -160,17 +163,52 @@ public class AclLogicImpl implements AclLogic {
   @Override
   public Set<AclRole<Serializable>> getAllRoles(AclUser<Serializable, AclRole<Serializable>> aclUser) {
 
-    Set<AclRole<Serializable>> roleSet = new HashSet<>(aclUser.getAclRoles());
-    
+    Set<AclRole<Serializable>> roleSet = new HashSet<>();
+
+    roleSet.addAll(getRoles(aclUser));
+
     // TODO collect all roles from attached properties
-    
+    BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(aclUser);
+    for (final PropertyDescriptor propertyDescriptor : beanWrapper.getPropertyDescriptors()) {
+      final String propertyName = propertyDescriptor.getName();
+      final TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(propertyName);
+      AclRoleProvider roleProvider = typeDescriptor.getAnnotation(AclRoleProvider.class);
+      if (roleProvider != null) {
+        LOG.trace("Found AclRoleProvider: {}.{}", aclUser.getClass(), propertyName);
+        @SuppressWarnings("unchecked")
+        Collection<Object> values = beanWrapper.convertIfNecessary(beanWrapper.getPropertyValue(propertyName), Collection.class);
+        for (Object value : values) {
+          LOG.trace("Collecting roles from {}", value);
+          roleSet.addAll(getRoles(value));
+        }
+      }
+    }
+
     return roleSet;
   }
 
+  private Collection<AclRole<Serializable>> getRoles(Object entity) {
+    Collection<AclRole<Serializable>> roleSet = new ArrayList<>();
+    BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(entity);
+    for (final PropertyDescriptor propertyDescriptor : beanWrapper.getPropertyDescriptors()) {
+      final String propertyName = propertyDescriptor.getName();
+      final TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(propertyName);
+      final TypeDescriptor elementTypeDescriptor = typeDescriptor.getElementTypeDescriptor();
+      if (aclRoleType == typeDescriptor.getType() || (elementTypeDescriptor != null && aclRoleType == elementTypeDescriptor.getType())) {
+        @SuppressWarnings("unchecked")
+        Collection<AclRole<Serializable>> roles = beanWrapper.convertIfNecessary(beanWrapper.getPropertyValue(propertyName), Collection.class);
+        if (roles != null) {
+          LOG.trace("Add roles from {}.{} : {}", entity.getClass(), propertyName, roles);
+          roleSet.addAll(roles);
+        }
+      }
+    }
+
+    return roleSet;
+  }
 
   /**
-   * Load AclUser by username without any permission checking.
-   * This method is for internal use only 
+   * Load AclUser by username without any permission checking. This method is for internal use only
    */
   @Override
   @Transactional(readOnly = true)
@@ -181,7 +219,7 @@ public class AclLogicImpl implements AclLogic {
     query.select(root).where(cb.equal(root.get("username"), username));
 
     AclUser<Serializable, AclRole<Serializable>> aclUser = em.createQuery(query).getSingleResult();
-   
+
     if (aclUser == null) {
       throw (new UsernameNotFoundException("User with username'" + username + "' cannot be found."));
     }

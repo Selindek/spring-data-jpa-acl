@@ -3,6 +3,7 @@ package com.berrycloud.acl;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -41,6 +42,9 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   public Predicate toPredicate(Root<AclEntity<Serializable>> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
     // Skip all predicate constructions if the current user is an admin
     LOG.trace("Creating predicates for {}", root.getJavaType());
+    // LOG.trace("ResultType: {}",query.getResultType());
+    // LOG.trace("Root joins: {}",root.getJoins());
+    // LOG.trace("Query Selection: {}",query.getSelection());
     if (aclUserDetailsService.isAdmin()) {
       LOG.trace("Access granted for ADMIN user");
       return cb.conjunction();
@@ -128,10 +132,17 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
     for (Class<?> ownerPermissionClass : metaData.getOwnerPermissionList()) {
       LOG.trace("Adding 'permission-link' predicate for {} - {}", ownerPermissionClass, from.getJavaType());
       Root<?> permissionLink = query.from(ownerPermissionClass);
+      permissionLink.alias(nextAlias());
       predicates.add(cb.and(cb.equal(permissionLink.get("target"), from.get("id")), cb.equal(permissionLink.get("owner"), userId)));
     }
 
     return predicates;
+  }
+
+  private static AtomicInteger aliasNumber = new AtomicInteger();
+
+  private static String nextAlias() {
+    return "_a" + aliasNumber.incrementAndGet();
   }
 
 }

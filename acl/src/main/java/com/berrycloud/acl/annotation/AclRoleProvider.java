@@ -9,15 +9,15 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * Indicates that the annotated property is the owner of this entity.
- * It must be an AclUser otherwise it's ignored.
- *  
+ * Indicates that the annotated property is can provide roles for this AclUser. It can be used on properties of a AclUser, otherwise ignored. All of the
+ * annotated properties are checked for Collections of AclRole properties during login, and those roles are added to the UserDeatails of the current user.
+ * Can be used on collections and simple properties.
+ * 
  * @author Istvan Ratkai
  *
  */
 @Target({ METHOD, FIELD })
 @Retention(RUNTIME)
 @Documented
-public @interface AclOwner {
-  String[] value() default { "read", "update", "delete" };
+public @interface AclRoleProvider {
 }

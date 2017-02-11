@@ -31,6 +31,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.berrycloud.acl.AclLogicImpl;
 import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
+import com.berrycloud.acl.AclBeanPropertyAccessorImpl;
 import com.berrycloud.acl.AclUserGrantEvaluator;
 import com.berrycloud.acl.AclUserPermissionSpecification;
 import com.berrycloud.acl.data.AclMetaData;
@@ -45,6 +46,11 @@ import com.github.lothar.security.acl.jpa.JpaSpecFeature;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class AclConfiguration {
 
+//  @Bean
+//  @Order()
+//  AclJpaMetamodelMappingContextFactoryBean jpaMappingContext() {
+//    return new AclJpaMetamodelMappingContextFactoryBean();
+//  }
 
   @Bean
   public SimpleAclStrategy aclStrategy() {
@@ -72,20 +78,20 @@ public class AclConfiguration {
   public SimpleAclUserDetailsService aclUserDetailsService() {
     return new SimpleAclUserDetailsService();
   }
-  
+
   @Bean
   public AclLogicImpl aclLogic() {
     return new AclLogicImpl();
   }
-  
+
   @Bean
   public AclMetaData aclMetaData() {
     return aclLogic().createAclMetaData();
   }
-  
+
   @Bean
   public AclUserPermissionSpecification aclUserPermissionSpecification(JpaSpecFeature<AclEntity<Serializable>> jpaSpecFeature) {
-    AclUserPermissionSpecification aclUserPermissionSpecification= new AclUserPermissionSpecification();
+    AclUserPermissionSpecification aclUserPermissionSpecification = new AclUserPermissionSpecification();
     aclStrategy().install(jpaSpecFeature, aclUserPermissionSpecification);
     return aclUserPermissionSpecification;
   }
@@ -97,4 +103,10 @@ public class AclConfiguration {
     return aclUserGrantEvaluator;
   }
 
+  @Bean
+  public AclBeanPropertyAccessorImpl aclPropertyAccessor(){
+    return new AclBeanPropertyAccessorImpl();
+  }
+  
+  
 }
