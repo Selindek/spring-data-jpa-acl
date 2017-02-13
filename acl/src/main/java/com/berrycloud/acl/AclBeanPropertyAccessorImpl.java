@@ -8,6 +8,7 @@ import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.From;
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
@@ -34,26 +35,28 @@ public class AclBeanPropertyAccessorImpl implements AclBeanPropertyAccessor{
   @Override
   // @Transactional
   public Object getProperty(PersistentProperty<?> property, Object bean) {
-    
+    CriteriaBuilder cb = em.getCriteriaBuilder();
+    String propertyName = property.getName();
+
     Identifiable<Serializable> owner = (Identifiable<Serializable>) bean;
     
-    String propertyName = property.getName();
-    CriteriaBuilder cb = em.getCriteriaBuilder();
     CriteriaQuery<Object> query =  (CriteriaQuery<Object>) cb.createQuery(property.getActualType());
     
-    //Root<?> root =  query.from(property.getActualType());
+//    Root<AclEntity<Serializable>> root =  (Root<AclEntity<Serializable>>)query.from(property.getActualType());
     Root<AclEntity<Serializable>> ownerRoot = (Root<AclEntity<Serializable>>) query.from(property.getOwner().getType());
-    //Predicate aclPredicate = aclUserPermissionSpecification.toPredicate(root, query, cb);
-    //query.select(root).where(cb.and(aclPredicate,cb.equal(ownerRoot.get("id"), owner.getId()),root.in(ownerRoot.join(propertyName))));
+//    Predicate aclPredicate = aclUserPermissionSpecification.toPredicate(root, query, cb);
+//    query.select(root).where(cb.and(aclPredicate,cb.equal(ownerRoot.get("id"), owner.getId()),root.in(ownerRoot.join(propertyName))));
 
     From<Root<AclEntity<Serializable>>,Root<AclEntity<Serializable>>> join = ownerRoot.join(propertyName);
-    //((Join)join).on(cb.equal(ownerRoot.get("id"), owner.getId()));
     query.select(join);
+    ((Join)join).on(cb.equal(ownerRoot.get("id"), owner.getId()));
     Predicate aclPredicate = aclUserPermissionSpecification.toPredicate(ownerRoot, query, cb);
-    query.where(cb.equal(ownerRoot.get("id"), owner.getId()));
-    query.distinct(true);
+    query.where(cb.and(aclPredicate/*,cb.equal(ownerRoot.get("id"), owner.getId())*/));
+    
+    //query.distinct(true);
     
     TypedQuery<?> tq = em.createQuery(query);
+    
     
     if (property.isCollectionLike()) {
       return tq.getResultList();
