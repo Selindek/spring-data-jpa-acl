@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.persistence.EntityManager;
+import javax.persistence.OneToMany;
 import javax.persistence.PersistenceContext;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -22,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
@@ -112,28 +112,27 @@ public class AclLogicImpl implements AclLogic {
         final TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(propertyName);
         checkAclOwner(metaData, javaType, propertyName, typeDescriptor);
         checkAclParent(metaData, javaType, propertyName, typeDescriptor);
+        checkAclPermissionLinks(metaData, javaType, propertyName, typeDescriptor);
       }
     } catch (InstantiationException | IllegalAccessException e) {
       LOG.error("Cannot instantiate {} ", javaType);
     }
 
-    checkAclPermissionsLinks(metaData, javaType);
-
     return metaData;
   }
 
-  private void checkAclPermissionsLinks(AclEntityMetaData metaData, Class<?> javaType) {
-    LOG.trace("Collect permissionlinks for {}", javaType);
-    for (Class<?> type : createJavaTypeSet()) {
-      if (PermissionLink.class.isAssignableFrom(type)) {
-        // Check generic parameter 'target' of PermissionLink class
-        if (javaType.equals(ResolvableType.forClass(type).as(PermissionLink.class).getGeneric(1).getRawClass())) {
-          metaData.getOwnerPermissionList().add(type);
-        }
-        // Check generic parameter 'owner' of PermissionLink class
-        if (javaType.equals(ResolvableType.forClass(type).as(PermissionLink.class).getGeneric(0).getRawClass())) {
-          metaData.getTargetPermissionList().add(type);
-        }
+  
+  
+  private void checkAclPermissionLinks(AclEntityMetaData metaData, Class<?> javaType, String propertyName, TypeDescriptor typeDescriptor) {
+    final OneToMany oneToMany = typeDescriptor.getAnnotation(OneToMany.class);
+    if (oneToMany != null && typeDescriptor.isCollection() && PermissionLink.class.isAssignableFrom(typeDescriptor.getElementTypeDescriptor().getType()) ) {
+      if("target".equals(oneToMany.mappedBy())) {
+        LOG.trace("PermissionLink owner: {}",propertyName);
+        metaData.getPermissionLinkOwnerList().add(propertyName);
+      }
+      if("owner".equals(oneToMany.mappedBy())) {
+        LOG.trace("PermissionLink target: {}",propertyName);
+        metaData.getPermissionLinkTargetList().add(propertyName);
       }
     }
   }

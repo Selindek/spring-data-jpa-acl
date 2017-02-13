@@ -7,8 +7,8 @@ public class AclEntityMetaData {
   
   private List<OwnerData> ownerDataList = new ArrayList<>();
   private List<String> parentList = new ArrayList<>();
-  private List<Class<?>> ownerPermissionList= new ArrayList<>();
-  private List<Class<?>> targetPermissionList= new ArrayList<>();
+  private List<String> permissionLinkOwnerList= new ArrayList<>();
+  private List<String> permissionLinkTargetList= new ArrayList<>();
 
   public List<OwnerData> getOwnerDataList() {
     return ownerDataList;
@@ -26,20 +26,20 @@ public class AclEntityMetaData {
     this.parentList = parentList;
   }
 
-  public List<Class<?>> getOwnerPermissionList() {
-    return ownerPermissionList;
+  public List<String> getPermissionLinkOwnerList() {
+    return permissionLinkOwnerList;
   }
 
-  public void setOwnerPermissionList(List<Class<?>> ownerPermissionList) {
-    this.ownerPermissionList = ownerPermissionList;
+  public void setPermissionLinkOwnerList(List<String> permissionLinkOwnerList) {
+    this.permissionLinkOwnerList = permissionLinkOwnerList;
   }
 
-  public List<Class<?>> getTargetPermissionList() {
-    return targetPermissionList;
+  public List<String> getPermissionLinkTargetList() {
+    return permissionLinkTargetList;
   }
 
-  public void setTargetPermissionList(List<Class<?>> targetPermissionList) {
-    this.targetPermissionList = targetPermissionList;
-  } 
+  public void setPermissionLinkTargetList(List<String> permissionLinkTargetList) {
+    this.permissionLinkTargetList = permissionLinkTargetList;
+  }
 
 }

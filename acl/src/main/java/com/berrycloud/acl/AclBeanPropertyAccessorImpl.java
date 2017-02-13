@@ -7,6 +7,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.From;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
@@ -38,16 +39,21 @@ public class AclBeanPropertyAccessorImpl implements AclBeanPropertyAccessor{
     
     String propertyName = property.getName();
     CriteriaBuilder cb = em.getCriteriaBuilder();
-    CriteriaQuery<AclEntity<?>> query = (CriteriaQuery<AclEntity<?>>) cb.createQuery(property.getActualType());
-    Root<AclEntity<Serializable>> root = (Root<AclEntity<Serializable>>) query.from(property.getActualType());
-    Root<?> ownerRoot = query.from(property.getOwner().getType());
-
-    Predicate AclPredicate = aclUserPermissionSpecification.toPredicate(root, query, cb);
-
-    query.select(root).where(cb.and(AclPredicate,cb.equal(ownerRoot.get("id"), owner.getId()),root.in(ownerRoot.join(propertyName))));
-
+    CriteriaQuery<Object> query =  (CriteriaQuery<Object>) cb.createQuery(property.getActualType());
     
-    TypedQuery<AclEntity<?>> tq = em.createQuery(query);
+    //Root<?> root =  query.from(property.getActualType());
+    Root<AclEntity<Serializable>> ownerRoot = (Root<AclEntity<Serializable>>) query.from(property.getOwner().getType());
+    //Predicate aclPredicate = aclUserPermissionSpecification.toPredicate(root, query, cb);
+    //query.select(root).where(cb.and(aclPredicate,cb.equal(ownerRoot.get("id"), owner.getId()),root.in(ownerRoot.join(propertyName))));
+
+    From<Root<AclEntity<Serializable>>,Root<AclEntity<Serializable>>> join = ownerRoot.join(propertyName);
+    //((Join)join).on(cb.equal(ownerRoot.get("id"), owner.getId()));
+    query.select(join);
+    Predicate aclPredicate = aclUserPermissionSpecification.toPredicate(ownerRoot, query, cb);
+    query.where(cb.equal(ownerRoot.get("id"), owner.getId()));
+    query.distinct(true);
+    
+    TypedQuery<?> tq = em.createQuery(query);
     
     if (property.isCollectionLike()) {
       return tq.getResultList();
