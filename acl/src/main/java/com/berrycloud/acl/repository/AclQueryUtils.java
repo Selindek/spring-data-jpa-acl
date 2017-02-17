@@ -1,4 +1,4 @@
-package com.berrycloud.acl;
+package com.berrycloud.acl.repository;
 
 import java.io.Serializable;
 
@@ -14,9 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.hateoas.Identifiable;
 
+import com.berrycloud.acl.AclUserPermissionSpecification;
 import com.berrycloud.acl.domain.AclEntity;
 
-public class AclBeanPropertyAccessorImpl implements AclBeanPropertyAccessor {
+public class AclQueryUtils {
 
   @PersistenceContext
   private EntityManager em;
@@ -24,13 +25,8 @@ public class AclBeanPropertyAccessorImpl implements AclBeanPropertyAccessor {
   @Autowired
   private AclUserPermissionSpecification aclUserPermissionSpecification;
 
-  @Override
-  public void setProperty(PersistentProperty<?> property, Object bean, Object value) {
-    // TODO Auto-generated method stub
-  }
 
   // Temporary solution. Should work via Jpa
-  @Override
   // @Transactional
   public Object getProperty(PersistentProperty<?> property, Object bean) {
     CriteriaBuilder cb = em.getCriteriaBuilder();
@@ -57,4 +53,5 @@ public class AclBeanPropertyAccessorImpl implements AclBeanPropertyAccessor {
     return tq.getSingleResult();
   }
 
+  
 }

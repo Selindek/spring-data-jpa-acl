@@ -1,4 +1,4 @@
-package com.berrycloud.acl.test;
+package com.berrycloud.acl.repository;
 
 import java.io.Serializable;
 

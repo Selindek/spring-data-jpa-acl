@@ -38,17 +38,6 @@ import com.berrycloud.acl.security.SimpleAclUserDetailsService;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class AclConfiguration {
 
-//  @Bean
-//  @Order()
-//  AclJpaMetamodelMappingContextFactoryBean jpaMappingContext() {
-//    return new AclJpaMetamodelMappingContextFactoryBean();
-//  }
-
-//  @Bean
-//  public SimpleAclStrategy aclStrategy() {
-//    return new SimpleAclStrategy();
-//  }
-
   @Bean
   public EntityManagerFactoryBuilder entityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
       ObjectProvider<PersistenceUnitManager> persistenceUnitManagerProvider, JpaProperties properties) {
@@ -82,22 +71,8 @@ public class AclConfiguration {
   }
 
   @Bean
-  public AclUserPermissionSpecification aclUserPermissionSpecification(/*JpaSpecFeature<AclEntity<Serializable>> jpaSpecFeature*/) {
-    AclUserPermissionSpecification aclUserPermissionSpecification = new AclUserPermissionSpecification();
-    //aclStrategy().install(jpaSpecFeature, aclUserPermissionSpecification);
-    return aclUserPermissionSpecification;
+  public AclUserPermissionSpecification aclUserPermissionSpecification() {
+    return new AclUserPermissionSpecification();
   }
 
-//  @Bean
-//  public AclUserGrantEvaluator aclUserGrantEvaluator(GrantEvaluatorFeature grantEvaluatorFeature) {
-//    AclUserGrantEvaluator aclUserGrantEvaluator = new AclUserGrantEvaluator();
-//    aclStrategy().install(grantEvaluatorFeature, aclUserGrantEvaluator);
-//    return aclUserGrantEvaluator;
-//  }
-
-//  @Bean
-//  public AclBeanPropertyAccessorImpl aclPropertyAccessor(){
-//    return new AclBeanPropertyAccessorImpl();
-//  }
-  
 }
