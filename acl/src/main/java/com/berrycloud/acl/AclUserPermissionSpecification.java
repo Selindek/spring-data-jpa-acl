@@ -3,7 +3,6 @@ package com.berrycloud.acl;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -169,10 +168,10 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
     return predicates;
   }
 
-  private static AtomicInteger aliasNumber = new AtomicInteger();
+//  private static AtomicInteger aliasNumber = new AtomicInteger();
 
-  private static String nextAlias() {
-    return "_a" + aliasNumber.incrementAndGet();
-  }
+//  private static String nextAlias() {
+//    return "_a" + aliasNumber.incrementAndGet();
+//  }
 
 }

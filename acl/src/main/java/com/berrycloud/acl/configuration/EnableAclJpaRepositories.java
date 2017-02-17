@@ -18,7 +18,7 @@ import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import com.github.lothar.security.acl.jpa.repository.AclJpaRepositoryFactoryBean;
+import com.berrycloud.acl.test.AclJpaRepositoryFactoryBean;
 
 /**
  * Annotation to enable JPA repositories. Will scan the package of the annotated configuration class for Spring Data

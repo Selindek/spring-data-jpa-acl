@@ -13,8 +13,6 @@
  *******************************************************************************/
 package com.berrycloud.acl.configuration;
 
-import java.io.Serializable;
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
@@ -31,15 +29,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.berrycloud.acl.AclLogicImpl;
 import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
-import com.berrycloud.acl.AclBeanPropertyAccessorImpl;
-import com.berrycloud.acl.AclUserGrantEvaluator;
 import com.berrycloud.acl.AclUserPermissionSpecification;
 import com.berrycloud.acl.data.AclMetaData;
-import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.security.SimpleAclUserDetailsService;
-import com.github.lothar.security.acl.SimpleAclStrategy;
-import com.github.lothar.security.acl.grant.GrantEvaluatorFeature;
-import com.github.lothar.security.acl.jpa.JpaSpecFeature;
 
 @Configuration
 @EnableWebSecurity
@@ -52,10 +44,10 @@ public class AclConfiguration {
 //    return new AclJpaMetamodelMappingContextFactoryBean();
 //  }
 
-  @Bean
-  public SimpleAclStrategy aclStrategy() {
-    return new SimpleAclStrategy();
-  }
+//  @Bean
+//  public SimpleAclStrategy aclStrategy() {
+//    return new SimpleAclStrategy();
+//  }
 
   @Bean
   public EntityManagerFactoryBuilder entityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
@@ -90,23 +82,22 @@ public class AclConfiguration {
   }
 
   @Bean
-  public AclUserPermissionSpecification aclUserPermissionSpecification(JpaSpecFeature<AclEntity<Serializable>> jpaSpecFeature) {
+  public AclUserPermissionSpecification aclUserPermissionSpecification(/*JpaSpecFeature<AclEntity<Serializable>> jpaSpecFeature*/) {
     AclUserPermissionSpecification aclUserPermissionSpecification = new AclUserPermissionSpecification();
-    aclStrategy().install(jpaSpecFeature, aclUserPermissionSpecification);
+    //aclStrategy().install(jpaSpecFeature, aclUserPermissionSpecification);
     return aclUserPermissionSpecification;
   }
 
-  @Bean
-  public AclUserGrantEvaluator aclUserGrantEvaluator(GrantEvaluatorFeature grantEvaluatorFeature) {
-    AclUserGrantEvaluator aclUserGrantEvaluator = new AclUserGrantEvaluator();
-    aclStrategy().install(grantEvaluatorFeature, aclUserGrantEvaluator);
-    return aclUserGrantEvaluator;
-  }
+//  @Bean
+//  public AclUserGrantEvaluator aclUserGrantEvaluator(GrantEvaluatorFeature grantEvaluatorFeature) {
+//    AclUserGrantEvaluator aclUserGrantEvaluator = new AclUserGrantEvaluator();
+//    aclStrategy().install(grantEvaluatorFeature, aclUserGrantEvaluator);
+//    return aclUserGrantEvaluator;
+//  }
 
-  @Bean
-  public AclBeanPropertyAccessorImpl aclPropertyAccessor(){
-    return new AclBeanPropertyAccessorImpl();
-  }
-  
+//  @Bean
+//  public AclBeanPropertyAccessorImpl aclPropertyAccessor(){
+//    return new AclBeanPropertyAccessorImpl();
+//  }
   
 }
