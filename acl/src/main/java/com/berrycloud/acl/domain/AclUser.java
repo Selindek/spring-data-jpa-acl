@@ -10,8 +10,6 @@ import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 import javax.persistence.MappedSuperclass;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 @MappedSuperclass
 public abstract class AclUser<ID extends Serializable, R extends AclRole<? extends Serializable>> extends AclOwner<ID> {
 
@@ -21,7 +19,6 @@ public abstract class AclUser<ID extends Serializable, R extends AclRole<? exten
 
   @Column(unique = true, nullable = false)
   private String username;
-  @JsonIgnore
   private String password;
 
   @ManyToMany

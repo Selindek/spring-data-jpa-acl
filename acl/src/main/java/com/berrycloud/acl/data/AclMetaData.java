@@ -41,7 +41,7 @@ public class AclMetaData {
     return metaDataMap;
   }
   
-  public AclEntityMetaData getAclEntityMetaData(Class<? extends AclEntity<Serializable>> entityClass) {
+  public AclEntityMetaData getAclEntityMetaData(Class<?> entityClass) {
     return metaDataMap.get(entityClass);
   }
 

@@ -27,9 +27,10 @@ import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.data.OwnerData;
 import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.domain.AclUser;
+import com.berrycloud.acl.security.AclUserDetails;
 import com.berrycloud.acl.security.AclUserDetailsService;
 
-public class AclUserPermissionSpecification implements Specification<AclEntity<Serializable>> {
+public class AclUserPermissionSpecification implements Specification<Object> {
 
   private static Logger LOG = LoggerFactory.getLogger(AclUserPermissionSpecification.class);
 
@@ -41,18 +42,30 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
 
   @SuppressWarnings("unchecked")
   @Override
-  public Predicate toPredicate(Root<AclEntity<Serializable>> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+  public Predicate toPredicate(Root<Object> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
     
+    // Gather the id of current user
+    AclUserDetails user = aclUserDetailsService.getCurrentUser();
+    if(user== null) {
+      LOG.trace("Access denied for NULL user");
+      return cb.disjunction();
+    }
+
     // Skip all predicate constructions if the current user is an admin
     if (aclUserDetailsService.isAdmin()) {
-      LOG.trace("Access granted for ADMIN user");
+      LOG.trace("Access granted for ADMIN user: {}",user.getUsername());
       return cb.conjunction();
     }
     
-    From<AclEntity<Serializable>, AclEntity<Serializable>> from = root;
+    if(!AclEntity.class.isAssignableFrom(root.getJavaType())) {
+      LOG.trace("Access granted for non-AclEntity: {}",root.getJavaType());
+      return cb.conjunction();
+    }
+    
+    From<Object, Object> from = root;
     Selection<?> selection=query.getSelection();
     if(selection!=null && selection instanceof From) {
-      from = (From<AclEntity<Serializable>, AclEntity<Serializable>>) selection;
+      from = (From<Object, Object>) selection;
     }
     LOG.trace("Creating predicates for {}", from.getJavaType());
     // LOG.trace("ResultType: {}",query.getResultType());
@@ -71,15 +84,12 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
       query.orderBy(orderList);
     }
 
-    // Gather the id of current user
-    Serializable userId = aclUserDetailsService.getCurrentUser().getUserId();
-
     // TODO: check for multiple roots and check permissions for ALL roots using AND
     // Currently there is no use-case for it, but who knows...
-    return toSubPredicate(from, query, cb, userId);
+    return toSubPredicate(from, query, cb, user.getUserId());
   }
 
-  protected Predicate toSubPredicate(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+  protected Predicate toSubPredicate(From<Object, Object> from, CriteriaQuery<?> query, CriteriaBuilder cb,
       Serializable userId) {
 
     List<Predicate> predicates = new ArrayList<>();
@@ -101,7 +111,7 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   /**
    * Creates predicates for current user
    */
-  private List<Predicate> createSelfPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+  private List<Predicate> createSelfPredicates(From<Object, Object> from, CriteriaQuery<?> query, CriteriaBuilder cb,
       Serializable userId) {
     List<Predicate> predicates = new ArrayList<>();
     if (AclUser.class.isAssignableFrom(from.getJavaType())) {
@@ -115,7 +125,7 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   /**
    * Creates predicates for direct owners defined by {@link AclOwner} annotation
    */
-  private List<Predicate> createOwnerPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+  private List<Predicate> createOwnerPredicates(From<Object, Object> from, CriteriaQuery<?> query, CriteriaBuilder cb,
       Serializable userId) {
     List<Predicate> predicates = new ArrayList<>();
     AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
@@ -132,7 +142,7 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
    * Creates predicates for parent objects defined by {@link AclParent} annotation
    * 
    */
-  private List<Predicate> createParentPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+  private List<Predicate> createParentPredicates(From<Object, Object> from, CriteriaQuery<?> query, CriteriaBuilder cb,
       Serializable userId) {
     List<Predicate> predicates = new ArrayList<>();
     AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
@@ -146,32 +156,18 @@ public class AclUserPermissionSpecification implements Specification<AclEntity<S
   /**
    * Creates predicates for permissionLinks
    */
-  private List<Predicate> createPermissionPredicates(From<AclEntity<Serializable>, AclEntity<Serializable>> from, CriteriaQuery<?> query, CriteriaBuilder cb,
+  private List<Predicate> createPermissionPredicates(From<Object, Object> from, CriteriaQuery<?> query, CriteriaBuilder cb,
       Serializable userId) {
     List<Predicate> predicates = new ArrayList<>();
 
     AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
     for (String permissionLinkOwner : metaData.getPermissionLinkOwnerList()) {
       LOG.trace("Adding 'permission-link' predicate for {}.{}", from.getJavaType(), permissionLinkOwner);
-      // TODO doesn't work with 'tricky' queries. Must use join (have to add permissionLink associations to entities- that's the elegant way anyway)
-      //Root<?> permissionLink = query. from(ownerPermissionClass);
       Join<?,?> permissionLink = from.join(permissionLinkOwner, JoinType.LEFT);
-//      Join<?,?> currentUser= permissionLink.join("owner", JoinType.LEFT).on(cb.equal(permissionLink.get("owner").get("id"), userId));
-      
-//      Predicate joinOn = (cb.equal(permissionLink.get("owner").get("id"), userId));
-//      permissionLink.on(joinOn);
-      // TODO : ???
-      //permissionLink.alias(nextAlias());
-      predicates.add(cb.and(/*cb.equal(permissionLink.get("target"), from.get("id")),*/ cb.equal(permissionLink.get("owner").get("id"), userId)));
+      predicates.add(cb.equal(permissionLink.get("owner").get("id"), userId));
     }
 
     return predicates;
   }
-
-//  private static AtomicInteger aliasNumber = new AtomicInteger();
-
-//  private static String nextAlias() {
-//    return "_a" + aliasNumber.incrementAndGet();
-//  }
 
 }

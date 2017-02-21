@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -65,7 +66,11 @@ public class SimpleAclUserDetailsService implements AclUserDetailsService<Simple
 
   @Override
   public AclUserDetails getCurrentUser() {
-    return (AclUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if(authentication != null) {
+      return (AclUserDetails) authentication.getPrincipal();
+    }
+    return null;
   }
 
   @Override
@@ -76,7 +81,8 @@ public class SimpleAclUserDetailsService implements AclUserDetailsService<Simple
 
   @Override
   public boolean hasAuthority(String authority) {
-    return getCurrentUser().getAuthorities().contains(createGrantedAuthority(authority));
+    AclUserDetails currentUser =getCurrentUser();
+    return currentUser!=null && currentUser.getAuthorities().contains(createGrantedAuthority(authority));
   }
   
  
