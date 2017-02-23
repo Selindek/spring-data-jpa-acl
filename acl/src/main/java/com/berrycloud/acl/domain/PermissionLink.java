@@ -1,5 +1,6 @@
 package com.berrycloud.acl.domain;
 
+import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -7,13 +8,26 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.MappedSuperclass;
 
-@MappedSuperclass
-public abstract class PermissionLink<O extends AclOwner<?>, T extends AclEntity<?>, P extends AclPermission<?>> {
+import com.berrycloud.acl.annotation.AclOwner;
 
+@MappedSuperclass
+public abstract class PermissionLink<O extends AclEntity<?>, T extends AclEntity<?>> {
+
+  @Id
+  @GeneratedValue(strategy=GenerationType.AUTO)
   private Integer id;
+  
+  @AclOwner
+  @ManyToOne()
+  @JoinColumn( nullable = false, updatable = false)
   private O owner;
+  
+  @ManyToOne()
+  @JoinColumn( nullable = false, updatable = false)
   private T target;
-  private P permission;
+  
+  @Column(nullable = false, updatable = false)
+  private String permission;
 
   public PermissionLink() {
   }
@@ -22,14 +36,13 @@ public abstract class PermissionLink<O extends AclOwner<?>, T extends AclEntity<
     this.id = id;
   }
   
-  public PermissionLink(O owner, T target, P permission) {
+  public PermissionLink(O owner, T target, String permission) {
     this.owner = owner;
     this.target = target;
     this.permission = permission;
   }
 
-  @Id
-  @GeneratedValue(strategy=GenerationType.AUTO)
+
   public Integer getId() {
     return id;
   }
@@ -38,8 +51,7 @@ public abstract class PermissionLink<O extends AclOwner<?>, T extends AclEntity<
     this.id = id;
   }
 
-  @ManyToOne()
-  @JoinColumn( nullable = false, updatable = false)
+
   public O getOwner() {
     return owner;
   }
@@ -48,8 +60,7 @@ public abstract class PermissionLink<O extends AclOwner<?>, T extends AclEntity<
     this.owner = owner;
   }
 
-  @ManyToOne()
-  @JoinColumn( nullable = false, updatable = false)
+
   public T getTarget() {
     return target;
   }
@@ -58,13 +69,12 @@ public abstract class PermissionLink<O extends AclOwner<?>, T extends AclEntity<
     this.target = target;
   }
 
-  @ManyToOne()
-  @JoinColumn(nullable = false, updatable = false)
-  public P getPermission() {
+
+  public String getPermission() {
     return permission;
   }
 
-  public void setPermission(final P permission) {
+  public void setPermission(final String permission) {
     this.permission = permission;
   }
 

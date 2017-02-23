@@ -1,5 +1,6 @@
 package com.berrycloud.acl.annotation;
 
+import static com.berrycloud.acl.AclUtils.ALL_PERMISSION;
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -20,5 +21,15 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Documented
 public @interface AclParent {
-
+  /**
+   * The permissions which are inherited from this parent
+   */
+  String[] value() default { ALL_PERMISSION };
+  
+  /**
+   * The permission prefix for parent permissions.
+   * The user will gain permission to the current object if she has {prefix}permission to the parent object.
+   * Default is empty string.
+   */
+  String prefix() default "";
 }

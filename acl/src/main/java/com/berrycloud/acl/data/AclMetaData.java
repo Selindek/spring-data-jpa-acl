@@ -5,24 +5,32 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.berrycloud.acl.domain.AclEntity;
-import com.berrycloud.acl.domain.AclPermission;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 
 public class AclMetaData {
   private Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType;
   private Class<AclRole<Serializable>> aclRoleType;
-  private Class<AclPermission<Serializable>> aclPermissionType;
-  
+  private PermissionData selfPermissions ;
+
   private Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap;
 
   public AclMetaData(Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType, Class<AclRole<Serializable>> aclRoleType,
-      Class<AclPermission<Serializable>> aclPermissionType, Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap) {
+      Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap,
+      PermissionData selfPermissions) {
     super();
     this.aclUserType = aclUserType;
     this.aclRoleType = aclRoleType;
-    this.aclPermissionType = aclPermissionType;
     this.metaDataMap = Collections.unmodifiableMap(metaDataMap);
+    this.selfPermissions = selfPermissions;
+  }
+
+  public PermissionData getSelfPermissions() {
+    return selfPermissions;
+  }
+
+  public void setSelfPermissions(PermissionData selfPermissions) {
+    this.selfPermissions = selfPermissions;
   }
 
   public Class<AclUser<Serializable, AclRole<Serializable>>> getAclUserType() {
@@ -33,14 +41,10 @@ public class AclMetaData {
     return aclRoleType;
   }
 
-  public Class<AclPermission<Serializable>> getAclPermissionType() {
-    return aclPermissionType;
-  }
-
   public Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> getMetaDataMap() {
     return metaDataMap;
   }
-  
+
   public AclEntityMetaData getAclEntityMetaData(Class<?> entityClass) {
     return metaDataMap.get(entityClass);
   }

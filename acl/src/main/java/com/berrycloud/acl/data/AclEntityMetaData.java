@@ -6,9 +6,9 @@ import java.util.List;
 public class AclEntityMetaData {
   
   private List<OwnerData> ownerDataList = new ArrayList<>();
-  private List<String> parentList = new ArrayList<>();
-  private List<String> permissionLinkOwnerList= new ArrayList<>();
-  private List<String> permissionLinkTargetList= new ArrayList<>();
+  private List<OwnerData> ownerGroupDataList = new ArrayList<>();
+  private List<ParentData> parentDataList = new ArrayList<>();
+  private List<PermissionLinkData> permissionLinkList= new ArrayList<>();
 
   public List<OwnerData> getOwnerDataList() {
     return ownerDataList;
@@ -18,28 +18,29 @@ public class AclEntityMetaData {
     this.ownerDataList = ownerDataList;
   }
 
-  public List<String> getParentList() {
-    return parentList;
+  public List<ParentData> getParentDataList() {
+    return parentDataList;
   }
 
-  public void setParentList(List<String> parentList) {
-    this.parentList = parentList;
+  public void setDataParentList(List<ParentData> parentDataList) {
+    this.parentDataList = parentDataList;
   }
 
-  public List<String> getPermissionLinkOwnerList() {
-    return permissionLinkOwnerList;
+  public List<OwnerData> getOwnerGroupDataList() {
+    return ownerGroupDataList;
   }
 
-  public void setPermissionLinkOwnerList(List<String> permissionLinkOwnerList) {
-    this.permissionLinkOwnerList = permissionLinkOwnerList;
+  public void setOwnerGroupDataList(List<OwnerData> ownerGroupDataList) {
+    this.ownerGroupDataList = ownerGroupDataList;
   }
 
-  public List<String> getPermissionLinkTargetList() {
-    return permissionLinkTargetList;
+  public List<PermissionLinkData> getPermissionLinkList() {
+    return permissionLinkList;
   }
 
-  public void setPermissionLinkTargetList(List<String> permissionLinkTargetList) {
-    this.permissionLinkTargetList = permissionLinkTargetList;
+  public void setPermissionLinkList(List<PermissionLinkData> permissionLinkList) {
+    this.permissionLinkList = permissionLinkList;
   }
+
 
 }

@@ -8,10 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.orm.jpa.persistenceunit.MutablePersistenceUnitInfo;
 import org.springframework.orm.jpa.persistenceunit.PersistenceUnitPostProcessor;
 
-import com.berrycloud.acl.domain.AclPermission;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
-import com.berrycloud.acl.domain.SimpleAclPermission;
 import com.berrycloud.acl.domain.SimpleAclRole;
 import com.berrycloud.acl.domain.SimpleAclUser;
 
@@ -30,10 +28,6 @@ public class AclPersistenceUnitPostProcessor implements PersistenceUnitPostProce
     if (missClass(entityClasses, AclRole.class)) {
       pui.addManagedClassName(SimpleAclRole.class.getName());
       LOG.info("{} was added to managed entities.", SimpleAclRole.class);
-    }
-    if (missClass(entityClasses, AclPermission.class)) {
-      pui.addManagedClassName(SimpleAclPermission.class.getName());
-      LOG.info("{} was added to managed entities.", SimpleAclPermission.class);
     }
   }
 

@@ -1,10 +1,12 @@
 package com.berrycloud.acl;
 
+import static com.berrycloud.acl.AclUtils.ALL_PERMISSION;
+import static com.berrycloud.acl.AclUtils.PERMISSION_PREFIX_DELIMITER;
+
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +36,10 @@ import com.berrycloud.acl.annotation.AclRoleProvider;
 import com.berrycloud.acl.data.AclEntityMetaData;
 import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.data.OwnerData;
+import com.berrycloud.acl.data.ParentData;
+import com.berrycloud.acl.data.PermissionData;
+import com.berrycloud.acl.data.PermissionLinkData;
 import com.berrycloud.acl.domain.AclEntity;
-import com.berrycloud.acl.domain.AclPermission;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.domain.PermissionLink;
@@ -45,6 +50,9 @@ public class AclLogicImpl implements AclLogic {
 
   @PersistenceContext
   private EntityManager em;
+  
+  @Value("${spring.data.jpa.acl.self-permissions:"+ALL_PERMISSION+"}")
+  private String[] defaultSelfPermissions;
 
   private Class<AclUser<Serializable, AclRole<Serializable>>> aclUserType;
   private Class<AclRole<Serializable>> aclRoleType;
@@ -55,12 +63,11 @@ public class AclLogicImpl implements AclLogic {
 
     aclUserType = (Class<AclUser<Serializable, AclRole<Serializable>>>) searchEntityType(javaTypes, AclUser.class);
     aclRoleType = (Class<AclRole<Serializable>>) searchEntityType(javaTypes, AclRole.class);
-    Class<AclPermission<Serializable>> aclPermissionType = (Class<AclPermission<Serializable>>) searchEntityType(javaTypes, AclPermission.class);
     // TODO add default user if using SimpleAclUser
 
     Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = createMetaDataMap(javaTypes);
 
-    return new AclMetaData(aclUserType, aclRoleType, aclPermissionType, metaDataMap);
+    return new AclMetaData(aclUserType, aclRoleType, metaDataMap, new PermissionData(defaultSelfPermissions));
   }
 
   private Set<Class<?>> createJavaTypeSet() {
@@ -94,11 +101,12 @@ public class AclLogicImpl implements AclLogic {
     Map<Class<? extends AclEntity<Serializable>>, AclEntityMetaData> metaDataMap = new HashMap<>();
     for (Class<?> javaType : javaTypes) {
       // Collect MetaData for AclEntities only
-      if (AclEntity.class.isAssignableFrom(javaType)) {
+      if (AclEntity.class.isAssignableFrom(javaType) || PermissionLink.class.isAssignableFrom(javaType)) {
         LOG.debug("Create metadata for {}", javaType);
         metaDataMap.put((Class<? extends AclEntity<Serializable>>) javaType, createAclEntityMetaData(javaType));
       }
     }
+
     return metaDataMap;
   }
 
@@ -121,18 +129,18 @@ public class AclLogicImpl implements AclLogic {
     return metaData;
   }
 
-  
-  
+//  private HashSet<String> createSelfPermissions(Class<?> javaType) {
+//    AclSelf aclSelf = AnnotationUtils.findAnnotation(javaType, AclSelf.class);
+//    return new HashSet<String>(Arrays.asList(aclSelf != null ? aclSelf.value() : DEFAULT_PERMISSIONS));
+//  }
+
   private void checkAclPermissionLinks(AclEntityMetaData metaData, Class<?> javaType, String propertyName, TypeDescriptor typeDescriptor) {
     final OneToMany oneToMany = typeDescriptor.getAnnotation(OneToMany.class);
-    if (oneToMany != null && typeDescriptor.isCollection() && PermissionLink.class.isAssignableFrom(typeDescriptor.getElementTypeDescriptor().getType()) ) {
-      if("target".equals(oneToMany.mappedBy())) {
-        LOG.trace("PermissionLink owner: {}",propertyName);
-        metaData.getPermissionLinkOwnerList().add(propertyName);
-      }
-      if("owner".equals(oneToMany.mappedBy())) {
-        LOG.trace("PermissionLink target: {}",propertyName);
-        metaData.getPermissionLinkTargetList().add(propertyName);
+    if (oneToMany != null && (typeDescriptor.isCollection() || typeDescriptor.isArray())
+        && PermissionLink.class.isAssignableFrom(typeDescriptor.getElementTypeDescriptor().getType())) {
+      if ("target".equals(oneToMany.mappedBy())) {
+        LOG.trace("PermissionLink owner: {}", propertyName);
+        metaData.getPermissionLinkList().add(new PermissionLinkData(propertyName, "permission"));
       }
     }
   }
@@ -141,7 +149,19 @@ public class AclLogicImpl implements AclLogic {
     final AclOwner aclOwner = typeDescriptor.getAnnotation(AclOwner.class);
     if (aclOwner != null) {
       if (AclUser.class.isAssignableFrom(typeDescriptor.getObjectType())) {
-        metaData.getOwnerDataList().add(new OwnerData(propertyName, Arrays.asList(aclOwner.value())));
+        // The owner is an AclUser
+        metaData.getOwnerDataList().add(new OwnerData(propertyName, false, aclOwner.value()));
+      } else if ((typeDescriptor.isArray() || typeDescriptor.isCollection()) && typeDescriptor.getElementTypeDescriptor() != null
+          && AclUser.class.isAssignableFrom(typeDescriptor.getElementTypeDescriptor().getObjectType())) {
+        // The owner is an AclUser collection
+        metaData.getOwnerDataList().add(new OwnerData(propertyName, true, aclOwner.value()));
+      } else if (AclEntity.class.isAssignableFrom(typeDescriptor.getObjectType())) {
+        // The owner is NOT an AclUser, but an AclEntity. We treat it as a group of users.
+        metaData.getOwnerGroupDataList().add(new OwnerData(propertyName, false, aclOwner.value()));
+      } else if ((typeDescriptor.isArray() || typeDescriptor.isCollection()) && typeDescriptor.getElementTypeDescriptor() != null
+          && AclEntity.class.isAssignableFrom(typeDescriptor.getElementTypeDescriptor().getObjectType())) {
+        // The owner is NOT an AclUser, but an AclEntity collection. We treat it as a collection of groups.
+        metaData.getOwnerGroupDataList().add(new OwnerData(propertyName, true, aclOwner.value()));
       } else {
         LOG.warn("Non-AclUser property '{}' in {} is annotated by @AclOwner ... ignored", propertyName, javaType);
       }
@@ -152,9 +172,13 @@ public class AclLogicImpl implements AclLogic {
     final AclParent aclParent = typeDescriptor.getAnnotation(AclParent.class);
     if (aclParent != null) {
       if (AclEntity.class.isAssignableFrom(typeDescriptor.getObjectType())) {
-        metaData.getParentList().add(propertyName);
+        if (aclParent.prefix().indexOf(PERMISSION_PREFIX_DELIMITER) != -1) {
+          LOG.warn("@AclParent's prefix property contains illegal character at '{}.{}' ... ignored", javaType, propertyName);
+        } else {
+          metaData.getParentDataList().add(new ParentData(propertyName, aclParent.prefix(), aclParent.value() ));
+        }
       } else {
-        LOG.warn("Non-AclEntity property '{}' in {} is annotated by @AclParent ... ignored", propertyName, javaType);
+        LOG.warn("Non-AclEntity property '{}.{}' is annotated by @AclParent ... ignored", javaType, propertyName);
       }
     }
   }
