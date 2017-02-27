@@ -8,8 +8,10 @@ import com.berrycloud.acl.domain.AclUser;
 
 public interface AclLogic {
 
-  AclUser<Serializable, AclRole<Serializable>> loadUserByUsername(String username);
+	AclUser<Serializable, AclRole<Serializable>> loadUserByUsername(String username);
 
-  Set<AclRole<Serializable>> getAllRoles(AclUser<Serializable, AclRole<Serializable>> aclUser);
+	Set<AclRole<Serializable>> getAllRoles(AclUser<Serializable, AclRole<Serializable>> aclUser);
+
+	Serializable getUserId(AclUser<Serializable, AclRole<Serializable>> user);
 
 }

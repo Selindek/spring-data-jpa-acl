@@ -18,72 +18,69 @@ import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 
 public class SimpleAclUserDetailsService implements AclUserDetailsService<SimpleGrantedAuthority> {
-  // TODO extend it to a UserDetailsManager ???  
-  // TODO make it work with other derived GrantedAuthorities ???
+	// TODO extend it to a UserDetailsManager ???
+	// TODO make it work with other derived GrantedAuthorities ???
 
-  @Autowired
-  private AclLogic aclLogic;
+	@Autowired
+	private AclLogic aclLogic;
 
+	@Override
+	@Transactional(readOnly = true)
+	public AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-  @Override
-  @Transactional(readOnly = true)
-  public AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+		AclUser<Serializable, AclRole<Serializable>> aclUser = aclLogic.loadUserByUsername(username);
 
-    AclUser<Serializable, AclRole<Serializable>> aclUser = aclLogic.loadUserByUsername(username);
-    
-    return createUserDetails(aclUser, createAuthorities(aclLogic.getAllRoles(aclUser)));
-  }
-  
-  /**
-   * Subclasses should override this method for creating extended AclUserDetails objects.
-   */
-  protected AclUserDetails createUserDetails(AclUser<Serializable, AclRole<Serializable>> aclUser, Collection<? extends GrantedAuthority> authorities) {
-    return new SimpleAclUserDetails(aclUser.getId(),aclUser.getUsername(), aclUser.getPassword(), authorities);
-  }
+		return createUserDetails(aclUser, createAuthorities(aclLogic.getAllRoles(aclUser)));
+	}
 
-  private Collection<? extends GrantedAuthority> createAuthorities(Set<AclRole<Serializable>> roleSet) {
-    Set<GrantedAuthority> grantedAuthorities = new HashSet<>();
-    for (AclRole<Serializable> role : roleSet) {
-      grantedAuthorities.add( createGrantedAuthority(role.getRoleName()));
-    }
-    // TODO load roles from groups
-    return grantedAuthorities;
-  }
+	/**
+	 * Subclasses should override this method for creating extended AclUserDetails objects.
+	 */
+	protected AclUserDetails createUserDetails(AclUser<Serializable, AclRole<Serializable>> aclUser, Collection<? extends GrantedAuthority> authorities) {
+		return new SimpleAclUserDetails(aclLogic.getUserId(aclUser), aclUser.getUsername(), aclUser.getPassword(), authorities);
+	}
 
-  
-  /**
-   * Create a GrantedAuthority object from an authority String.
-   * All acl methods use this method for creating authorities, so by overriding this method in a derived AclUserDetailsService one can 
-   * introduce an extended GrantedAuthority object for the whole Acl/security/authentication framework
-   */
-  @Override
-  public SimpleGrantedAuthority createGrantedAuthority(String authority) {
-    return new SimpleGrantedAuthority(authority);
-  }
+	private Collection<? extends GrantedAuthority> createAuthorities(Set<AclRole<Serializable>> roleSet) {
+		Set<GrantedAuthority> grantedAuthorities = new HashSet<>();
+		for (AclRole<Serializable> role : roleSet) {
+			grantedAuthorities.add(createGrantedAuthority(role.getRoleName()));
+		}
+		// TODO load roles from groups
+		return grantedAuthorities;
+	}
 
-  // Security utility methods
-  // TODO move to separate bean ?
+	/**
+	 * Create a GrantedAuthority object from an authority String. All acl methods use this method for creating
+	 * authorities, so by overriding this method in a derived AclUserDetailsService one can introduce an extended
+	 * GrantedAuthority object for the whole Acl/security/authentication framework
+	 */
+	@Override
+	public SimpleGrantedAuthority createGrantedAuthority(String authority) {
+		return new SimpleGrantedAuthority(authority);
+	}
 
-  @Override
-  public AclUserDetails getCurrentUser() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if(authentication != null) {
-      return (AclUserDetails) authentication.getPrincipal();
-    }
-    return null;
-  }
+	// Security utility methods
+	// TODO move to separate bean ?
 
-  @Override
-  public boolean isAdmin() {
-    // TODO create constants for common authorities
-    return hasAuthority("ROLE_ADMIN");
-  }
+	@Override
+	public AclUserDetails getCurrentUser() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication != null) {
+			return (AclUserDetails) authentication.getPrincipal();
+		}
+		return null;
+	}
 
-  @Override
-  public boolean hasAuthority(String authority) {
-    AclUserDetails currentUser =getCurrentUser();
-    return currentUser!=null && currentUser.getAuthorities().contains(createGrantedAuthority(authority));
-  }
-  
- 
+	@Override
+	public boolean isAdmin() {
+		// TODO create constants for common authorities
+		return hasAuthority("ROLE_ADMIN");
+	}
+
+	@Override
+	public boolean hasAuthority(String authority) {
+		AclUserDetails currentUser = getCurrentUser();
+		return currentUser != null && currentUser.getAuthorities().contains(createGrantedAuthority(authority));
+	}
+
 }

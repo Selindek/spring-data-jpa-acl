@@ -35,7 +35,7 @@ public class SimpleAclUser extends AclUser<Integer, SimpleAclRole>{
     this.password = password;
   }
   
-  @Override
+  //@Override
   public Integer getId() {
     return id;
   }
