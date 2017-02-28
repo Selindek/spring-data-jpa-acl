@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.persistenceunit.PersistenceUnitManager;
+import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -32,6 +33,7 @@ import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
 import com.berrycloud.acl.AclUserPermissionSpecification;
 import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.security.SimpleAclUserDetailsService;
+import com.berrycloud.acl.security.access.AclPermissionEvaluator;
 
 @Configuration
 @EnableWebSecurity
@@ -58,6 +60,12 @@ public class AclConfiguration {
   @ConditionalOnMissingBean(UserDetailsService.class)
   public SimpleAclUserDetailsService aclUserDetailsService() {
     return new SimpleAclUserDetailsService();
+  }
+  
+  @Bean
+  @ConditionalOnMissingBean(PermissionEvaluator.class)
+  public AclPermissionEvaluator AclPermissionEvaluator() {
+	  return new AclPermissionEvaluator();
   }
 
   @Bean

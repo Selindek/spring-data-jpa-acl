@@ -22,17 +22,14 @@ import static com.berrycloud.acl.AclUtils.UPDATE_PERMISSION;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
-import javax.persistence.Parameter;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -41,8 +38,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.From;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Order;
-import javax.persistence.criteria.ParameterExpression;
-import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Selection;
@@ -50,25 +45,14 @@ import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.convert.QueryByExamplePredicateBuilder;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.query.Jpa21Utils;
-import org.springframework.data.jpa.repository.query.JpaEntityGraph;
 import org.springframework.data.jpa.repository.support.CrudMethodMetadata;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.JpaEntityInformationSupport;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.mapping.PersistentProperty;
-import org.springframework.data.repository.support.PageableExecutionUtils;
-import org.springframework.data.repository.support.PageableExecutionUtils.TotalSupplier;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -91,7 +75,7 @@ import com.berrycloud.acl.AclUserPermissionSpecification;
 @Repository
 @Transactional(readOnly = true)
 public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJpaRepository<T, ID>
-		implements PropertyRepository, JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
+		implements PropertyRepository, AclJpaRepository<T, ID> {
 
 	private static final String ID_MUST_NOT_BE_NULL = "The given id must not be null!";
 
@@ -132,6 +116,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	 */
 	@Override
 	public void setRepositoryMethodMetadata(CrudMethodMetadata crudMethodMetadata) {
+		super.setRepositoryMethodMetadata(crudMethodMetadata);
 		this.metadata = crudMethodMetadata;
 	}
 
@@ -183,22 +168,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		Assert.notNull(entity, "The entity must not be null!");
 		delete((ID) (entityInformation.getId(entity)));
 
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.CrudRepository#delete(java.lang. Iterable)
-	 */
-	@Override
-	@Transactional
-	public void delete(Iterable<? extends T> entities) {
-
-		Assert.notNull(entities, "The given Iterable of entities not be null!");
-
-		for (T entity : entities) {
-			delete(entity);
-		}
 	}
 
 	/*
@@ -278,6 +247,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		return findOne(id, READ_PERMISSION);
 	}
 
+	@Override
 	public T findOne(ID id, String permission) {
 		Assert.notNull(id, ID_MUST_NOT_BE_NULL);
 		return findOne(new Specification<T>() {
@@ -290,33 +260,33 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		}, permission);
 
 	}
-
-	/**
-	 * Returns a {@link Map} with the query hints based on the current {@link CrudMethodMetadata} and potential
-	 * {@link EntityGraph} information.
-	 * 
-	 * @return
-	 */
-	@Override
-	protected Map<String, Object> getQueryHints() {
-
-		if (metadata.getEntityGraph() == null) {
-			return metadata.getQueryHints();
-		}
-
-		Map<String, Object> hints = new HashMap<String, Object>();
-		hints.putAll(metadata.getQueryHints());
-
-		hints.putAll(Jpa21Utils.tryGetFetchGraphHints(em, getEntityGraph(), getDomainClass()));
-
-		return hints;
-	}
-
-	private JpaEntityGraph getEntityGraph() {
-
-		String fallbackName = this.entityInformation.getEntityName() + "." + metadata.getMethod().getName();
-		return new JpaEntityGraph(metadata.getEntityGraph(), fallbackName);
-	}
+//
+//	/**
+//	 * Returns a {@link Map} with the query hints based on the current {@link CrudMethodMetadata} and potential
+//	 * {@link EntityGraph} information.
+//	 * 
+//	 * @return
+//	 */
+//	@Override
+//	protected Map<String, Object> getQueryHints() {
+//
+//		if (metadata.getEntityGraph() == null) {
+//			return metadata.getQueryHints();
+//		}
+//
+//		Map<String, Object> hints = new HashMap<String, Object>();
+//		hints.putAll(metadata.getQueryHints());
+//
+//		hints.putAll(Jpa21Utils.tryGetFetchGraphHints(em, getEntityGraph(), getDomainClass()));
+//
+//		return hints;
+//	}
+//
+//	private JpaEntityGraph getEntityGraph() {
+//
+//		String fallbackName = this.entityInformation.getEntityName() + "." + metadata.getMethod().getName();
+//		return new JpaEntityGraph(metadata.getEntityGraph(), fallbackName);
+//	}
 
 	/*
 	 * (non-Javadoc)
@@ -328,6 +298,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		return getOne(id, READ_PERMISSION);
 	}
 
+	@Override
 	public T getOne(ID id, String permission) {
 
 		T entity = this.findOne(id, permission);
@@ -357,47 +328,9 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		return findAll(READ_PERMISSION);
 	}
 
+	@Override
 	public List<T> findAll(String permission) {
 		return getQuery(null, (Sort) null, permission).getResultList();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.CrudRepository#findAll(ID[])
-	 */
-	@Override
-	public List<T> findAll(Iterable<ID> ids) {
-
-		if (ids == null || !ids.iterator().hasNext()) {
-			return Collections.emptyList();
-		}
-
-		if (entityInformation.hasCompositeId()) {
-
-			List<T> results = new ArrayList<T>();
-
-			for (ID id : ids) {
-				results.add(findOne(id));
-			}
-
-			return results;
-		}
-
-		ByIdsSpecification<T> specification = new ByIdsSpecification<T>(entityInformation);
-		TypedQuery<T> query = getQuery(specification, (Sort) null);
-
-		return query.setParameter(specification.parameter, ids).getResultList();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.jpa.repository.JpaRepository#findAll(org. springframework.data.domain.Sort)
-	 */
-	@Override
-	public List<T> findAll(Sort sort) {
-		return getQuery(null, sort).getResultList();
 	}
 
 	/*
@@ -406,15 +339,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	 * @see org.springframework.data.repository.PagingAndSortingRepository#findAll(
 	 * org.springframework.data.domain.Pageable)
 	 */
-	@Override
-	public Page<T> findAll(Pageable pageable) {
-
-		if (null == pageable) {
-			return new PageImpl<T>(findAll());
-		}
-
-		return findAll((Specification<T>) null, pageable);
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -427,6 +351,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		return findOne(spec, READ_PERMISSION);
 	}
 
+	@Override
 	public T findOne(Specification<T> spec, String permission) {
 
 		try {
@@ -439,132 +364,11 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see org.springframework.data.jpa.repository.JpaSpecificationExecutor#findAll(
-	 * org.springframework.data.jpa.domain.Specification)
-	 */
-	@Override
-	public List<T> findAll(Specification<T> spec) {
-		return getQuery(spec, (Sort) null).getResultList();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.jpa.repository.JpaSpecificationExecutor#findAll(
-	 * org.springframework.data.jpa.domain.Specification, org.springframework.data.domain.Pageable)
-	 */
-	@Override
-	public Page<T> findAll(Specification<T> spec, Pageable pageable) {
-
-		TypedQuery<T> query = getQuery(spec, pageable);
-		return pageable == null ? new PageImpl<T>(query.getResultList()) : readPage(query, getDomainClass(), pageable, spec);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.jpa.repository.JpaSpecificationExecutor#findAll(
-	 * org.springframework.data.jpa.domain.Specification, org.springframework.data.domain.Sort)
-	 */
-	@Override
-	public List<T> findAll(Specification<T> spec, Sort sort) {
-		return getQuery(spec, sort).getResultList();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.query.QueryByExampleExecutor#findOne(
-	 * org.springframework.data.domain.Example)
-	 */
-	@Override
-	public <S extends T> S findOne(Example<S> example) {
-		try {
-			return getQuery(new ExampleSpecification<S>(example), example.getProbeType(), (Sort) null).getSingleResult();
-		} catch (NoResultException e) {
-			return null;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.query.QueryByExampleExecutor#count(
-	 * org.springframework.data.domain.Example)
-	 */
-	@Override
-	public <S extends T> long count(Example<S> example) {
-		return executeCountQuery(getCountQuery(new ExampleSpecification<S>(example), example.getProbeType(), READ_PERMISSION));
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.query.QueryByExampleExecutor#exists(
-	 * org.springframework.data.domain.Example)
-	 */
-	@Override
-	public <S extends T> boolean exists(Example<S> example) {
-		return !getQuery(new ExampleSpecification<S>(example), example.getProbeType(), (Sort) null).getResultList().isEmpty();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.query.QueryByExampleExecutor#findAll(
-	 * org.springframework.data.domain.Example)
-	 */
-	@Override
-	public <S extends T> List<S> findAll(Example<S> example) {
-		return getQuery(new ExampleSpecification<S>(example), example.getProbeType(), (Sort) null).getResultList();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.query.QueryByExampleExecutor#findAll(
-	 * org.springframework.data.domain.Example, org.springframework.data.domain.Sort)
-	 */
-	@Override
-	public <S extends T> List<S> findAll(Example<S> example, Sort sort) {
-		return getQuery(new ExampleSpecification<S>(example), example.getProbeType(), sort).getResultList();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.query.QueryByExampleExecutor#findAll(
-	 * org.springframework.data.domain.Example, org.springframework.data.domain.Pageable)
-	 */
-	@Override
-	public <S extends T> Page<S> findAll(Example<S> example, Pageable pageable) {
-
-		ExampleSpecification<S> spec = new ExampleSpecification<S>(example);
-		Class<S> probeType = example.getProbeType();
-		TypedQuery<S> query = getQuery(new ExampleSpecification<S>(example), probeType, pageable);
-
-		return pageable == null ? new PageImpl<S>(query.getResultList()) : readPage(query, probeType, pageable, spec);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
 	 * @see org.springframework.data.repository.CrudRepository#count()
 	 */
 	@Override
 	public long count() {
 		return count((Specification<T>) null);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.jpa.repository.JpaSpecificationExecutor#count(
-	 * org.springframework.data.jpa.domain.Specification)
-	 */
-	@Override
-	public long count(Specification<T> spec) {
-		return executeCountQuery(getCountQuery(spec, getDomainClass(), READ_PERMISSION));
 	}
 
 	/*
@@ -584,125 +388,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 			getOne((ID) (entityInformation.getId(entity)), UPDATE_PERMISSION);
 			return em.merge(entity);
 		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.jpa.repository.JpaRepository#saveAndFlush(java. lang.Object)
-	 */
-	@Override
-	@Transactional
-	public <S extends T> S saveAndFlush(S entity) {
-
-		S result = save(entity);
-		flush();
-
-		return result;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.jpa.repository.JpaRepository#save(java.lang. Iterable)
-	 */
-	@Override
-	@Transactional
-	public <S extends T> List<S> save(Iterable<S> entities) {
-
-		List<S> result = new ArrayList<S>();
-
-		if (entities == null) {
-			return result;
-		}
-
-		for (S entity : entities) {
-			result.add(save(entity));
-		}
-
-		return result;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.jpa.repository.JpaRepository#flush()
-	 */
-	@Override
-	@Transactional
-	public void flush() {
-
-		em.flush();
-	}
-
-	/**
-	 * Reads the given {@link TypedQuery} into a {@link Page} applying the given {@link Pageable} and
-	 * {@link Specification}.
-	 *
-	 * @param query must not be {@literal null}.
-	 * @param spec can be {@literal null}.
-	 * @param pageable can be {@literal null}.
-	 * @return
-	 * @deprecated use {@link #readPage(TypedQuery, Class, Pageable, Specification)} instead
-	 */
-	@Override
-	@Deprecated
-	protected Page<T> readPage(TypedQuery<T> query, Pageable pageable, Specification<T> spec) {
-		return readPage(query, getDomainClass(), pageable, spec);
-	}
-
-	/**
-	 * Reads the given {@link TypedQuery} into a {@link Page} applying the given {@link Pageable} and
-	 * {@link Specification}.
-	 *
-	 * @param query must not be {@literal null}.
-	 * @param domainClass must not be {@literal null}.
-	 * @param spec can be {@literal null}.
-	 * @param pageable can be {@literal null}.
-	 * @return
-	 */
-	@Override
-	protected <S extends T> Page<S> readPage(TypedQuery<S> query, final Class<S> domainClass, Pageable pageable, final Specification<S> spec) {
-
-		query.setFirstResult(pageable.getOffset());
-		query.setMaxResults(pageable.getPageSize());
-
-		return PageableExecutionUtils.getPage(query.getResultList(), pageable, new TotalSupplier() {
-
-			@Override
-			public long get() {
-				return executeCountQuery(getCountQuery(spec, domainClass, READ_PERMISSION));
-			}
-		});
-	}
-
-	/**
-	 * Creates a new {@link TypedQuery} from the given {@link Specification}.
-	 *
-	 * @param spec can be {@literal null}.
-	 * @param pageable can be {@literal null}.
-	 * @return
-	 */
-	@Override
-	protected TypedQuery<T> getQuery(Specification<T> spec, Pageable pageable) {
-
-		Sort sort = pageable == null ? null : pageable.getSort();
-		return getQuery(spec, getDomainClass(), sort);
-	}
-
-	/**
-	 * Creates a new {@link TypedQuery} from the given {@link Specification}.
-	 *
-	 * @param spec can be {@literal null}.
-	 * @param domainClass must not be {@literal null}.
-	 * @param pageable can be {@literal null}.
-	 * @return
-	 */
-	@Override
-	protected <S extends T> TypedQuery<S> getQuery(Specification<S> spec, Class<S> domainClass, Pageable pageable) {
-
-		Sort sort = pageable == null ? null : pageable.getSort();
-		return getQuery(spec, domainClass, sort);
 	}
 
 	/**
@@ -752,19 +437,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
 	/**
 	 * Creates a new count query for the given {@link Specification}.
-	 * 
-	 * @param spec can be {@literal null}.
-	 * @return
-	 * @deprecated override {@link #getCountQuery(Specification, Class)} instead
-	 */
-	@Override
-	@Deprecated
-	protected TypedQuery<Long> getCountQuery(Specification<T> spec) {
-		return getCountQuery(spec, getDomainClass(), READ_PERMISSION);
-	}
-
-	/**
-	 * Creates a new count query for the given {@link Specification}.
 	 *
 	 * @param spec can be {@literal null}.
 	 * @param domainClass must not be {@literal null}.
@@ -775,7 +447,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		CriteriaBuilder builder = em.getCriteriaBuilder();
 		CriteriaQuery<Long> query = builder.createQuery(Long.class);
 
-		Root<S> root = applySpecificationToCriteria(spec, domainClass, query, permission);
+		Root<S> root = applySpecificationToCriteria(spec, domainClass, query, READ_PERMISSION);
 
 		if (query.isDistinct()) {
 			query.select(builder.countDistinct(root));
@@ -841,26 +513,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		}
 	}
 
-	/**
-	 * Executes a count query and transparently sums up all values returned.
-	 * 
-	 * @param query must not be {@literal null}.
-	 * @return
-	 */
-	private static Long executeCountQuery(TypedQuery<Long> query) {
-
-		Assert.notNull(query);
-
-		List<Long> totals = query.getResultList();
-		Long total = 0L;
-
-		for (Long element : totals) {
-			total += element == null ? 0 : element;
-		}
-
-		return total;
-	}
-
 	@Override
 	@Transactional
 	public Object findProperty(Serializable id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable) {
@@ -913,75 +565,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 			return predicate;
 		}
 
-	}
-
-	/**
-	 * Specification that gives access to the {@link Parameter} instance used to bind the ids for
-	 * {@link SimpleJpaRepository#findAll(Iterable)}. Workaround for OpenJPA not binding collections to in-clauses
-	 * correctly when using by-name binding.
-	 * 
-	 * @see <a href= "https://issues.apache.org/jira/browse/OPENJPA-2018?focusedCommentId=13924055"> OPENJPA-2018</a>
-	 * @author Oliver Gierke
-	 */
-	@SuppressWarnings("rawtypes")
-	private static final class ByIdsSpecification<T> implements Specification<T> {
-
-		private final JpaEntityInformation<T, ?> entityInformation;
-
-		ParameterExpression<Iterable> parameter;
-
-		public ByIdsSpecification(JpaEntityInformation<T, ?> entityInformation) {
-			this.entityInformation = entityInformation;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.springframework.data.jpa.domain.Specification#toPredicate(javax. persistence.criteria.Root,
-		 * javax.persistence.criteria.CriteriaQuery, javax.persistence.criteria.CriteriaBuilder)
-		 */
-		@Override
-		public Predicate toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
-
-			Path<?> path = root.get(entityInformation.getIdAttribute());
-			parameter = cb.parameter(Iterable.class);
-			return path.in(parameter);
-		}
-	}
-
-	/**
-	 * {@link Specification} that gives access to the {@link Predicate} instance representing the values contained in
-	 * the {@link Example}.
-	 *
-	 * @author Christoph Strobl
-	 * @since 1.10
-	 * @param <T>
-	 */
-	private static class ExampleSpecification<T> implements Specification<T> {
-
-		private final Example<T> example;
-
-		/**
-		 * Creates new {@link ExampleSpecification}.
-		 *
-		 * @param example
-		 */
-		public ExampleSpecification(Example<T> example) {
-
-			Assert.notNull(example, "Example must not be null!");
-			this.example = example;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.springframework.data.jpa.domain.Specification#toPredicate(javax. persistence.criteria.Root,
-		 * javax.persistence.criteria.CriteriaQuery, javax.persistence.criteria.CriteriaBuilder)
-		 */
-		@Override
-		public Predicate toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
-			return QueryByExamplePredicateBuilder.getPredicate(root, cb, example);
-		}
 	}
 
 }
