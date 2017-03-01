@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 /**
  * Disable acl on the repository
  */
-@Target(ElementType.TYPE)
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 @Documented
