@@ -8,7 +8,7 @@ import javax.persistence.EntityNotFoundException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRepository, JpaRepository<T, ID> {
+public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRepository<T, ID>, JpaRepository<T, ID> {
 
 	/**
 	 * Find an entity by id with testing the current user's permission against the given permission during permission-check

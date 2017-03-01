@@ -75,7 +75,7 @@ import com.berrycloud.acl.AclUserPermissionSpecification;
 @Repository
 @Transactional(readOnly = true)
 public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJpaRepository<T, ID>
-		implements PropertyRepository, AclJpaRepository<T, ID> {
+		implements AclJpaRepository<T, ID> {
 
 	private static final String ID_MUST_NOT_BE_NULL = "The given id must not be null!";
 
@@ -515,7 +515,13 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
 	@Override
 	@Transactional
-	public Object findProperty(Serializable id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable) {
+	public void clear() {
+		em.clear();
+	}
+	
+	@Override
+	@Transactional
+	public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable) {
 		if (property.isCollectionLike()) {
 			return findAll(new PropertySpecification<T>(id, property), pageable);
 		}
@@ -524,9 +530,9 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
 	@Override
 	@Transactional
-	public Object findProperty(Serializable id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId) {
+	public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId) {
 		if (property.isCollectionLike()) {
-			return findOne(new PropertySpecification<T>(id, property, propertyId));
+			return findOne(new PropertySpecification<T>(id, property, propertyId)); 
 		}
 		return findOne(new PropertySpecification<T>(id, property));
 	}
@@ -534,17 +540,17 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	private class PropertySpecification<S> implements Specification<S> {
 
 		private String propertyName;
-		private Serializable ownerId;
+		private ID ownerId;
 		private String ownerIdName;
 		private Serializable propertyId = null;
 
-		public PropertySpecification(Serializable id, PersistentProperty<? extends PersistentProperty<?>> property) {
+		public PropertySpecification(ID id, PersistentProperty<? extends PersistentProperty<?>> property) {
 			this.propertyName = property.getName();
 			this.ownerId = id;
 			this.ownerIdName = property.getOwner().getIdProperty().getName();
 		}
 
-		public PropertySpecification(Serializable id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId) {
+		public PropertySpecification(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId) {
 			this(id, property);
 			this.propertyId = propertyId;
 		}
