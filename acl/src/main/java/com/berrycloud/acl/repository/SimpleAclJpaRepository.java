@@ -84,7 +84,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
 	private CrudMethodMetadata metadata;
 	private AclUserPermissionSpecification aclSpecification;
-
+	
 	/**
 	 * Creates a new {@link SimpleAclJpaRepository} to manage objects of the given {@link JpaEntityInformation}.
 	 * 
@@ -107,7 +107,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	public SimpleAclJpaRepository(Class<T> domainClass, EntityManager em) {
 		this(JpaEntityInformationSupport.getEntityInformation(domainClass, em), em);
 	}
-
+	
 	/**
 	 * Configures a custom {@link CrudMethodMetadata} to be used to detect {@link LockModeType}s and query hints to be
 	 * applied to queries.

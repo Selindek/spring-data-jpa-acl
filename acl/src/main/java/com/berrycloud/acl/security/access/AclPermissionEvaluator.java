@@ -28,11 +28,14 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
 
 	@Override
 	public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
+		if(targetDomainObject==null) {
+			return false;
+		}
 		try {
 			Class<?> domainClass = targetDomainObject.getClass();
 			return hasPermission(authentication, getId(targetDomainObject), domainClass, permission);
 		} catch (Exception ex) {
-			LOG.debug("Invalid target for AclPermissionEvaluator: {}", targetDomainObject, ex);
+			LOG.warn("Invalid target for AclPermissionEvaluator: {}", targetDomainObject, ex);
 			return false;
 		}
 	}
@@ -42,13 +45,14 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
 		try {
 			return hasPermission(authentication, targetId, Class.forName(targetType), permission);
 		} catch (ClassNotFoundException ex) {
-			LOG.debug("Invalid target type AclPermissionEvaluator: {}", targetType, ex);
+			LOG.warn("Invalid target type AclPermissionEvaluator: {}", targetType, ex);
 			return false;
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	public <T, ID extends Serializable> boolean hasPermission(Authentication authentication, ID targetId, Class<T> domainClass, Object permission) {
+		// TODO Use direct JPA query insead of repository
 		AclJpaRepository<T, ID> repository = (AclJpaRepository<T, ID>) lookUpAclJpaRepository(domainClass);
 		if(repository==null) {
 			LOG.debug("No AclJpaRepository was found for: {}", domainClass);
@@ -75,10 +79,10 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected <T> AclJpaRepository<T, ?> lookUpAclJpaRepository(Class<T> domainClass) {
+	protected <T> AclJpaRepository<T, ? extends Serializable> lookUpAclJpaRepository(Class<T> domainClass) {
 		Object repository = repositories.getRepositoryFor(domainClass);
 		if (repository instanceof AclJpaRepository) {
-			return (AclJpaRepository<T, ?>) repository;
+			return (AclJpaRepository<T, ? extends Serializable>) repository;
 		}
 
 		return null;

@@ -14,12 +14,17 @@
 package com.berrycloud.acl.configuration;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder.EntityManagerFactoryBeanCallback;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.repository.support.Repositories;
+import org.springframework.data.rest.webmvc.ExportAwareRepositories;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.persistenceunit.PersistenceUnitManager;
@@ -31,6 +36,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import com.berrycloud.acl.AclLogicImpl;
 import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
 import com.berrycloud.acl.AclUserPermissionSpecification;
+import com.berrycloud.acl.configuration.rest.AclPropertyFilter;
 import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.security.SimpleAclUserDetailsService;
 import com.berrycloud.acl.security.access.AclPermissionEvaluator;
@@ -38,49 +44,64 @@ import com.berrycloud.acl.security.access.AclPermissionEvaluator;
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
+@ComponentScan(basePackageClasses={AclPropertyFilter.class})
 public class AclConfiguration {
 
-  @Bean
-  public EntityManagerFactoryBuilder entityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
-      ObjectProvider<PersistenceUnitManager> persistenceUnitManagerProvider, JpaProperties properties) {
-    EntityManagerFactoryBuilder builder = new EntityManagerFactoryBuilder(jpaVendorAdapter, properties.getProperties(),
-        persistenceUnitManagerProvider.getIfAvailable());
-    builder.setCallback(new EntityManagerFactoryBeanCallback() {
+	@Autowired
+	ApplicationContext context;
 
-      @Override
-      public void execute(LocalContainerEntityManagerFactoryBean factory) {
-        factory.setPersistenceUnitPostProcessors(new AclPersistenceUnitPostProcessor());
-      }
+	/**
+	 * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces,
+	 * so data-rest-API will use the repository with the @Primary annotation. We create the bean here in the main
+	 * configuration class because we use it in the PermissionEvaluator too.
+	 */
+	// TODO move this bean to RepositoryRestConfiguration if we use direct JPA query in the evaluator
+	@Bean
+	public Repositories repositories() {
+		return new ExportAwareRepositories(context);
+	}
 
-    });
-    return builder;
-  }
+	@Bean
+	public EntityManagerFactoryBuilder entityManagerFactoryBuilder(JpaVendorAdapter jpaVendorAdapter,
+			ObjectProvider<PersistenceUnitManager> persistenceUnitManagerProvider, JpaProperties properties) {
+		EntityManagerFactoryBuilder builder = new EntityManagerFactoryBuilder(jpaVendorAdapter, properties.getProperties(),
+				persistenceUnitManagerProvider.getIfAvailable());
+		builder.setCallback(new EntityManagerFactoryBeanCallback() {
 
-  @Bean
-  @ConditionalOnMissingBean(UserDetailsService.class)
-  public SimpleAclUserDetailsService aclUserDetailsService() {
-    return new SimpleAclUserDetailsService();
-  }
-  
-  @Bean
-  @ConditionalOnMissingBean(PermissionEvaluator.class)
-  public AclPermissionEvaluator AclPermissionEvaluator() {
-	  return new AclPermissionEvaluator();
-  }
+			@Override
+			public void execute(LocalContainerEntityManagerFactoryBean factory) {
+				factory.setPersistenceUnitPostProcessors(new AclPersistenceUnitPostProcessor());
+			}
 
-  @Bean
-  public AclLogicImpl aclLogic() {
-    return new AclLogicImpl();
-  }
+		});
+		return builder;
+	}
 
-  @Bean
-  public AclMetaData aclMetaData() {
-    return aclLogic().createAclMetaData();
-  }
+	@Bean
+	@ConditionalOnMissingBean(UserDetailsService.class)
+	public SimpleAclUserDetailsService aclUserDetailsService() {
+		return new SimpleAclUserDetailsService();
+	}
 
-  @Bean
-  public AclUserPermissionSpecification aclUserPermissionSpecification() {
-    return new AclUserPermissionSpecification();
-  }
+	@Bean
+	@ConditionalOnMissingBean(PermissionEvaluator.class)
+	public AclPermissionEvaluator AclPermissionEvaluator() {
+		return new AclPermissionEvaluator();
+	}
+
+	@Bean
+	public AclLogicImpl aclLogic() {
+		return new AclLogicImpl();
+	}
+
+	@Bean
+	public AclMetaData aclMetaData() {
+		return aclLogic().createAclMetaData();
+	}
+
+	@Bean
+	public AclUserPermissionSpecification aclUserPermissionSpecification() {
+		return new AclUserPermissionSpecification();
+	}
 
 }
