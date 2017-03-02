@@ -55,7 +55,6 @@ public class AclConfiguration {
 	 * so data-rest-API will use the repository with the @Primary annotation. We create the bean here in the main
 	 * configuration class because we use it in the PermissionEvaluator too.
 	 */
-	// TODO move this bean to RepositoryRestConfiguration if we use direct JPA query in the evaluator
 	@Bean
 	public Repositories repositories() {
 		return new ExportAwareRepositories(context);

@@ -2,9 +2,11 @@ package com.berrycloud.acl.configuration.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.repository.support.Repositories;
+import org.springframework.data.rest.webmvc.ExportAwareRepositories;
 import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
 
 /**
@@ -18,15 +20,14 @@ import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguratio
 public class RepositoryRestConfiguration extends RepositoryRestMvcConfiguration {
 
 	@Autowired
-	Repositories repositories;
+	ApplicationContext context;
 	
 	/**
-	 * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces,
-	 * so data-rest-API will use the repository with the @Primary annotation
+	 * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces
 	 */
 	@Override
 	public Repositories repositories() {
-		return repositories;
+		return new ExportAwareRepositories(context);
 	}
 
 	/**

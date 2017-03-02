@@ -260,33 +260,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		}, permission);
 
 	}
-//
-//	/**
-//	 * Returns a {@link Map} with the query hints based on the current {@link CrudMethodMetadata} and potential
-//	 * {@link EntityGraph} information.
-//	 * 
-//	 * @return
-//	 */
-//	@Override
-//	protected Map<String, Object> getQueryHints() {
-//
-//		if (metadata.getEntityGraph() == null) {
-//			return metadata.getQueryHints();
-//		}
-//
-//		Map<String, Object> hints = new HashMap<String, Object>();
-//		hints.putAll(metadata.getQueryHints());
-//
-//		hints.putAll(Jpa21Utils.tryGetFetchGraphHints(em, getEntityGraph(), getDomainClass()));
-//
-//		return hints;
-//	}
-//
-//	private JpaEntityGraph getEntityGraph() {
-//
-//		String fallbackName = this.entityInformation.getEntityName() + "." + metadata.getMethod().getName();
-//		return new JpaEntityGraph(metadata.getEntityGraph(), fallbackName);
-//	}
 
 	/*
 	 * (non-Javadoc)
@@ -333,12 +306,6 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		return getQuery(null, (Sort) null, permission).getResultList();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.springframework.data.repository.PagingAndSortingRepository#findAll(
-	 * org.springframework.data.domain.Pageable)
-	 */
 
 	/*
 	 * (non-Javadoc)
