@@ -442,7 +442,8 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	 * @param domainClass must not be {@literal null}.
 	 * @return
 	 */
-	protected <S extends T> TypedQuery<Long> getCountQuery(Specification<S> spec, Class<S> domainClass, String permission) {
+	@Override
+	protected <S extends T> TypedQuery<Long> getCountQuery(Specification<S> spec, Class<S> domainClass) {
 
 		CriteriaBuilder builder = em.getCriteriaBuilder();
 		CriteriaQuery<Long> query = builder.createQuery(Long.class);
