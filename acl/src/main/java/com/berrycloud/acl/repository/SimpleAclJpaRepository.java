@@ -67,7 +67,7 @@ import com.berrycloud.acl.AclUserPermissionSpecification;
  * @author Eberhard Wolff
  * @author Thomas Darimont
  * @author Mark Paluch
- * @author István Rátkai
+ * @author István Rátkai (Selindek)
  * 
  * @param <T> the type of the entity to handle
  * @param <ID> the type of the entity's identifier

@@ -9,35 +9,35 @@ import javax.persistence.Id;
 @Entity
 public class SimpleAclRole extends AclRole<Integer> {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Integer id;
-  @Column(unique = true, nullable = false)
-  private String roleName;
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private Integer id;
+	@Column(unique = true, nullable = false)
+	private String roleName;
 
-  public SimpleAclRole() {
-  }
+	public SimpleAclRole() {
+	}
 
-  public SimpleAclRole(String roleName) {
-    this.roleName = roleName;
-  }
+	public SimpleAclRole(String roleName) {
+		this.roleName = roleName;
+	}
 
-  //@Override
-  public Integer getId() {
-    return id;
-  }
+	// @Override
+	public Integer getId() {
+		return id;
+	}
 
-  public void setId(Integer id) {
-    this.id = id;
-  }
+	public void setId(Integer id) {
+		this.id = id;
+	}
 
-  @Override
-  public String getRoleName() {
-    return roleName;
-  }
+	@Override
+	public String getRoleName() {
+		return roleName;
+	}
 
-  public void setRoleName(String roleName) {
-    this.roleName = roleName;
-  }
+	public void setRoleName(String roleName) {
+		this.roleName = roleName;
+	}
 
 }
