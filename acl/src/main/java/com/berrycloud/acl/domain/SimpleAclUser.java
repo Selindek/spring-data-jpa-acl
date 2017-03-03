@@ -10,7 +10,7 @@ import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 
 @Entity
-public class SimpleAclUser extends AclUser<Integer, SimpleAclRole> {
+public class SimpleAclUser implements AclUser<Integer, SimpleAclRole> {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)

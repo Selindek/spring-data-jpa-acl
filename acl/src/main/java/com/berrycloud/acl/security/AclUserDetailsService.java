@@ -13,8 +13,19 @@ public interface AclUserDetailsService<A extends GrantedAuthority> extends UserD
 
 	AclUserDetails getCurrentUser();
 
+	/**
+	 * Checks if the current user is an administrator
+	 * (Has ROLE_ADMIN role)
+	 * @return
+	 */
 	boolean isAdmin();
 
+	/**
+	 * Checks if the current user has the given authority
+	 * 
+	 * @param authority
+	 * @return
+	 */
 	boolean hasAuthority(String authority);
 
 }

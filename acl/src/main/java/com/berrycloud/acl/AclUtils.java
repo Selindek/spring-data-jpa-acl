@@ -8,5 +8,8 @@ public class AclUtils {
 	public static final String UPDATE_PERMISSION = "update";
 
 	public static final char PERMISSION_PREFIX_DELIMITER = '-';
+	
+	public static final String ROLE_ADMIN= "ROLE_ADMIN";
+	public static final String ROLE_USER= "ROLE_USER";
 
 }

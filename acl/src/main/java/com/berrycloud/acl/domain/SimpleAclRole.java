@@ -6,8 +6,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import org.springframework.core.style.ToStringCreator;
+
 @Entity
-public class SimpleAclRole extends AclRole<Integer> {
+public class SimpleAclRole implements AclRole<Integer> {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
@@ -22,7 +24,6 @@ public class SimpleAclRole extends AclRole<Integer> {
 		this.roleName = roleName;
 	}
 
-	// @Override
 	public Integer getId() {
 		return id;
 	}
@@ -38,6 +39,28 @@ public class SimpleAclRole extends AclRole<Integer> {
 
 	public void setRoleName(String roleName) {
 		this.roleName = roleName;
+	}
+	
+	@Override
+	public int hashCode() {
+		return getRoleName() == null ? 0 : getRoleName().hashCode();
+	}
+
+
+	@Override
+	public boolean equals(final Object object) {
+		if (object == null || !object.getClass().equals(this.getClass())) {
+			return false;
+		}
+		if (getRoleName() == null) {
+			return ((AclRole<?>) object).getRoleName() == null;
+		}
+		return getRoleName().equals(((AclRole<?>) object).getRoleName());
+	}
+
+	@Override
+	public String toString() {
+		return new ToStringCreator(this).append("roleName", getRoleName()).toString();
 	}
 
 }
