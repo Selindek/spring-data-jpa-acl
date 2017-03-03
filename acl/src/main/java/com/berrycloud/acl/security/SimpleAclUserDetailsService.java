@@ -50,9 +50,9 @@ public class SimpleAclUserDetailsService implements AclUserDetailsService<Simple
 	}
 
 	/**
-	 * Create a GrantedAuthority object from an authority String. All acl methods use this method for creating
-	 * authorities, so by overriding this method in a derived AclUserDetailsService one can introduce an extended
-	 * GrantedAuthority object for the whole Acl/security/authentication framework
+	 * Create a GrantedAuthority object from an authority String. All acl methods use this method for creating authorities, so by overriding
+	 * this method in a derived AclUserDetailsService one can introduce an extended GrantedAuthority object for the whole
+	 * Acl/security/authentication framework
 	 */
 	@Override
 	public SimpleGrantedAuthority createGrantedAuthority(String authority) {

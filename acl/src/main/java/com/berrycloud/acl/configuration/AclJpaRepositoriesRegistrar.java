@@ -16,15 +16,15 @@ class AclJpaRepositoriesRegistrar extends RepositoryBeanDefinitionRegistrarSuppo
 	@Override
 	protected RepositoryConfigurationExtension getExtension() {
 		return new JpaRepositoryConfigExtension() {
-//		    @Override
-//		    public void registerBeansForRoot(BeanDefinitionRegistry registry, RepositoryConfigurationSource config) {
-//
-//		        registerIfNotAlreadyRegistered(new RootBeanDefinition(AclJpaMetamodelMappingContextFactoryBean.class), registry,
-//		            "jpaMappingContext", config.getSource());
-//
-//		        super.registerBeansForRoot(registry, config);
-//
-//		    }
+			// @Override
+			// public void registerBeansForRoot(BeanDefinitionRegistry registry, RepositoryConfigurationSource config) {
+			//
+			// registerIfNotAlreadyRegistered(new RootBeanDefinition(AclJpaMetamodelMappingContextFactoryBean.class), registry,
+			// "jpaMappingContext", config.getSource());
+			//
+			// super.registerBeansForRoot(registry, config);
+			//
+			// }
 		};
 	}
 }

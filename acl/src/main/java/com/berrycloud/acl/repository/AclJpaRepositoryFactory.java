@@ -51,5 +51,4 @@ public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
 		return AclJpaQueryLookupStrategy.create(entityManager, key, extractor, evaluationContextProvider, aclSpecification);
 	}
 
-
 }

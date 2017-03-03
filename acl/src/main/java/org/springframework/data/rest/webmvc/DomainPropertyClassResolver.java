@@ -57,8 +57,8 @@ public class DomainPropertyClassResolver {
 	}
 
 	/**
-	 * Resolves a domain class that is associated with the {@link NativeWebRequest}
-	 * If this request was associated with a property of an entity the the class of the property will be resolved.
+	 * Resolves a domain class that is associated with the {@link NativeWebRequest} If this request was associated with a property of an
+	 * entity the the class of the property will be resolved.
 	 *
 	 * @param method must not be {@literal null}.
 	 * @param webRequest must not be {@literal null}.

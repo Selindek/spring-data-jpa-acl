@@ -60,8 +60,8 @@ import org.springframework.util.Assert;
 import com.berrycloud.acl.AclUserPermissionSpecification;
 
 /**
- * Default implementation of the {@link AclJpaRepository} interface. This class uses the default SimpleJpaRepository
- * methods and logic and extends it with the ACL support
+ * Default implementation of the {@link AclJpaRepository} interface. This class uses the default SimpleJpaRepository methods and logic and
+ * extends it with the ACL support
  * 
  * @author Oliver Gierke
  * @author Eberhard Wolff
@@ -74,8 +74,7 @@ import com.berrycloud.acl.AclUserPermissionSpecification;
  */
 @Repository
 @Transactional(readOnly = true)
-public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJpaRepository<T, ID>
-		implements AclJpaRepository<T, ID> {
+public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJpaRepository<T, ID> implements AclJpaRepository<T, ID> {
 
 	private static final String ID_MUST_NOT_BE_NULL = "The given id must not be null!";
 
@@ -84,7 +83,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
 	private CrudMethodMetadata metadata;
 	private AclUserPermissionSpecification aclSpecification;
-	
+
 	/**
 	 * Creates a new {@link SimpleAclJpaRepository} to manage objects of the given {@link JpaEntityInformation}.
 	 * 
@@ -107,10 +106,9 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	public SimpleAclJpaRepository(Class<T> domainClass, EntityManager em) {
 		this(JpaEntityInformationSupport.getEntityInformation(domainClass, em), em);
 	}
-	
+
 	/**
-	 * Configures a custom {@link CrudMethodMetadata} to be used to detect {@link LockModeType}s and query hints to be
-	 * applied to queries.
+	 * Configures a custom {@link CrudMethodMetadata} to be used to detect {@link LockModeType}s and query hints to be applied to queries.
 	 * 
 	 * @param crudMethodMetadata
 	 */
@@ -306,12 +304,10 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 		return getQuery(null, (Sort) null, permission).getResultList();
 	}
 
-
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see org.springframework.data.jpa.repository.JpaSpecificationExecutor#findOne(
-	 * org.springframework.data.jpa.domain.Specification)
+	 * @see org.springframework.data.jpa.repository.JpaSpecificationExecutor#findOne( org.springframework.data.jpa.domain.Specification)
 	 */
 	@Override
 	public T findOne(Specification<T> spec) {
@@ -486,7 +482,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	public void clear() {
 		em.clear();
 	}
-	
+
 	@Override
 	@Transactional
 	public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable) {
@@ -500,7 +496,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	@Transactional
 	public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId) {
 		if (property.isCollectionLike()) {
-			return findOne(new PropertySpecification<T>(id, property, propertyId)); 
+			return findOne(new PropertySpecification<T>(id, property, propertyId));
 		}
 		return findOne(new PropertySpecification<T>(id, property));
 	}

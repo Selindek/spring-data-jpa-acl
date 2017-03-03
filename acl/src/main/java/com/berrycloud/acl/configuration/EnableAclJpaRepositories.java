@@ -21,8 +21,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import com.berrycloud.acl.repository.AclJpaRepositoryFactoryBean;
 
 /**
- * Annotation to enable JPA repositories. Will scan the package of the annotated configuration class for Spring Data
- * repositories by default.
+ * Annotation to enable JPA repositories. Will scan the package of the annotated configuration class for Spring Data repositories by
+ * default.
  * 
  * @author Oliver Gierke
  * @author Thomas Darimont
@@ -41,21 +41,21 @@ public @interface EnableAclJpaRepositories {
 	String[] value() default {};
 
 	/**
-	 * Base packages to scan for annotated components. {@link #value()} is an alias for (and mutually exclusive with) this
-	 * attribute. Use {@link #basePackageClasses()} for a type-safe alternative to String-based package names.
+	 * Base packages to scan for annotated components. {@link #value()} is an alias for (and mutually exclusive with) this attribute. Use
+	 * {@link #basePackageClasses()} for a type-safe alternative to String-based package names.
 	 */
 	String[] basePackages() default {};
 
 	/**
-	 * Type-safe alternative to {@link #basePackages()} for specifying the packages to scan for annotated components. The
-	 * package of each class specified will be scanned. Consider creating a special no-op marker class or interface in
-	 * each package that serves no purpose other than being referenced by this attribute.
+	 * Type-safe alternative to {@link #basePackages()} for specifying the packages to scan for annotated components. The package of each
+	 * class specified will be scanned. Consider creating a special no-op marker class or interface in each package that serves no purpose
+	 * other than being referenced by this attribute.
 	 */
 	Class<?>[] basePackageClasses() default {};
 
 	/**
-	 * Specifies which types are eligible for component scanning. Further narrows the set of candidate components from
-	 * everything in {@link #basePackages()} to everything in the base packages that matches the given filter or filters.
+	 * Specifies which types are eligible for component scanning. Further narrows the set of candidate components from everything in
+	 * {@link #basePackages()} to everything in the base packages that matches the given filter or filters.
 	 */
 	Filter[] includeFilters() default {};
 
@@ -65,9 +65,8 @@ public @interface EnableAclJpaRepositories {
 	Filter[] excludeFilters() default {};
 
 	/**
-	 * Returns the postfix to be used when looking up custom repository implementations. Defaults to {@literal Impl}. So
-	 * for a repository named {@code PersonRepository} the corresponding implementation class will be looked up scanning
-	 * for {@code PersonRepositoryImpl}.
+	 * Returns the postfix to be used when looking up custom repository implementations. Defaults to {@literal Impl}. So for a repository
+	 * named {@code PersonRepository} the corresponding implementation class will be looked up scanning for {@code PersonRepositoryImpl}.
 	 * 
 	 * @return
 	 */
@@ -90,8 +89,7 @@ public @interface EnableAclJpaRepositories {
 	Key queryLookupStrategy() default Key.CREATE_IF_NOT_FOUND;
 
 	/**
-	 * Returns the {@link FactoryBean} class to be used for each repository instance. Defaults to
-	 * {@link JpaRepositoryFactoryBean}.
+	 * Returns the {@link FactoryBean} class to be used for each repository instance. Defaults to {@link JpaRepositoryFactoryBean}.
 	 * 
 	 * @return
 	 */
@@ -108,31 +106,31 @@ public @interface EnableAclJpaRepositories {
 	// JPA specific configuration
 
 	/**
-	 * Configures the name of the {@link EntityManagerFactory} bean definition to be used to create repositories
-	 * discovered through this annotation. Defaults to {@code entityManagerFactory}.
+	 * Configures the name of the {@link EntityManagerFactory} bean definition to be used to create repositories discovered through this
+	 * annotation. Defaults to {@code entityManagerFactory}.
 	 * 
 	 * @return
 	 */
 	String entityManagerFactoryRef() default "entityManagerFactory";
 
 	/**
-	 * Configures the name of the {@link PlatformTransactionManager} bean definition to be used to create repositories
-	 * discovered through this annotation. Defaults to {@code transactionManager}.
+	 * Configures the name of the {@link PlatformTransactionManager} bean definition to be used to create repositories discovered through
+	 * this annotation. Defaults to {@code transactionManager}.
 	 * 
 	 * @return
 	 */
 	String transactionManagerRef() default "transactionManager";
 
 	/**
-	 * Configures whether nested repository-interfaces (e.g. defined as inner classes) should be discovered by the
-	 * repositories infrastructure.
+	 * Configures whether nested repository-interfaces (e.g. defined as inner classes) should be discovered by the repositories
+	 * infrastructure.
 	 */
 	boolean considerNestedRepositories() default false;
 
 	/**
-	 * Configures whether to enable default transactions for Spring Data JPA repositories. Defaults to {@literal true}. If
-	 * disabled, repositories must be used behind a facade that's configuring transactions (e.g. using Spring's annotation
-	 * driven transaction facilities) or repository methods have to be used to demarcate transactions.
+	 * Configures whether to enable default transactions for Spring Data JPA repositories. Defaults to {@literal true}. If disabled,
+	 * repositories must be used behind a facade that's configuring transactions (e.g. using Spring's annotation driven transaction
+	 * facilities) or repository methods have to be used to demarcate transactions.
 	 * 
 	 * @return whether to enable default transactions, defaults to {@literal true}.
 	 */

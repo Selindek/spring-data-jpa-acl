@@ -52,7 +52,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 	private final EntityManager em;
 
 	private final AclUserPermissionSpecification aclSpecification;
-	
+
 	/**
 	 * Creates a new {@link PartTreeJpaQuery}.
 	 * 
@@ -60,7 +60,8 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 	 * @param factory must not be {@literal null}.
 	 * @param em must not be {@literal null}.
 	 */
-	public PartTreeAclJpaQuery(JpaQueryMethod method, EntityManager em, PersistenceProvider persistenceProvider, AclUserPermissionSpecification aclSpecification) {
+	public PartTreeAclJpaQuery(JpaQueryMethod method, EntityManager em, PersistenceProvider persistenceProvider,
+			AclUserPermissionSpecification aclSpecification) {
 
 		super(method, em);
 
@@ -70,13 +71,14 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 		this.parameters = method.getParameters();
 
 		this.aclSpecification = aclSpecification;
-		
+
 		this.countQuery = new CountQueryPreparer(persistenceProvider);
 		this.query = tree.isCountProjection() ? countQuery : new QueryPreparer(persistenceProvider);
 	}
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see org.springframework.data.jpa.repository.query.AbstractJpaQuery#doCreateQuery(java.lang.Object[])
 	 */
 	@Override
@@ -86,6 +88,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see org.springframework.data.jpa.repository.query.AbstractJpaQuery#doCreateCountQuery(java.lang.Object[])
 	 */
 	@Override
@@ -94,16 +97,17 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 		return (TypedQuery<Long>) countQuery.createQuery(values);
 	}
 
-	/* 
+	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see org.springframework.data.jpa.repository.query.AbstractJpaQuery#getExecution()
 	 */
 	@Override
 	protected JpaQueryExecution getExecution() {
 
-		if(this.tree.isDelete()) {
+		if (this.tree.isDelete()) {
 			return new DeleteExecution(em);
-		} else if(this.tree.isExistsProjection()) {
+		} else if (this.tree.isExistsProjection()) {
 			return new ExistsExecution();
 		}
 
@@ -136,15 +140,15 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 
 			ParametersParameterAccessor accessor = new ParametersParameterAccessor(parameters, values);
 
-				JpaQueryCreator creator = createCreator(accessor, persistenceProvider);
-				CriteriaQuery<?> criteriaQuery = creator.createQuery(getDynamicSort(values));
-				List<ParameterMetadata<?>> expressions = creator.getParameterExpressions();
-				
-				// Hack in the aclSpecification
-				CriteriaBuilder cb = em.getCriteriaBuilder();
-				@SuppressWarnings("unchecked")
-				Root<Object> root= (Root<Object>) criteriaQuery.getRoots().iterator().next();
-				criteriaQuery.where(cb.and(criteriaQuery.getRestriction(),aclSpecification.toPredicate(root, criteriaQuery, cb)));
+			JpaQueryCreator creator = createCreator(accessor, persistenceProvider);
+			CriteriaQuery<?> criteriaQuery = creator.createQuery(getDynamicSort(values));
+			List<ParameterMetadata<?>> expressions = creator.getParameterExpressions();
+
+			// Hack in the aclSpecification
+			CriteriaBuilder cb = em.getCriteriaBuilder();
+			@SuppressWarnings("unchecked")
+			Root<Object> root = (Root<Object>) criteriaQuery.getRoots().iterator().next();
+			criteriaQuery.where(cb.and(criteriaQuery.getRestriction(), aclSpecification.toPredicate(root, criteriaQuery, cb)));
 
 			TypedQuery<?> jpaQuery = createQuery(criteriaQuery);
 
@@ -152,8 +156,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 		}
 
 		/**
-		 * Restricts the max results of the given {@link Query} if the current {@code tree} marks this {@code query} as
-		 * limited.
+		 * Restricts the max results of the given {@link Query} if the current {@code tree} marks this {@code query} as limited.
 		 * 
 		 * @param query
 		 * @return
@@ -164,10 +167,9 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 
 				if (query.getMaxResults() != Integer.MAX_VALUE) {
 					/*
-					 * In order to return the correct results, we have to adjust the first result offset to be returned if:
-					 * - a Pageable parameter is present 
-					 * - AND the requested page number > 0
-					 * - AND the requested page size was bigger than the derived result limitation via the First/Top keyword.
+					 * In order to return the correct results, we have to adjust the first result offset to be returned if: - a Pageable
+					 * parameter is present - AND the requested page number > 0 - AND the requested page size was bigger than the derived
+					 * result limitation via the First/Top keyword.
 					 */
 					if (query.getMaxResults() > tree.getMaxResults() && query.getFirstResult() > 0) {
 						query.setFirstResult(query.getFirstResult() - (query.getMaxResults() - tree.getMaxResults()));
@@ -177,7 +179,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 				query.setMaxResults(tree.getMaxResults());
 			}
 
-			if(tree.isExistsProjection()) {
+			if (tree.isExistsProjection()) {
 				query.setMaxResults(1);
 			}
 
@@ -185,9 +187,9 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 		}
 
 		/**
-		 * Checks whether we are working with a cached {@link CriteriaQuery} and synchronizes the creation of a
-		 * {@link TypedQuery} instance from it. This is due to non-thread-safety in the {@link CriteriaQuery} implementation
-		 * of some persistence providers (i.e. Hibernate in this case), see DATAJPA-396.
+		 * Checks whether we are working with a cached {@link CriteriaQuery} and synchronizes the creation of a {@link TypedQuery} instance
+		 * from it. This is due to non-thread-safety in the {@link CriteriaQuery} implementation of some persistence providers (i.e.
+		 * Hibernate in this case), see DATAJPA-396.
 		 * 
 		 * @param criteriaQuery must not be {@literal null}.
 		 * @return
@@ -197,8 +199,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 			return getEntityManager().createQuery(criteriaQuery);
 		}
 
-		protected JpaQueryCreator createCreator(ParametersParameterAccessor accessor,
-				PersistenceProvider persistenceProvider) {
+		protected JpaQueryCreator createCreator(ParametersParameterAccessor accessor, PersistenceProvider persistenceProvider) {
 
 			EntityManager entityManager = getEntityManager();
 			CriteriaBuilder builder = entityManager.getCriteriaBuilder();
@@ -230,8 +231,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 
 		private Sort getDynamicSort(Object[] values) {
 
-			return parameters.potentiallySortsDynamically() ? new ParametersParameterAccessor(parameters, values).getSort()
-					: null;
+			return parameters.potentiallySortsDynamically() ? new ParametersParameterAccessor(parameters, values).getSort() : null;
 		}
 	}
 
@@ -249,11 +249,13 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 
 		/*
 		 * (non-Javadoc)
-		 * @see org.springframework.data.jpa.repository.query.PartTreeJpaQuery.QueryPreparer#createCreator(org.springframework.data.repository.query.ParametersParameterAccessor, org.springframework.data.jpa.provider.PersistenceProvider)
+		 * 
+		 * @see
+		 * org.springframework.data.jpa.repository.query.PartTreeJpaQuery.QueryPreparer#createCreator(org.springframework.data.repository.
+		 * query.ParametersParameterAccessor, org.springframework.data.jpa.provider.PersistenceProvider)
 		 */
 		@Override
-		protected JpaQueryCreator createCreator(ParametersParameterAccessor accessor,
-				PersistenceProvider persistenceProvider) {
+		protected JpaQueryCreator createCreator(ParametersParameterAccessor accessor, PersistenceProvider persistenceProvider) {
 
 			EntityManager entityManager = getEntityManager();
 			CriteriaBuilder builder = entityManager.getCriteriaBuilder();
@@ -277,4 +279,3 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 		}
 	}
 }
-

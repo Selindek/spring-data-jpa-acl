@@ -182,7 +182,8 @@ public class AclLogicImpl implements AclLogic {
 			} else if ((typeDescriptor.isArray() || typeDescriptor.isCollection()) && typeDescriptor.getElementTypeDescriptor() != null
 					&& AclEntity.class.isAssignableFrom(typeDescriptor.getElementTypeDescriptor().getObjectType())) {
 				// The owner is NOT an AclUser, but an AclEntity collection. We treat it as a collection of groups.
-				metaData.getOwnerGroupDataList().add(new OwnerData(propertyName, typeDescriptor.getElementTypeDescriptor().getObjectType(), true, aclOwner.value()));
+				metaData.getOwnerGroupDataList()
+						.add(new OwnerData(propertyName, typeDescriptor.getElementTypeDescriptor().getObjectType(), true, aclOwner.value()));
 			} else {
 				LOG.warn("Non-AclUser property '{}' in {} is annotated by @AclOwner ... ignored", propertyName, javaType);
 			}

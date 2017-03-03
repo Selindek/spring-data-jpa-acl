@@ -13,16 +13,16 @@ import com.berrycloud.acl.AclUserPermissionSpecification;
 
 public class AclJpaRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extends Serializable> extends JpaRepositoryFactoryBean<T, S, ID> {
 
-  @Resource
-  AclUserPermissionSpecification aclSpecification;
+	@Resource
+	AclUserPermissionSpecification aclSpecification;
 
-  public AclJpaRepositoryFactoryBean(Class<? extends T> repositoryInterface) {
-    super(repositoryInterface);
-  }
+	public AclJpaRepositoryFactoryBean(Class<? extends T> repositoryInterface) {
+		super(repositoryInterface);
+	}
 
-  @Override
-  protected RepositoryFactorySupport createRepositoryFactory(EntityManager entityManager) {
-    return new AclJpaRepositoryFactory(entityManager,aclSpecification);
-  }
+	@Override
+	protected RepositoryFactorySupport createRepositoryFactory(EntityManager entityManager) {
+		return new AclJpaRepositoryFactory(entityManager, aclSpecification);
+	}
 
 }

@@ -10,23 +10,23 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.web.filter.OncePerRequestFilter;
 
-public class AclPropertyFilter extends OncePerRequestFilter{
-	public static final String ACL_PROPERTY_HEADER_NAME="_aclProperty";
-	public static final String ACL_PROPERTY_HEADER_VALUE="true";
+public class AclPropertyFilter extends OncePerRequestFilter {
+	public static final String ACL_PROPERTY_HEADER_NAME = "_aclProperty";
+	public static final String ACL_PROPERTY_HEADER_VALUE = "true";
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-		 HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(request) {
-		        @Override
-		        public String getHeader(String name) {
-		            if(ACL_PROPERTY_HEADER_NAME.equals(name)) {
-		            	return ACL_PROPERTY_HEADER_VALUE;
-		            }
-		            return super.getHeader(name);
-		        }
-		    };
-		    filterChain.doFilter(wrapper, response);
-		
+		HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(request) {
+			@Override
+			public String getHeader(String name) {
+				if (ACL_PROPERTY_HEADER_NAME.equals(name)) {
+					return ACL_PROPERTY_HEADER_VALUE;
+				}
+				return super.getHeader(name);
+			}
+		};
+		filterChain.doFilter(wrapper, response);
+
 	}
 
 }

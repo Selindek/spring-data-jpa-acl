@@ -38,9 +38,9 @@ import org.springframework.web.context.request.NativeWebRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Translator for {@link Sort} arguments that is aware of Jackson-Mapping on domain classes. Jackson field names are
- * translated to {@link PersistentProperty} names. Domain class is looked up by resolving request URLs to mapped
- * repositories. {@link Sort} translation is skipped if a domain class cannot be resolved.
+ * Translator for {@link Sort} arguments that is aware of Jackson-Mapping on domain classes. Jackson field names are translated to
+ * {@link PersistentProperty} names. Domain class is looked up by resolving request URLs to mapped repositories. {@link Sort} translation is
+ * skipped if a domain class cannot be resolved.
  *
  * @author Mark Paluch
  * @author Oliver Gierke
@@ -63,9 +63,9 @@ public class JacksonMappingAwarePropertySortTranslator {
 	 * @param persistentEntities must not be {@literal null}.
 	 * @param associations must not be {@literal null}.
 	 */
-	public JacksonMappingAwarePropertySortTranslator(ObjectMapper objectMapper, Repositories repositories,
-			DomainPropertyClassResolver domainClassResolver, PersistentEntities persistentEntities, Associations associations) {
-		
+	public JacksonMappingAwarePropertySortTranslator(ObjectMapper objectMapper, Repositories repositories, DomainPropertyClassResolver domainClassResolver,
+			PersistentEntities persistentEntities, Associations associations) {
+
 		Assert.notNull(repositories, "Repositories must not be null!");
 		Assert.notNull(domainClassResolver, "DomainClassResolver must not be null!");
 		Assert.notNull(associations, "Associations must not be null!");
@@ -81,8 +81,7 @@ public class JacksonMappingAwarePropertySortTranslator {
 	 * @param input must not be {@literal null}.
 	 * @param parameter must not be {@literal null}.
 	 * @param webRequest must not be {@literal null}.
-	 * @return a {@link Sort} containing translated property names or {@literal null} the resulting {@link Sort} contains
-	 *         no properties.
+	 * @return a {@link Sort} containing translated property names or {@literal null} the resulting {@link Sort} contains no properties.
 	 */
 	protected Sort translateSort(Sort input, MethodParameter parameter, NativeWebRequest webRequest) {
 
@@ -123,15 +122,15 @@ public class JacksonMappingAwarePropertySortTranslator {
 			Assert.notNull(persistentEntities);
 			Assert.notNull(objectMapper);
 			Assert.notNull(associations);
-			
+
 			this.persistentEntities = persistentEntities;
 			this.objectMapper = objectMapper;
 			this.associations = associations;
 		}
-		
+
 		/**
-		 * Translates {@link Sort} orders from Jackson-mapped field names to {@link PersistentProperty} names. Properties
-		 * that cannot be resolved are dropped.
+		 * Translates {@link Sort} orders from Jackson-mapped field names to {@link PersistentProperty} names. Properties that cannot be
+		 * resolved are dropped.
 		 *
 		 * @param input must not be {@literal null}.
 		 * @param rootEntity must not be {@literal null}.
@@ -224,8 +223,7 @@ public class JacksonMappingAwarePropertySortTranslator {
 			this(previous.persistentEntities, previous.objectMapper, persistentEntity);
 		}
 
-		private TypedSegment(PersistentEntities persistentEntities, ObjectMapper objectMapper,
-				PersistentEntity<?, ?> persistentEntity) {
+		private TypedSegment(PersistentEntities persistentEntities, ObjectMapper objectMapper, PersistentEntity<?, ?> persistentEntity) {
 
 			this.persistentEntities = persistentEntities;
 			this.objectMapper = objectMapper;
@@ -234,8 +232,7 @@ public class JacksonMappingAwarePropertySortTranslator {
 			if (persistentEntity != null) {
 
 				this.currentProperties = MappedProperties.fromJacksonProperties(currentType, objectMapper);
-				this.currentWrappedProperties = WrappedProperties.fromJacksonProperties(persistentEntities, currentType,
-						objectMapper);
+				this.currentWrappedProperties = WrappedProperties.fromJacksonProperties(persistentEntities, currentType, objectMapper);
 
 			} else {
 
@@ -245,16 +242,14 @@ public class JacksonMappingAwarePropertySortTranslator {
 		}
 
 		/**
-		 * Creates the initial {@link TypedSegment} given {@link PersistentEntities}, {@link ObjectMapper} and
-		 * {@link PersistentEntity}.
+		 * Creates the initial {@link TypedSegment} given {@link PersistentEntities}, {@link ObjectMapper} and {@link PersistentEntity}.
 		 * 
 		 * @param persistentEntities must not be {@literal null}.
 		 * @param objectMapper must not be {@literal null}.
 		 * @param rootEntity the initial entity to start mapping from, must not be {@literal null}.
 		 * @return
 		 */
-		public static TypedSegment create(PersistentEntities persistentEntities, ObjectMapper objectMapper,
-				PersistentEntity<?, ?> rootEntity) {
+		public static TypedSegment create(PersistentEntities persistentEntities, ObjectMapper objectMapper, PersistentEntity<?, ?> rootEntity) {
 
 			Assert.notNull(persistentEntities, "PersistentEntities must not be null!");
 			Assert.notNull(objectMapper, "ObjectMapper must not be null!");
@@ -279,8 +274,8 @@ public class JacksonMappingAwarePropertySortTranslator {
 
 		private boolean hasPersistentPropertyForField(String fieldName) {
 
-			return currentType != null && (currentProperties.hasPersistentPropertyForField(fieldName)
-					|| currentWrappedProperties.hasPersistentPropertiesForField(fieldName));
+			return currentType != null
+					&& (currentProperties.hasPersistentPropertyForField(fieldName) || currentWrappedProperties.hasPersistentPropertiesForField(fieldName));
 		}
 
 		private List<? extends PersistentProperty<?>> getPersistentProperties(String fieldName) {

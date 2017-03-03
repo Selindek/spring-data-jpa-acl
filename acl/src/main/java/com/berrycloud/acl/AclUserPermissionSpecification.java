@@ -51,8 +51,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
 	private AclMetaData aclMetaData;
 
 	/**
-	 * Maximum depth of parent-permission checks.
-	 * It prevents infinite loops and also limits the complexity of the queries
+	 * Maximum depth of parent-permission checks. It prevents infinite loops and also limits the complexity of the queries
 	 */
 	@Value("${spring.data.jpa.acl.max-depth:2}")
 	private int maxDepth = 2;
@@ -129,7 +128,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
 			if (aclMetaData.getSelfPermissions().hasPermission(permission)) {
 				LOG.trace("Adding 'self' predicate for {}", from.getJavaType());
 				SingularAttribute<? super Object, ?> idAttribute = aclMetaData.getAclEntityMetaData(from.getJavaType()).getIdAttribute();
-				predicates.add(cb.equal(from.get(idAttribute ), userId));
+				predicates.add(cb.equal(from.get(idAttribute), userId));
 			}
 		}
 		return predicates;

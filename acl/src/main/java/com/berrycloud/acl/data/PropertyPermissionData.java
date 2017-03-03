@@ -1,16 +1,16 @@
 package com.berrycloud.acl.data;
 
-public class PropertyPermissionData extends PermissionData{
+public class PropertyPermissionData extends PermissionData {
 
-  private String propertyName;
+	private String propertyName;
 
-  public PropertyPermissionData(String propertyName, String[] permissions) {
-    super(permissions);
-    this.propertyName = propertyName;
-  }
+	public PropertyPermissionData(String propertyName, String[] permissions) {
+		super(permissions);
+		this.propertyName = propertyName;
+	}
 
-  public String getPropertyName() {
-    return propertyName;
-  }
+	public String getPropertyName() {
+		return propertyName;
+	}
 
 }

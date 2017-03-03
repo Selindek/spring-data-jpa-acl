@@ -88,7 +88,7 @@ import com.berrycloud.acl.repository.PropertyRepository;
 @RepositoryRestController
 @SuppressWarnings({"unchecked"})
 // By using specific header requirement we make these controller methods more specific than the original ones
-@RequestMapping(headers = {ACL_PROPERTY_HEADER_NAME+"="+ACL_PROPERTY_HEADER_VALUE})
+@RequestMapping(headers = {ACL_PROPERTY_HEADER_NAME + "=" + ACL_PROPERTY_HEADER_VALUE})
 class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestController implements ApplicationEventPublisherAware {
 
 	private static final String BASE_MAPPING = "/{repository}/{id}/{property}";

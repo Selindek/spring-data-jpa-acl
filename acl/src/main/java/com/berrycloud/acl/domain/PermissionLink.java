@@ -13,69 +13,65 @@ import com.berrycloud.acl.annotation.AclOwner;
 @MappedSuperclass
 public abstract class PermissionLink<O extends AclEntity<?>, T extends AclEntity<?>> {
 
-  @Id
-  @GeneratedValue(strategy=GenerationType.AUTO)
-  private Integer id;
-  
-  @AclOwner
-  @ManyToOne()
-  @JoinColumn( nullable = false, updatable = false)
-  private O owner;
-  
-  @ManyToOne()
-  @JoinColumn( nullable = false, updatable = false)
-  private T target;
-  
-  @Column(nullable = false, updatable = false)
-  private String permission;
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private Integer id;
 
-  public PermissionLink() {
-  }
+	@AclOwner
+	@ManyToOne()
+	@JoinColumn(nullable = false, updatable = false)
+	private O owner;
 
-  public PermissionLink(Integer id) {
-    this.id = id;
-  }
-  
-  public PermissionLink(O owner, T target, String permission) {
-    this.owner = owner;
-    this.target = target;
-    this.permission = permission;
-  }
+	@ManyToOne()
+	@JoinColumn(nullable = false, updatable = false)
+	private T target;
 
+	@Column(nullable = false, updatable = false)
+	private String permission;
 
-  public Integer getId() {
-    return id;
-  }
+	public PermissionLink() {
+	}
 
-  public void setId(final Integer id) {
-    this.id = id;
-  }
+	public PermissionLink(Integer id) {
+		this.id = id;
+	}
 
+	public PermissionLink(O owner, T target, String permission) {
+		this.owner = owner;
+		this.target = target;
+		this.permission = permission;
+	}
 
-  public O getOwner() {
-    return owner;
-  }
+	public Integer getId() {
+		return id;
+	}
 
-  public void setOwner(final O owner) {
-    this.owner = owner;
-  }
+	public void setId(final Integer id) {
+		this.id = id;
+	}
 
+	public O getOwner() {
+		return owner;
+	}
 
-  public T getTarget() {
-    return target;
-  }
+	public void setOwner(final O owner) {
+		this.owner = owner;
+	}
 
-  public void setTarget(final T target) {
-    this.target = target;
-  }
+	public T getTarget() {
+		return target;
+	}
 
+	public void setTarget(final T target) {
+		this.target = target;
+	}
 
-  public String getPermission() {
-    return permission;
-  }
+	public String getPermission() {
+		return permission;
+	}
 
-  public void setPermission(final String permission) {
-    this.permission = permission;
-  }
+	public void setPermission(final String permission) {
+		this.permission = permission;
+	}
 
 }

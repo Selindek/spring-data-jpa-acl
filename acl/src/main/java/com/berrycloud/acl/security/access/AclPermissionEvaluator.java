@@ -26,9 +26,9 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
 
 	private static Logger LOG = LoggerFactory.getLogger(AclPermissionEvaluator.class);
 
-	// Dynamically filled cache for entityInformation 
+	// Dynamically filled cache for entityInformation
 	private final Map<Class<?>, JpaEntityInformation<?, ?>> entityInformationMap = new HashMap<>();
-	
+
 	@PersistenceContext
 	private EntityManager em;
 
@@ -89,7 +89,7 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
 		@SuppressWarnings("unchecked")
 		Class<T> domainClass = (Class<T>) object.getClass();
 		JpaEntityInformation<T, ?> entityInformation = getEntityInformation(domainClass);
-		if(entityInformation==null) {
+		if (entityInformation == null) {
 			throw new IllegalArgumentException("Not a valid JPA entity class: " + domainClass);
 		}
 		Object id = entityInformation.getId(object);
@@ -99,17 +99,16 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
 		throw new IllegalArgumentException("Id is not Serializable for " + domainClass);
 	}
 
-	protected <T> JpaEntityInformation<T, ?>  getEntityInformation(Class<T> domainClass) {
+	protected <T> JpaEntityInformation<T, ?> getEntityInformation(Class<T> domainClass) {
 		@SuppressWarnings("unchecked")
-		JpaEntityInformation<T, ?> entityInformation = (JpaEntityInformation<T, ?>) entityInformationMap.get(domainClass); 
-		if(entityInformation == null) {
+		JpaEntityInformation<T, ?> entityInformation = (JpaEntityInformation<T, ?>) entityInformationMap.get(domainClass);
+		if (entityInformation == null) {
 			entityInformation = JpaEntityInformationSupport.getEntityInformation(domainClass, em);
 			entityInformationMap.put(domainClass, entityInformation);
 		}
-		return entityInformation; 
+		return entityInformation;
 	}
-	
-	
+
 	protected String getPermissionString(Object permission) {
 		return permission.toString();
 	}

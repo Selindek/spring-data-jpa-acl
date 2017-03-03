@@ -14,7 +14,7 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
 	 * Find an entity by id with testing the current user's permission against the given permission during permission-check
 	 * 
 	 * @param id the id of the entity
-	 * @param permission the permission we check against 
+	 * @param permission the permission we check against
 	 * @return the entity with the given id or null if it's not exist or the current user has no proper permission to it
 	 */
 	T findOne(ID id, String permission);
@@ -23,8 +23,8 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
 	 * Find an entity by id with testing the current user's permission against the given permission during permission-check
 	 * 
 	 * @param id the id of the entity
-	 * @param permission the permission we check against 
-	 * @return the entity with the given id 
+	 * @param permission the permission we check against
+	 * @return the entity with the given id
 	 * @throws EntityNotFoundException if the entity cannot be found or the current user has no proper permission to it
 	 */
 	T getOne(ID id, String permission);
@@ -37,5 +37,5 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
 	List<T> findAll(String permission);
 
 	T findOne(Specification<T> spec, String permission);
-	
+
 }

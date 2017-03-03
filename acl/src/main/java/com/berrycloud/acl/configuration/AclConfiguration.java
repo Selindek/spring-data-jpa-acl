@@ -44,16 +44,16 @@ import com.berrycloud.acl.security.access.AclPermissionEvaluator;
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-@ComponentScan(basePackageClasses={AclPropertyFilter.class})
+@ComponentScan(basePackageClasses = {AclPropertyFilter.class})
 public class AclConfiguration {
 
 	@Autowired
 	ApplicationContext context;
 
 	/**
-	 * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces,
-	 * so data-rest-API will use the repository with the @Primary annotation. We create the bean here in the main
-	 * configuration class because we use it in the PermissionEvaluator too.
+	 * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces, so data-rest-API
+	 * will use the repository with the @Primary annotation. We create the bean here in the main configuration class because we use it in
+	 * the PermissionEvaluator too.
 	 */
 	@Bean
 	public Repositories repositories() {

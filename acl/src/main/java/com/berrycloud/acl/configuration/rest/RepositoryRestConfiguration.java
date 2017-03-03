@@ -17,7 +17,6 @@ import org.springframework.data.rest.webmvc.json.MappingAwareDefaultedPageableAr
 import org.springframework.data.rest.webmvc.json.MappingAwareDefaultedPropertyPageableArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 
-
 /**
  * This configuration class is activated only if spring-data-rest-webmvc is in the classpath
  * 
@@ -51,23 +50,21 @@ public class RepositoryRestConfiguration extends RepositoryRestMvcConfiguration 
 	}
 
 	/**
-	 * The PageableResolver what is constructed in the super method is not handling the domain-properties, so we have to
-	 * change it to a proper one here.
+	 * The PageableResolver what is constructed in the super method is not handling the domain-properties, so we have to change it to a
+	 * proper one here.
 	 */
 	@Override
 	protected List<HandlerMethodArgumentResolver> defaultMethodArgumentResolvers() {
 		List<HandlerMethodArgumentResolver> originalList = super.defaultMethodArgumentResolvers();
 		List<HandlerMethodArgumentResolver> newList = new ArrayList<>();
-		
-		JacksonMappingAwarePropertySortTranslator sortTranslator = new JacksonMappingAwarePropertySortTranslator(objectMapper(),
-				repositories(), DomainPropertyClassResolver.of(repositories(), resourceMappings(), baseUri()), persistentEntities(),
-				associationLinks());
 
-		HandlerMethodArgumentResolver defaultedPageableResolver = new MappingAwareDefaultedPropertyPageableArgumentResolver(
-				sortTranslator, pageableResolver());
-		
-		for(HandlerMethodArgumentResolver element:originalList) {
-			if(element instanceof MappingAwareDefaultedPageableArgumentResolver) {
+		JacksonMappingAwarePropertySortTranslator sortTranslator = new JacksonMappingAwarePropertySortTranslator(objectMapper(), repositories(),
+				DomainPropertyClassResolver.of(repositories(), resourceMappings(), baseUri()), persistentEntities(), associationLinks());
+
+		HandlerMethodArgumentResolver defaultedPageableResolver = new MappingAwareDefaultedPropertyPageableArgumentResolver(sortTranslator, pageableResolver());
+
+		for (HandlerMethodArgumentResolver element : originalList) {
+			if (element instanceof MappingAwareDefaultedPageableArgumentResolver) {
 				newList.add(defaultedPageableResolver);
 			} else {
 				newList.add(element);
