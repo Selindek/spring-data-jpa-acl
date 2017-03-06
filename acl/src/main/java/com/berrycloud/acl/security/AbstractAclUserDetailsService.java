@@ -18,58 +18,73 @@ import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 
 public abstract class AbstractAclUserDetailsService<A extends GrantedAuthority> implements AclUserDetailsService<A> {
-	// TODO extend it to a UserDetailsManager ???
+    // TODO extend it to a UserDetailsManager ???
 
-	@Autowired
-	private AclLogic aclLogic;
+    @Autowired
+    private AclLogic aclLogic;
 
-	@Override
-	@Transactional(readOnly = true)
-	public AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    @Override
+    @Transactional(readOnly = true)
+    public AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-		AclUser<Serializable, AclRole<Serializable>> aclUser = aclLogic.loadUserByUsername(username);
+        AclUser<Serializable, AclRole<Serializable>> aclUser = aclLogic.loadUserByUsername(username);
 
-		return createUserDetails(aclUser, createAuthorities(aclLogic.getAllRoles(aclUser)));
-	}
+        return createUserDetails(aclUser, createAuthorities(aclLogic.getAllRoles(aclUser)));
+    }
 
-	/**
-	 * Subclasses should override this method for creating extended AclUserDetails objects.
-	 */
-	protected AclUserDetails createUserDetails(AclUser<Serializable, AclRole<Serializable>> aclUser, Collection<A> authorities) {
-		return new SimpleAclUserDetails(aclLogic.getUserId(aclUser), aclUser.getUsername(), aclUser.getPassword(), authorities);
-	}
+    /**
+     * Subclasses should override this method for creating extended AclUserDetails objects.
+     */
+    protected AclUserDetails createUserDetails(AclUser<Serializable, AclRole<Serializable>> aclUser,
+            Collection<A> authorities) {
+        return new SimpleAclUserDetails(aclLogic.getUserId(aclUser), aclUser.getUsername(), aclUser.getPassword(),
+                authorities);
+    }
 
-	protected Collection<A> createAuthorities(Set<AclRole<Serializable>> roleSet) {
-		Set<A> grantedAuthorities = new HashSet<A>();
-		for (AclRole<Serializable> role : roleSet) {
-			grantedAuthorities.add(createGrantedAuthority(role.getRoleName()));
-		}
-		return grantedAuthorities;
-	}
+    protected Collection<A> createAuthorities(Set<AclRole<Serializable>> roleSet) {
+        Set<A> grantedAuthorities = new HashSet<A>();
+        for (AclRole<Serializable> role : roleSet) {
+            grantedAuthorities.add(createGrantedAuthority(role.getRoleName()));
+        }
+        return grantedAuthorities;
+    }
 
-	@Override
-	public abstract A createGrantedAuthority(String authority); 
+    @Override
+    public abstract A createGrantedAuthority(String authority);
 
-	// Security utility methods
+    // Security utility methods
 
-	@Override
-	public AclUserDetails getCurrentUser() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication != null) {
-			return (AclUserDetails) authentication.getPrincipal();
-		}
-		return null;
-	}
+    @Override
+    public AclUserDetails getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null) {
+            return (AclUserDetails) authentication.getPrincipal();
+        }
+        return null;
+    }
 
-	@Override
-	public boolean isAdmin() {
-		return hasAuthority(AclUtils.ROLE_ADMIN);
-	}
+    @Override
+    public boolean isAdmin() {
+        return hasAuthority(AclUtils.ROLE_ADMIN);
+    }
 
-	@Override
-	public boolean hasAuthority(String authority) {
-		AclUserDetails currentUser = getCurrentUser();
-		return currentUser != null && currentUser.getAuthorities().contains(createGrantedAuthority(authority));
-	}
+    @Override
+    public boolean hasAuthority(String authority) {
+        AclUserDetails currentUser = getCurrentUser();
+        return currentUser != null && currentUser.getAuthorities().contains(createGrantedAuthority(authority));
+    }
 
+    @Override
+    public boolean hasAnyAuthorities(Set<String> authorities) {
+        AclUserDetails currentUser = getCurrentUser();
+        if (currentUser != null) {
+
+            for (String authority : authorities) {
+                if (currentUser.getAuthorities().contains(createGrantedAuthority(authority))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
