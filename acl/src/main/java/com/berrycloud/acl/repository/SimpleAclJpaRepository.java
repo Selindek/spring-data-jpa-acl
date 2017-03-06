@@ -343,7 +343,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	@Override
 	@Transactional
 	public <S extends T> S save(S entity) {
-
+		em.detach(entity);
 		if (entityInformation.isNew(entity)) {
 			em.persist(entity);
 			return entity;
