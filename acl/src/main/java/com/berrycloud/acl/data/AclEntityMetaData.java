@@ -1,5 +1,9 @@
 package com.berrycloud.acl.data;
 
+/**
+ * A storage class containing all ACL metadata for a managed entities.
+ * The data is constructed during startup and its used during permission-evaluation.
+ */
 import java.util.ArrayList;
 import java.util.List;
 

@@ -46,6 +46,8 @@ public @interface AclParent {
     /**
      * The permission prefix for parent permissions. The user will gain permission to the current object if she has
      * {prefix}permission to the parent object. Default is empty string.
+     * <p>
+     * The prefix cannot contain the prefix-delimiter character. '-' by default.
      *
      * <pre>
      * &#64;Entity
@@ -63,12 +65,12 @@ public @interface AclParent {
      *
      * In the example above there are two annotations on the author field. The {@link AclOwner} annotation indicates
      * that the User in the author field is the owner of this entity and it has all of the possible permissions to this
-     * entity. (read/update/delete or any else user-defined permissions. ).
+     * entity. (read/update/delete or any other user-defined permissions. ).
      * <p>
      * The {@link AclParent} annotation however indicates that the User object in the author field is also the parent of
      * this entity, so {@code "read"} and {@code "update"} permissions are inherited from it. It means that if somebody
-     * has {@code "read"} or {@code "update"} permission to the author then the same user automatically gains those
-     * permissions to this entity. So if we have the following settings in the User domain object:
+     * has {@code "read"} or {@code "update"} permission to the author of this entity then the same user automatically
+     * gains those permissions to this entity. So if we have the following settings in the User domain class:
      *
      * <pre>
      * &#64;Entity

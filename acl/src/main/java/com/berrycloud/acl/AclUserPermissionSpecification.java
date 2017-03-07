@@ -35,11 +35,9 @@ import com.berrycloud.acl.data.OwnerData;
 import com.berrycloud.acl.data.ParentData;
 import com.berrycloud.acl.data.PermissionLinkData;
 import com.berrycloud.acl.data.RolePermissionData;
-import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.security.AclUserDetails;
 import com.berrycloud.acl.security.AclUserDetailsService;
-// TODO: use idProperty instead of getId
 
 public class AclUserPermissionSpecification implements Specification<Object> {
 
@@ -47,6 +45,9 @@ public class AclUserPermissionSpecification implements Specification<Object> {
 
     @Autowired
     private AclUserDetailsService<? extends GrantedAuthority> aclUserDetailsService;
+
+    @Autowired
+    private AclLogic aclLogic;
 
     @Autowired
     private AclMetaData aclMetaData;
@@ -66,7 +67,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
     @SuppressWarnings("unchecked")
     public Predicate toPredicate(Root<?> root, CommonAbstractCriteria query, CriteriaBuilder cb, String permission) {
 
-        if (!AclEntity.class.isAssignableFrom(root.getJavaType())) {
+        if (!aclLogic.isManagedType(root.getJavaType())) {
             LOG.trace("Access granted for non-AclEntity: {}", root.getJavaType());
             return cb.conjunction();
         }
@@ -77,12 +78,6 @@ public class AclUserPermissionSpecification implements Specification<Object> {
             LOG.trace("Access denied for NULL user");
             return cb.disjunction();
         }
-
-        // Skip all predicate constructions if the current user is an admin
-        // if (aclUserDetailsService.isAdmin()) {
-        // LOG.trace("Access granted for ADMIN user: {}", user.getUsername());
-        // return cb.conjunction();
-        // }
 
         From<?, ?> from = root;
         if (query instanceof CriteriaQuery) {
@@ -131,9 +126,8 @@ public class AclUserPermissionSpecification implements Specification<Object> {
     }
 
     /**
-     * Creates predicates for current user
+     * Creates a predicate for current user to its own entity
      *
-     * @param permission
      */
     private List<Predicate> createSelfPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
             String permission) {
@@ -211,7 +205,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
     }
 
     /**
-     * Creates predicates for group of owners defined by {@link AclOwner} annotation on NON-AclUser fields
+     * Creates predicates for indirect owners defined by {@link AclOwner} annotation on NON-AclUser fields
      *
      * @param permission
      */
@@ -246,6 +240,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
                 String permissionPrefix = parentData.getPermissionPrefix();
                 String parentPermission = permissionPrefix.isEmpty() ? permission
                         : permissionPrefix + PERMISSION_PREFIX_DELIMITER + permission;
+                // create predicates recursively on parent objects using prefixed permission
                 predicates.add(toSubPredicate(from.join(parentData.getPropertyName(), JoinType.LEFT), cb, userId,
                         parentPermission, depth - 1));
             }

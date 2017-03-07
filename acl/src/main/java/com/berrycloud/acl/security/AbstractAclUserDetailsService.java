@@ -1,6 +1,5 @@
 package com.berrycloud.acl.security;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,7 +26,7 @@ public abstract class AbstractAclUserDetailsService<A extends GrantedAuthority> 
     @Transactional(readOnly = true)
     public AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        AclUser<Serializable, AclRole<Serializable>> aclUser = aclLogic.loadUserByUsername(username);
+        AclUser<AclRole> aclUser = aclLogic.loadUserByUsername(username);
 
         return createUserDetails(aclUser, createAuthorities(aclLogic.getAllRoles(aclUser)));
     }
@@ -35,15 +34,14 @@ public abstract class AbstractAclUserDetailsService<A extends GrantedAuthority> 
     /**
      * Subclasses should override this method for creating extended AclUserDetails objects.
      */
-    protected AclUserDetails createUserDetails(AclUser<Serializable, AclRole<Serializable>> aclUser,
-            Collection<A> authorities) {
+    protected AclUserDetails createUserDetails(AclUser<AclRole> aclUser, Collection<A> authorities) {
         return new SimpleAclUserDetails(aclLogic.getUserId(aclUser), aclUser.getUsername(), aclUser.getPassword(),
                 authorities);
     }
 
-    protected Collection<A> createAuthorities(Set<AclRole<Serializable>> roleSet) {
+    protected Collection<A> createAuthorities(Set<AclRole> roleSet) {
         Set<A> grantedAuthorities = new HashSet<A>();
-        for (AclRole<Serializable> role : roleSet) {
+        for (AclRole role : roleSet) {
             grantedAuthorities.add(createGrantedAuthority(role.getRoleName()));
         }
         return grantedAuthorities;
