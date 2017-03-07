@@ -8,7 +8,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * Container annotation for RolePermission annotations
+ * Container annotation for {@link AclRoleCondition} annotations
  *
  * @author Istvan Ratkai (Selindek)
  *
@@ -16,11 +16,11 @@ import java.lang.annotation.Target;
 @Target({ TYPE })
 @Retention(RUNTIME)
 @Documented
-public @interface AclRolePermissions {
+public @interface AclRoleConditions {
 
     /**
-     * The list {@link RolePermission} annotations
+     * The list of {@link AclRoleCondition} annotations
      */
-    AclRolePermission[] value();
+    AclRoleCondition[] value();
 
 }

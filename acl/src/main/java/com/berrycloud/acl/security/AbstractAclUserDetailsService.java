@@ -75,12 +75,15 @@ public abstract class AbstractAclUserDetailsService<A extends GrantedAuthority> 
     }
 
     @Override
-    public boolean hasAnyAuthorities(Set<String> authorities) {
+    public boolean hasAnyAuthorities(Set<GrantedAuthority> authorities) {
+        if (authorities.isEmpty()) {
+            return true;
+        }
         AclUserDetails currentUser = getCurrentUser();
         if (currentUser != null) {
 
-            for (String authority : authorities) {
-                if (currentUser.getAuthorities().contains(createGrantedAuthority(authority))) {
+            for (GrantedAuthority authority : authorities) {
+                if (currentUser.getAuthorities().contains(authority)) {
                     return true;
                 }
             }

@@ -1,20 +1,20 @@
 package com.berrycloud.acl.data;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
+
+import org.springframework.security.core.GrantedAuthority;
 
 public class RolePermissionData extends PermissionData {
 
-    private Set<String> roleNames;
+    private Set<GrantedAuthority> authorities;
 
-    public RolePermissionData(String[] roleNames, String[] permissions) {
+    public RolePermissionData(Set<GrantedAuthority> authorities, String[] permissions) {
         super(permissions);
-        this.roleNames = new HashSet<String>(Arrays.asList(roleNames));
+        this.authorities = authorities;
     }
 
-    public Set<String> getRoleNames() {
-        return roleNames;
+    public Set<GrantedAuthority> getAuthorities() {
+        return authorities;
     }
 
 }

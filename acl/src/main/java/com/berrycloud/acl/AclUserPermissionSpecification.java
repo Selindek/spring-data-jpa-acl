@@ -95,7 +95,13 @@ public class AclUserPermissionSpecification implements Specification<Object> {
         }
 
         if (hasRolePermission(from, permission)) {
+            LOG.trace("Access granted via @AclRolePermission: {}", user.getUsername());
             return cb.conjunction();
+        }
+
+        if (!hasRoleCondition(from, permission)) {
+            LOG.trace("Access denied via @AclRoleCondition: {}", user.getUsername());
+            return cb.disjunction();
         }
 
         LOG.trace("Creating predicates for {}", from.getJavaType());
@@ -153,8 +159,26 @@ public class AclUserPermissionSpecification implements Specification<Object> {
     private boolean hasRolePermission(From<?, ?> from, String permission) {
         AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
         for (RolePermissionData rolePermissionData : metaData.getRolePermissionList()) {
-            if (aclUserDetailsService.hasAnyAuthorities(rolePermissionData.getRoleNames())
+            if (aclUserDetailsService.hasAnyAuthorities(rolePermissionData.getAuthorities())
                     && rolePermissionData.hasPermission(permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks role preconditions for the current user
+     *
+     * @param from
+     * @param permission
+     * @return
+     */
+    private boolean hasRoleCondition(From<?, ?> from, String permission) {
+        AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
+        for (RolePermissionData roleConditionData : metaData.getRoleConditionList()) {
+            if (aclUserDetailsService.hasAnyAuthorities(roleConditionData.getAuthorities())
+                    && roleConditionData.hasPermission(permission)) {
                 return true;
             }
         }

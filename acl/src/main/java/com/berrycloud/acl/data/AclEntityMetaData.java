@@ -13,6 +13,7 @@ public class AclEntityMetaData {
     private List<ParentData> parentDataList = new ArrayList<>();
     private List<PermissionLinkData> permissionLinkList = new ArrayList<>();
     private List<RolePermissionData> rolePermissionList = new ArrayList<>();
+    private List<RolePermissionData> roleConditionList = new ArrayList<>();
 
     public List<OwnerData> getOwnerDataList() {
         return ownerDataList;
@@ -60,6 +61,14 @@ public class AclEntityMetaData {
 
     public void setRolePermissionList(List<RolePermissionData> rolePermissionList) {
         this.rolePermissionList = rolePermissionList;
+    }
+
+    public List<RolePermissionData> getRoleConditionList() {
+        return roleConditionList;
+    }
+
+    public void setRoleConditionList(List<RolePermissionData> roleConditionList) {
+        this.roleConditionList = roleConditionList;
     }
 
 }

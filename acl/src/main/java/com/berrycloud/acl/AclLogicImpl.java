@@ -36,11 +36,14 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.JpaEntityInformationSupport;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.berrycloud.acl.annotation.AclOwner;
 import com.berrycloud.acl.annotation.AclParent;
+import com.berrycloud.acl.annotation.AclRoleCondition;
+import com.berrycloud.acl.annotation.AclRoleConditions;
 import com.berrycloud.acl.annotation.AclRolePermission;
 import com.berrycloud.acl.annotation.AclRolePermissions;
 import com.berrycloud.acl.annotation.AclRoleProvider;
@@ -56,6 +59,7 @@ import com.berrycloud.acl.domain.AclEntity;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.domain.PermissionLink;
+import com.berrycloud.acl.repository.NoAcl;
 import com.berrycloud.acl.security.AclUserDetailsService;
 
 public class AclLogicImpl implements AclLogic {
@@ -67,7 +71,7 @@ public class AclLogicImpl implements AclLogic {
 
     // TODO calculate GrantedAuthorities for RolePermissions
     @Autowired
-    private AclUserDetailsService uds;
+    private AclUserDetailsService userDetailsService;
 
     @Value("${spring.data.jpa.acl.self-permissions:" + ALL_PERMISSION + "}")
     private String[] defaultSelfPermissions;
@@ -163,6 +167,8 @@ public class AclLogicImpl implements AclLogic {
         }
         checkSelfPermissions(javaType);
         checkAclRolePermission(metaData, javaType);
+        checkAclRoleCondition(metaData, javaType);
+        checkNoAcl(metaData, javaType);
         return metaData;
     }
 
@@ -170,15 +176,49 @@ public class AclLogicImpl implements AclLogic {
         Set<AclRolePermission> rolePermissions = AnnotationUtils.getDeclaredRepeatableAnnotations(javaType,
                 AclRolePermission.class, AclRolePermissions.class);
         for (AclRolePermission rolePermission : rolePermissions) {
-            metaData.getRolePermissionList().add(new RolePermissionData(rolePermission.role(), rolePermission.value()));
+            metaData.getRolePermissionList()
+                    .add(new RolePermissionData(convertToAuthorities(rolePermission.role()), rolePermission.value()));
         }
         if (metaData.getRolePermissionList().isEmpty()) {
-            // Add default behaviour - ROLE_ADMIN gains all permission
-            metaData.getRolePermissionList()
-                    .add(new RolePermissionData(new String[] { ROLE_ADMIN }, new String[] { ALL_PERMISSION }));
+            // Add default behaviour - ROLE_ADMIN gains all permissions
+            metaData.getRolePermissionList().add(new RolePermissionData(
+                    convertToAuthorities(new String[] { ROLE_ADMIN }), new String[] { ALL_PERMISSION }));
         }
-        // TODO Auto-generated method stub
 
+    }
+
+    private void checkAclRoleCondition(AclEntityMetaData metaData, Class<?> javaType) {
+        Set<AclRoleCondition> roleConditions = AnnotationUtils.getDeclaredRepeatableAnnotations(javaType,
+                AclRoleCondition.class, AclRoleConditions.class);
+        for (AclRoleCondition roleCondition : roleConditions) {
+            metaData.getRoleConditionList()
+                    .add(new RolePermissionData(convertToAuthorities(roleCondition.role()), roleCondition.value()));
+        }
+        if (metaData.getRoleConditionList().isEmpty()) {
+            // Add default behaviour - ANY roles could gain any permissions
+            metaData.getRoleConditionList().add(
+                    new RolePermissionData(convertToAuthorities(new String[] {}), new String[] { ALL_PERMISSION }));
+        }
+
+    }
+
+    private void checkNoAcl(AclEntityMetaData metaData, Class<?> javaType) {
+        NoAcl noAcl = AnnotationUtils.findAnnotation(javaType, NoAcl.class);
+        if (noAcl != null) {
+            metaData.getRoleConditionList().clear();
+            metaData.getRolePermissionList().clear();
+            // Turn off acl - ANY roles gain all permissions
+            metaData.getRolePermissionList().add(
+                    new RolePermissionData(convertToAuthorities(new String[] {}), new String[] { ALL_PERMISSION }));
+        }
+    }
+
+    private Set<GrantedAuthority> convertToAuthorities(String[] authoritiNames) {
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        for (String authorityName : authoritiNames) {
+            authorities.add(userDetailsService.createGrantedAuthority(authorityName));
+        }
+        return authorities;
     }
 
     private void checkSelfPermissions(Class<?> javaType) {
