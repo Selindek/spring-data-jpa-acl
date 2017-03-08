@@ -3,18 +3,18 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.berrycloud.acl</groupId>
-  <artifactId>acl</artifactId>
+  <artifactId>spring-data-jpa-acl</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>acl</name>
-  <description>Demo project for Spring Boot</description>
+  <name>${project.artifactId}</name>
+  <description>Access Control Logic extension for Spring Data JPA</description>
 
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>1.5.1.RELEASE</version>
-    <relativePath /> <!-- lookup parent from repository -->
+    <relativePath />
   </parent>
 
   <properties>
