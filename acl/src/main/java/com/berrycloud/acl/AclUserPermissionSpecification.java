@@ -111,7 +111,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
         List<Predicate> predicates = new ArrayList<>();
 
         predicates.addAll(createSelfPredicates(from, cb, userId, permission));
-        predicates.addAll(createOwnerPredicates(from, cb, userId, permission));
+        predicates.addAll(createOwnerPredicates(from, cb, userId, permission, false));
         predicates.addAll(createOwnerGroupPredicates(from, cb, userId, permission));
         predicates.addAll(createPermissionLinkPredicates(from, cb, userId, permission));
         // Adding predicates recursively for parent entities
@@ -185,11 +185,11 @@ public class AclUserPermissionSpecification implements Specification<Object> {
      * @param permission
      */
     private List<Predicate> createOwnerPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
-            String permission) {
+            String permission, boolean ownerGroup) {
         List<Predicate> predicates = new ArrayList<>();
         AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
         for (OwnerData ownerData : metaData.getOwnerDataList()) {
-            if (ownerData.hasPermission(permission)) {
+            if (ownerGroup || ownerData.hasPermission(permission)) {
                 LOG.trace("Adding 'owner' predicate for {}.{}", from.getJavaType(), ownerData.getPropertyName());
                 SingularAttribute<? super Object, ?> idAttribute = aclMetaData
                         .getAclEntityMetaData(ownerData.getPropertyType()).getIdAttribute();
@@ -204,6 +204,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
         return predicates;
     }
 
+    // TODO refactor OwnerGroup Predicates to use prefixes. Or use ParentPredictes instead
     /**
      * Creates predicates for indirect owners defined by {@link AclOwner} annotation on NON-AclUser fields
      *
@@ -218,7 +219,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
                 LOG.trace("Adding 'owner-group' predicate for {}.{}", from.getJavaType(),
                         ownerGroupData.getPropertyName());
                 predicates.addAll(createOwnerPredicates(from.join(ownerGroupData.getPropertyName(), JoinType.LEFT), cb,
-                        userId, permission));
+                        userId, permission, true));
             }
         }
         return predicates;
@@ -263,7 +264,8 @@ public class AclUserPermissionSpecification implements Specification<Object> {
             Join<Object, Object> permissionLink = from.join(permissionLinkData.getPropertyName(), JoinType.LEFT);
             permissionLink.on(createOnPredicate(cb,
                     permissionLink.<String> get(permissionLinkData.getPermissionField()), permission));
-            predicates.addAll(createOwnerPredicates(permissionLink, cb, userId, permission));
+            predicates.addAll(createOwnerPredicates(permissionLink, cb, userId, permission, false));
+            predicates.addAll(createOwnerGroupPredicates(permissionLink, cb, userId, permission));
         }
 
         return predicates;
