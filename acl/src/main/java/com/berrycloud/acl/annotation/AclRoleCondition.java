@@ -17,13 +17,13 @@ import java.lang.annotation.Target;
  * permission-role annotations like {@link AclOwner} or {@link AclParent} or a permission-link). A domain class can be
  * annotated multiple {@link AclRoleCondition} annotation.
  * <p>
- * An empty list in the {@code role} field means: ANY role.
+ * An empty list in the {@code roles} field means: ANY role.
  * <p>
  * Example: <blockquote>
  *
  * <pre>
- *     &#64;AclRoleCondition( role={}, value={"read"})
- *     &#64;AclRoleCondition( role={"ROLE_EDITOR"}, value={"update"})
+ *     &#64;AclRoleCondition( roles={}, value={"read"})
+ *     &#64;AclRoleCondition( roles={"ROLE_EDITOR"}, value={"update"})
  *     &#64;Entity
  *     public class Document {
  *     ...
@@ -37,7 +37,7 @@ import java.lang.annotation.Target;
  * If this annotation is not used for a domain class the default behaviour is
  *
  * <pre>
- * &#64;AclRoleCondition( role={}, value={"all"})
+ * &#64;AclRoleCondition( roles={}, value={"all"})
  * </pre>
  *
  * i.e. any user <i>could</i> gain any permission to these entities.
@@ -49,8 +49,8 @@ import java.lang.annotation.Target;
  * You can also combine {@link AclRolePermission} and {@link AclRoleCondition} annotations for complex acl rules:
  *
  * <pre>
- *&#64;AclRolePermission( role={"ROLE_ADMIN"}, value={"read"})
- *&#64;AclRoleCondition( role={}, value={"update"})
+ *&#64;AclRolePermission( roles={"ROLE_ADMIN"}, value={"read"})
+ *&#64;AclRoleCondition( roles={}, value={"update"})
  * </pre>
  *
  * The {@link AclRolePermission} annotations are checked first, so users with {@code ROLE_ADMIN} authority will
@@ -63,9 +63,9 @@ import java.lang.annotation.Target;
  * is no matching preconditions for any other permission type.
  * <p>
  * So if you want to completely deny the access for a domain class you can use the following annotation on it:
- * 
+ *
  * <pre>
- * &#64;AclRoleCondition( role={}, value={})
+ * &#64;AclRoleCondition( roles={}, value={})
  * </pre>
  *
  * @author Istvan Ratkai (Selindek)
@@ -86,5 +86,5 @@ public @interface AclRoleCondition {
      * The list of roles (by string representation) which gains the permission defined in the values field. Empty list
      * means: ANY role. (No role preconditions for the given permissions)
      */
-    String[] role();
+    String[] roles();
 }

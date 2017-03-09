@@ -15,12 +15,12 @@ import com.berrycloud.acl.repository.NoAcl;
  * Defines a list of permissions for a list of roles for this domain object. All of the users who has at least one role
  * from the provided list will gain all the permissions defined here for all of the entities of this domain class.
  * <p>
- * An empty list in the {@code role} field means: ANY role.
+ * An empty list in the {@code roles} field means: ANY role.
  * <p>
  * If a domain class is NOT annotated with this annotation then the acl treats it as if it was annotated as
  *
  * <pre>
- * &#64;AclRolePermission(role={"ROLE_ADMIN"}, value="all")
+ * &#64;AclRolePermission(roles={"ROLE_ADMIN"}, value="all")
  * </pre>
  *
  * So a user with ADMIN_ROLE will gain all permissions to all objects. However if you add this annotation to a domain
@@ -30,7 +30,7 @@ import com.berrycloud.acl.repository.NoAcl;
  * Another Example:
  *
  * <pre>
- * &#64;AclRolePermission(role={}, value="all")
+ * &#64;AclRolePermission(roles={}, value="all")
  * </pre>
  *
  * It means: users with ANY roles gain all permission to the entities of this domain class. By using these settings you
@@ -39,7 +39,7 @@ import com.berrycloud.acl.repository.NoAcl;
  * You can define multiple permissions in the {@link #value} field. If the list contains {@code "all"} then it provides
  * all possible permissions. If the list contains any permissions (not empty) it automatically provides {@code "read"}
  * permission too.
- * 
+ *
  * @author Istvan Ratkai (Selindek)
  *
  */
@@ -55,7 +55,8 @@ public @interface AclRolePermission {
     String[] value() default { ALL_PERMISSION };
 
     /**
-     * The list of roles (by string representation) which gains the permission defined in the values field.
+     * The list of roles (by string representation) which gains the permission defined in the values field. Empty array
+     * means ANY role.
      */
-    String[] role();
+    String[] roles();
 }

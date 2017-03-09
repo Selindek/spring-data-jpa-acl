@@ -175,7 +175,7 @@ public class AclLogicImpl implements AclLogic {
                 AclRolePermission.class, AclRolePermissions.class);
         for (AclRolePermission rolePermission : rolePermissions) {
             metaData.getRolePermissionList()
-                    .add(new RolePermissionData(convertToAuthorities(rolePermission.role()), rolePermission.value()));
+                    .add(new RolePermissionData(convertToAuthorities(rolePermission.roles()), rolePermission.value()));
         }
         if (metaData.getRolePermissionList().isEmpty()) {
             // Add default behaviour - users with ROLE_ADMIN role automatically gain all permissions
@@ -190,7 +190,7 @@ public class AclLogicImpl implements AclLogic {
                 AclRoleCondition.class, AclRoleConditions.class);
         for (AclRoleCondition roleCondition : roleConditions) {
             metaData.getRoleConditionList()
-                    .add(new RolePermissionData(convertToAuthorities(roleCondition.role()), roleCondition.value()));
+                    .add(new RolePermissionData(convertToAuthorities(roleCondition.roles()), roleCondition.value()));
         }
         if (metaData.getRoleConditionList().isEmpty()) {
             // Add default behaviour - users with ANY roles could gain any permissions
