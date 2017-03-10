@@ -13,15 +13,15 @@ import org.springframework.data.repository.query.EvaluationContextProvider;
 import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 
-import com.berrycloud.acl.AclUserPermissionSpecification;
+import com.berrycloud.acl.AclSpecification;
 
 public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
 
-    private AclUserPermissionSpecification aclSpecification;
+    private AclSpecification aclSpecification;
     private EntityManager entityManager;
     private final QueryExtractor extractor;
 
-    public AclJpaRepositoryFactory(EntityManager entityManager, AclUserPermissionSpecification aclSpecification) {
+    public AclJpaRepositoryFactory(EntityManager entityManager, AclSpecification aclSpecification) {
         super(entityManager);
         this.aclSpecification = aclSpecification;
         this.entityManager = entityManager;

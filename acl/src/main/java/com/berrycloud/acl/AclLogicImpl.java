@@ -3,6 +3,7 @@ package com.berrycloud.acl;
 import static com.berrycloud.acl.AclUtils.ALL_PERMISSION;
 import static com.berrycloud.acl.AclUtils.PERMISSION_PREFIX_DELIMITER;
 import static com.berrycloud.acl.AclUtils.ROLE_ADMIN;
+import static com.berrycloud.acl.AclUtils.ROLE_USER;
 
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;
@@ -57,6 +58,8 @@ import com.berrycloud.acl.data.RolePermissionData;
 import com.berrycloud.acl.domain.AclRole;
 import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.domain.PermissionLink;
+import com.berrycloud.acl.domain.SimpleAclRole;
+import com.berrycloud.acl.domain.SimpleAclUser;
 import com.berrycloud.acl.repository.NoAcl;
 import com.berrycloud.acl.security.AclUserDetailsService;
 
@@ -85,7 +88,8 @@ public class AclLogicImpl implements AclLogic {
         aclUserType = (Class<AclUser<AclRole>>) searchEntityType(javaTypes, AclUser.class);
         userInformation = JpaEntityInformationSupport.getEntityInformation(aclUserType, em);
         aclRoleType = (Class<AclRole>) searchEntityType(javaTypes, AclRole.class);
-        // TODO add default user if using SimpleAclUser
+
+        addDefaultUsersIfNeeded();
 
         Map<Class<?>, AclEntityMetaData> metaDataMap = createMetaDataMap();
 
@@ -166,6 +170,7 @@ public class AclLogicImpl implements AclLogic {
         checkSelfPermissions(javaType);
         checkAclRolePermission(metaData, javaType);
         checkAclRoleCondition(metaData, javaType);
+        // call this one last. It overrides the role annotations
         checkNoAcl(metaData, javaType);
         return metaData;
     }
@@ -368,4 +373,47 @@ public class AclLogicImpl implements AclLogic {
     public Serializable getUserId(AclUser<AclRole> user) {
         return userInformation.getId(user);
     }
+
+    private void addDefaultUsersIfNeeded() {
+        // Check if we use default Acl types (Probably simple test application)
+        if (SimpleAclUser.class.equals(aclRoleType) && SimpleAclUser.class.equals(aclUserType)) {
+            SimpleAclRole adminRole = getOrCreateRoleByName(ROLE_ADMIN);
+            SimpleAclRole userRole = getOrCreateRoleByName(ROLE_USER);
+
+            CriteriaBuilder cb = em.getCriteriaBuilder();
+            CriteriaQuery<Long> query = cb.createQuery(Long.class);
+            Root<AclUser<AclRole>> root = query.from(aclUserType);
+            query.select(cb.count(root));
+
+            if (em.createQuery(query).getSingleResult() == 0) {
+                // Add default users if there are no users
+                SimpleAclUser adminUser = new SimpleAclUser("admin", "password");
+                SimpleAclUser userUser = new SimpleAclUser("user", "password");
+
+                adminUser.getAclRoles().add(adminRole);
+
+                adminUser.getAclRoles().add(userRole);
+                userUser.getAclRoles().add(userRole);
+
+                em.persist(adminUser);
+                em.persist(userUser);
+            }
+        }
+    }
+
+    private SimpleAclRole getOrCreateRoleByName(String roleName) {
+        try {
+            CriteriaBuilder cb = em.getCriteriaBuilder();
+            CriteriaQuery<SimpleAclRole> roleQuery = cb.createQuery(SimpleAclRole.class);
+            Root<AclRole> roleRoot = roleQuery.from(aclRoleType);
+            roleQuery.where(cb.equal(roleRoot.get("roleName"), roleName));
+            return em.createQuery(roleQuery).getSingleResult();
+        } catch (Exception ex) {
+            LOG.trace("Cannot load role for '{}', creating default one...", roleName, ex);
+            SimpleAclRole role = new SimpleAclRole(roleName);
+            em.persist(role);
+            return role;
+        }
+    }
+
 }

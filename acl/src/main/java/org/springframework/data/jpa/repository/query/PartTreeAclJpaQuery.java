@@ -33,7 +33,7 @@ import org.springframework.data.repository.query.ParametersParameterAccessor;
 import org.springframework.data.repository.query.ResultProcessor;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import com.berrycloud.acl.AclUserPermissionSpecification;
+import com.berrycloud.acl.AclSpecification;
 
 /**
  * This class is an extension of the {@link PartTreeJpaQuery} class with some addition for the Acl. Unfortunately the
@@ -54,7 +54,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
     private final QueryPreparer countQuery;
     private final EntityManager em;
 
-    private final AclUserPermissionSpecification aclSpecification;
+    private final AclSpecification aclSpecification;
 
     /**
      * Creates a new {@link PartTreeJpaQuery}.
@@ -67,7 +67,7 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
      *            must not be {@literal null}.
      */
     public PartTreeAclJpaQuery(JpaQueryMethod method, EntityManager em, PersistenceProvider persistenceProvider,
-            AclUserPermissionSpecification aclSpecification) {
+            AclSpecification aclSpecification) {
 
         super(method, em);
 

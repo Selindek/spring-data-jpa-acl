@@ -20,7 +20,7 @@ import org.springframework.data.jpa.repository.support.JpaEntityInformationSuppo
 import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.core.Authentication;
 
-import com.berrycloud.acl.AclUserPermissionSpecification;
+import com.berrycloud.acl.AclSpecification;
 
 public class AclPermissionEvaluator implements PermissionEvaluator {
 
@@ -33,7 +33,7 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
     private EntityManager em;
 
     @Autowired
-    private AclUserPermissionSpecification aclSpecification;
+    private AclSpecification aclSpecification;
 
     @Override
     public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {

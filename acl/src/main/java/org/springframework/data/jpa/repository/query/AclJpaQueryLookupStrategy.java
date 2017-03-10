@@ -33,7 +33,7 @@ import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.util.Assert;
 
-import com.berrycloud.acl.AclUserPermissionSpecification;
+import com.berrycloud.acl.AclSpecification;
 import com.berrycloud.acl.repository.NoAcl;
 
 /**
@@ -117,10 +117,10 @@ public final class AclJpaQueryLookupStrategy {
     private static class CreateQueryLookupStrategy extends AbstractQueryLookupStrategy {
 
         private final PersistenceProvider persistenceProvider;
-        private final AclUserPermissionSpecification aclSpecification;
+        private final AclSpecification aclSpecification;
 
         public CreateQueryLookupStrategy(EntityManager em, QueryExtractor extractor,
-                AclUserPermissionSpecification aclSpecification) {
+                AclSpecification aclSpecification) {
 
             super(em, extractor);
             this.persistenceProvider = PersistenceProvider.fromEntityManager(em);
@@ -276,7 +276,7 @@ public final class AclJpaQueryLookupStrategy {
      * @return
      */
     public static QueryLookupStrategy create(EntityManager em, Key key, QueryExtractor extractor,
-            EvaluationContextProvider evaluationContextProvider, AclUserPermissionSpecification aclSpecification) {
+            EvaluationContextProvider evaluationContextProvider, AclSpecification aclSpecification) {
 
         Assert.notNull(em, "EntityManager must not be null!");
         Assert.notNull(extractor, "QueryExtractor must not be null!");

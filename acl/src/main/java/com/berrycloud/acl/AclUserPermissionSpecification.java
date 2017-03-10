@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.GrantedAuthority;
 
 import com.berrycloud.acl.annotation.AclOwner;
@@ -39,7 +38,7 @@ import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.security.AclUserDetails;
 import com.berrycloud.acl.security.AclUserDetailsService;
 
-public class AclUserPermissionSpecification implements Specification<Object> {
+public class AclUserPermissionSpecification implements AclSpecification {
 
     private static Logger LOG = LoggerFactory.getLogger(AclUserPermissionSpecification.class);
 
@@ -64,6 +63,7 @@ public class AclUserPermissionSpecification implements Specification<Object> {
         return toPredicate(root, query, cb, READ_PERMISSION);
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public Predicate toPredicate(Root<?> root, CommonAbstractCriteria query, CriteriaBuilder cb, String permission) {
 
