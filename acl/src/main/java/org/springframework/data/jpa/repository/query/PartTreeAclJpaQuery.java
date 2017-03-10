@@ -42,7 +42,7 @@ import com.berrycloud.acl.AclSpecification;
  *
  * @author Oliver Gierke
  * @author Thomas Darimont
- * @author Istvan Ratkai (Selindek)
+ * @author István Rátkai (Selindek)
  */
 public class PartTreeAclJpaQuery extends AbstractJpaQuery {
 

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2017 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.berrycloud.acl.annotation;
 
 import static com.berrycloud.acl.AclConstants.ALL_PERMISSION;
@@ -40,7 +55,7 @@ import com.berrycloud.acl.repository.NoAcl;
  * all possible permissions. If the list contains any permissions (not empty) it automatically provides {@code "read"}
  * permission too.
  *
- * @author Istvan Ratkai (Selindek)
+ * @@author István Rátkai (Selindek)
  *
  */
 @Target({ TYPE })

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 the original author or authors.
+ * Copyright 2012-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.NativeWebRequest;
 
 /**
- * Resolves a domain class from a web request. Domain class resolution is only available for {@link NativeWebRequest web requests} related
- * to mapped and exported {@link Repositories}.
+ * Resolves a domain class from a web request. Domain class resolution is only available for {@link NativeWebRequest web
+ * requests} related to mapped and exported {@link Repositories}.
  *
  * @author Mark Paluch
  * @author Oliver Gierke
@@ -38,79 +38,82 @@ import org.springframework.web.context.request.NativeWebRequest;
  */
 public class DomainPropertyClassResolver {
 
-	private final Repositories repositories;
-	private final ResourceMappings mappings;
-	private final BaseUri baseUri;
+    private final Repositories repositories;
+    private final ResourceMappings mappings;
+    private final BaseUri baseUri;
 
-	public DomainPropertyClassResolver(Repositories repositories, ResourceMappings mappings, BaseUri baseUri) {
-		Assert.notNull(repositories);
-		Assert.notNull(mappings);
-		Assert.notNull(baseUri);
+    public DomainPropertyClassResolver(Repositories repositories, ResourceMappings mappings, BaseUri baseUri) {
+        Assert.notNull(repositories);
+        Assert.notNull(mappings);
+        Assert.notNull(baseUri);
 
-		this.repositories = repositories;
-		this.mappings = mappings;
-		this.baseUri = baseUri;
-	}
+        this.repositories = repositories;
+        this.mappings = mappings;
+        this.baseUri = baseUri;
+    }
 
-	public static DomainPropertyClassResolver of(Repositories repositories, ResourceMappings mappings, BaseUri baseUri) {
-		return new DomainPropertyClassResolver(repositories, mappings, baseUri);
-	}
+    public static DomainPropertyClassResolver of(Repositories repositories, ResourceMappings mappings,
+            BaseUri baseUri) {
+        return new DomainPropertyClassResolver(repositories, mappings, baseUri);
+    }
 
-	/**
-	 * Resolves a domain class that is associated with the {@link NativeWebRequest} If this request was associated with a property of an
-	 * entity the the class of the property will be resolved.
-	 *
-	 * @param method must not be {@literal null}.
-	 * @param webRequest must not be {@literal null}.
-	 * @return domain type that is associated with this request or {@literal null} if no domain class can be resolved.
-	 */
-	public Class<?> resolve(Method method, NativeWebRequest webRequest) {
+    /**
+     * Resolves a domain class that is associated with the {@link NativeWebRequest} If this request was associated with
+     * a property of an entity the the class of the property will be resolved.
+     *
+     * @param method
+     *            must not be {@literal null}.
+     * @param webRequest
+     *            must not be {@literal null}.
+     * @return domain type that is associated with this request or {@literal null} if no domain class can be resolved.
+     */
+    public Class<?> resolve(Method method, NativeWebRequest webRequest) {
 
-		Assert.notNull(method, "Method must not be null!");
-		Assert.notNull(webRequest, "NativeWebRequest must not be null!");
+        Assert.notNull(method, "Method must not be null!");
+        Assert.notNull(webRequest, "NativeWebRequest must not be null!");
 
-		String lookupPath = baseUri.getRepositoryLookupPath(webRequest);
-		String repositoryKey = UriUtils.findMappingVariable("repository", method, lookupPath);
+        String lookupPath = baseUri.getRepositoryLookupPath(webRequest);
+        String repositoryKey = UriUtils.findMappingVariable("repository", method, lookupPath);
 
-		if (!StringUtils.hasText(repositoryKey)) {
+        if (!StringUtils.hasText(repositoryKey)) {
 
-			List<String> pathSegments = UriUtils.getPathSegments(method);
+            List<String> pathSegments = UriUtils.getPathSegments(method);
 
-			if (!pathSegments.isEmpty()) {
-				repositoryKey = pathSegments.get(0);
-			}
-		}
+            if (!pathSegments.isEmpty()) {
+                repositoryKey = pathSegments.get(0);
+            }
+        }
 
-		if (!StringUtils.hasText(repositoryKey)) {
-			return null;
-		}
+        if (!StringUtils.hasText(repositoryKey)) {
+            return null;
+        }
 
-		String propertyKey = UriUtils.findMappingVariable("property", method, lookupPath);
+        String propertyKey = UriUtils.findMappingVariable("property", method, lookupPath);
 
-		if (!StringUtils.hasText(propertyKey)) {
+        if (!StringUtils.hasText(propertyKey)) {
 
-			List<String> pathSegments = UriUtils.getPathSegments(method);
+            List<String> pathSegments = UriUtils.getPathSegments(method);
 
-			if (pathSegments.size() >= 2) {
-				propertyKey = pathSegments.get(2);
-			}
-		}
+            if (pathSegments.size() >= 2) {
+                propertyKey = pathSegments.get(2);
+            }
+        }
 
-		for (Class<?> domainType : repositories) {
+        for (Class<?> domainType : repositories) {
 
-			ResourceMetadata mapping = mappings.getMetadataFor(domainType);
+            ResourceMetadata mapping = mappings.getMetadataFor(domainType);
 
-			if (mapping.getPath().matches(repositoryKey) && mapping.isExported()) {
-				if (propertyKey != null) {
-					PropertyAwareResourceMapping propertyMapping = mapping.getProperty(propertyKey);
-					if (propertyMapping != null) {
-						return propertyMapping.getProperty().getActualType();
-					}
-				}
-				return domainType;
-			}
-		}
+            if (mapping.getPath().matches(repositoryKey) && mapping.isExported()) {
+                if (propertyKey != null) {
+                    PropertyAwareResourceMapping propertyMapping = mapping.getProperty(propertyKey);
+                    if (propertyMapping != null) {
+                        return propertyMapping.getProperty().getActualType();
+                    }
+                }
+                return domainType;
+            }
+        }
 
-		return null;
-	}
+        return null;
+    }
 }
