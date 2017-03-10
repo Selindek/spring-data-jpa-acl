@@ -1,6 +1,6 @@
 package com.berrycloud.acl.annotation;
 
-import static com.berrycloud.acl.AclUtils.ALL_PERMISSION;
+import static com.berrycloud.acl.AclConstants.ALL_PERMISSION;
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;

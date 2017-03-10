@@ -1,8 +1,8 @@
 package com.berrycloud.acl;
 
-import static com.berrycloud.acl.AclUtils.ALL_PERMISSION;
-import static com.berrycloud.acl.AclUtils.PERMISSION_PREFIX_DELIMITER;
-import static com.berrycloud.acl.AclUtils.READ_PERMISSION;
+import static com.berrycloud.acl.AclConstants.ALL_PERMISSION;
+import static com.berrycloud.acl.AclConstants.PERMISSION_PREFIX_DELIMITER;
+import static com.berrycloud.acl.AclConstants.READ_PERMISSION;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.GrantedAuthority;
 
 import com.berrycloud.acl.annotation.AclOwner;
 import com.berrycloud.acl.annotation.AclParent;
@@ -36,17 +35,13 @@ import com.berrycloud.acl.data.PermissionLinkData;
 import com.berrycloud.acl.data.RolePermissionData;
 import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.security.AclUserDetails;
-import com.berrycloud.acl.security.AclUserDetailsService;
 
 public class AclUserPermissionSpecification implements AclSpecification {
 
     private static Logger LOG = LoggerFactory.getLogger(AclUserPermissionSpecification.class);
 
     @Autowired
-    private AclUserDetailsService<? extends GrantedAuthority> aclUserDetailsService;
-
-    @Autowired
-    private AclLogic aclLogic;
+    private AclUtils aclUtils;
 
     @Autowired
     private AclMetaData aclMetaData;
@@ -67,18 +62,6 @@ public class AclUserPermissionSpecification implements AclSpecification {
     @SuppressWarnings("unchecked")
     public Predicate toPredicate(Root<?> root, CommonAbstractCriteria query, CriteriaBuilder cb, String permission) {
 
-        if (!aclLogic.isManagedType(root.getJavaType())) {
-            LOG.trace("Access granted for non-AclEntity: {}", root.getJavaType());
-            return cb.conjunction();
-        }
-
-        // Gather the id of current user
-        AclUserDetails user = aclUserDetailsService.getCurrentUser();
-        if (user == null) {
-            LOG.trace("Access denied for NULL user");
-            return cb.disjunction();
-        }
-
         From<?, ?> from = root;
         if (query instanceof CriteriaQuery) {
             CriteriaQuery<?> cq = (CriteriaQuery<?>) query;
@@ -89,19 +72,28 @@ public class AclUserPermissionSpecification implements AclSpecification {
             }
         }
 
+        // Rules from @AclRolePermission annotations
         if (hasRolePermission(from, permission)) {
-            LOG.trace("Access granted via @AclRolePermission: {}", user.getUsername());
+            LOG.trace("Access granted via @AclRolePermission: {}", aclUtils.getUsername());
             return cb.conjunction();
         }
 
+        // Rules from @AclRoleCondition annotations
         if (!hasRoleCondition(from, permission)) {
-            LOG.trace("Access denied via @AclRoleCondition: {}", user.getUsername());
+            LOG.trace("Access denied via @AclRoleCondition: {}", aclUtils.getUsername());
+            return cb.disjunction();
+        }
+
+        // Gather the UserDetails of the current user
+        AclUserDetails aclUserDetails = aclUtils.getAclUserDetails();
+        if (aclUserDetails == null) {
+            LOG.trace("Access denied for non-Acl user");
             return cb.disjunction();
         }
 
         LOG.trace("Creating predicates for {}", from.getJavaType());
 
-        return toSubPredicate(from, cb, user.getUserId(), permission, maxDepth);
+        return toSubPredicate(from, cb, aclUserDetails.getUserId(), permission, maxDepth);
     }
 
     private Predicate toSubPredicate(From<?, ?> from, CriteriaBuilder cb, Serializable userId, String permission,
@@ -126,24 +118,6 @@ public class AclUserPermissionSpecification implements AclSpecification {
     }
 
     /**
-     * Creates a predicate for current user to its own entity
-     *
-     */
-    private List<Predicate> createSelfPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
-            String permission) {
-        List<Predicate> predicates = new ArrayList<>();
-        if (AclUser.class.isAssignableFrom(from.getJavaType())) {
-            if (aclMetaData.getSelfPermissions().hasPermission(permission)) {
-                LOG.trace("Adding 'self' predicate for {}", from.getJavaType());
-                SingularAttribute<? super Object, ?> idAttribute = aclMetaData.getAclEntityMetaData(from.getJavaType())
-                        .getIdAttribute();
-                predicates.add(cb.equal(from.get(idAttribute), userId));
-            }
-        }
-        return predicates;
-    }
-
-    /**
      * Checks if the current user has any role which grants automatic permission for this domain type
      *
      * @param from
@@ -153,7 +127,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
     private boolean hasRolePermission(From<?, ?> from, String permission) {
         AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
         for (RolePermissionData rolePermissionData : metaData.getRolePermissionList()) {
-            if (aclUserDetailsService.hasAnyAuthorities(rolePermissionData.getAuthorities())
+            if (aclUtils.hasAnyAuthorities(rolePermissionData.getAuthorities())
                     && rolePermissionData.hasPermission(permission)) {
                 return true;
             }
@@ -171,12 +145,30 @@ public class AclUserPermissionSpecification implements AclSpecification {
     private boolean hasRoleCondition(From<?, ?> from, String permission) {
         AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
         for (RolePermissionData roleConditionData : metaData.getRoleConditionList()) {
-            if (aclUserDetailsService.hasAnyAuthorities(roleConditionData.getAuthorities())
+            if (aclUtils.hasAnyAuthorities(roleConditionData.getAuthorities())
                     && roleConditionData.hasPermission(permission)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Creates a predicate for current user to its own entity
+     *
+     */
+    private List<Predicate> createSelfPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
+            String permission) {
+        List<Predicate> predicates = new ArrayList<>();
+        if (AclUser.class.isAssignableFrom(from.getJavaType())) {
+            if (aclMetaData.getSelfPermissions().hasPermission(permission)) {
+                LOG.trace("Adding 'self' predicate for {}", from.getJavaType());
+                SingularAttribute<? super Object, ?> idAttribute = aclMetaData.getAclEntityMetaData(from.getJavaType())
+                        .getIdAttribute();
+                predicates.add(cb.equal(from.get(idAttribute), userId));
+            }
+        }
+        return predicates;
     }
 
     /**
@@ -204,7 +196,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
         return predicates;
     }
 
-    // TODO refactor OwnerGroup Predicates to use prefixes. Or use ParentPredictes instead
+    // TODO refactor OwnerGroup Predicates to use prefixes. Or use ParentPredicates instead
     /**
      * Creates predicates for indirect owners defined by {@link AclOwner} annotation on NON-AclUser fields
      *
