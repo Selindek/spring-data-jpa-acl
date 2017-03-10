@@ -1,9 +1,9 @@
 package com.berrycloud.acl;
 
-import static com.berrycloud.acl.AclUtils.ALL_PERMISSION;
-import static com.berrycloud.acl.AclUtils.PERMISSION_PREFIX_DELIMITER;
-import static com.berrycloud.acl.AclUtils.ROLE_ADMIN;
-import static com.berrycloud.acl.AclUtils.ROLE_USER;
+import static com.berrycloud.acl.AclConstants.ALL_PERMISSION;
+import static com.berrycloud.acl.AclConstants.PERMISSION_PREFIX_DELIMITER;
+import static com.berrycloud.acl.AclConstants.ROLE_ADMIN;
+import static com.berrycloud.acl.AclConstants.ROLE_USER;
 
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;

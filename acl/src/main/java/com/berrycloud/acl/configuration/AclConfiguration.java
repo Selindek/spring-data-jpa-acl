@@ -37,6 +37,7 @@ import com.berrycloud.acl.AclLogicImpl;
 import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
 import com.berrycloud.acl.AclSpecification;
 import com.berrycloud.acl.AclUserPermissionSpecification;
+import com.berrycloud.acl.AclUtilsImpl;
 import com.berrycloud.acl.configuration.rest.AclPropertyFilter;
 import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.security.SimpleAclUserDetailsService;
@@ -92,6 +93,11 @@ public class AclConfiguration {
     @Bean
     public AclLogicImpl aclLogic() {
         return new AclLogicImpl();
+    }
+
+    @Bean
+    public AclUtilsImpl aclUtils() {
+        return new AclUtilsImpl();
     }
 
     @Bean

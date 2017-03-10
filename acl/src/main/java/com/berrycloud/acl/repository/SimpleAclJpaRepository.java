@@ -15,9 +15,9 @@
  */
 package com.berrycloud.acl.repository;
 
-import static com.berrycloud.acl.AclUtils.DELETE_PERMISSION;
-import static com.berrycloud.acl.AclUtils.READ_PERMISSION;
-import static com.berrycloud.acl.AclUtils.UPDATE_PERMISSION;
+import static com.berrycloud.acl.AclConstants.DELETE_PERMISSION;
+import static com.berrycloud.acl.AclConstants.READ_PERMISSION;
+import static com.berrycloud.acl.AclConstants.UPDATE_PERMISSION;
 
 import java.io.Serializable;
 import java.util.ArrayList;

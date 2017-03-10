@@ -1,8 +1,8 @@
 package com.berrycloud.acl.data;
 
-import static com.berrycloud.acl.AclUtils.ALL_PERMISSION;
-import static com.berrycloud.acl.AclUtils.PERMISSION_PREFIX_DELIMITER;
-import static com.berrycloud.acl.AclUtils.READ_PERMISSION;
+import static com.berrycloud.acl.AclConstants.ALL_PERMISSION;
+import static com.berrycloud.acl.AclConstants.PERMISSION_PREFIX_DELIMITER;
+import static com.berrycloud.acl.AclConstants.READ_PERMISSION;
 
 import java.util.Arrays;
 import java.util.HashSet;
