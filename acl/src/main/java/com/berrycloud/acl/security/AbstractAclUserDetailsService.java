@@ -7,6 +7,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.berrycloud.acl.AclLogic;
 import com.berrycloud.acl.domain.AclRole;
@@ -19,6 +20,7 @@ public abstract class AbstractAclUserDetailsService<A extends GrantedAuthority> 
     private AclLogic aclLogic;
 
     @Override
+    @Transactional(readOnly = true)
     public AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
         AclUser<AclRole> aclUser = aclLogic.loadUserByUsername(username);

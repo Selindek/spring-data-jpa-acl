@@ -9,6 +9,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Default implementation of the {@link AclUser} interface.
  *
@@ -22,6 +24,7 @@ public class SimpleAclUser implements AclUser<SimpleAclRole> {
 
     @Column(unique = true, nullable = false)
     private String username;
+    @JsonIgnore
     private String password;
 
     @ManyToMany

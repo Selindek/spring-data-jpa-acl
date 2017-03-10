@@ -82,6 +82,7 @@ public class AclLogicImpl implements AclLogic {
     private Set<Class<?>> javaTypes;
 
     @SuppressWarnings("unchecked")
+    @Transactional
     public AclMetaData createAclMetaData() {
         createJavaTypeSet();
 
@@ -305,7 +306,6 @@ public class AclLogicImpl implements AclLogic {
     public Set<AclRole> getAllRoles(AclUser<AclRole> aclUser) {
 
         Set<AclRole> roleSet = new HashSet<>();
-
         roleSet.addAll(getRoles(aclUser));
 
         BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(aclUser);
@@ -376,7 +376,7 @@ public class AclLogicImpl implements AclLogic {
 
     private void addDefaultUsersIfNeeded() {
         // Check if we use default Acl types (Probably simple test application)
-        if (SimpleAclUser.class.equals(aclRoleType) && SimpleAclUser.class.equals(aclUserType)) {
+        if (SimpleAclRole.class.equals(aclRoleType) && SimpleAclUser.class.equals(aclUserType)) {
             SimpleAclRole adminRole = getOrCreateRoleByName(ROLE_ADMIN);
             SimpleAclRole userRole = getOrCreateRoleByName(ROLE_USER);
 
@@ -390,10 +390,8 @@ public class AclLogicImpl implements AclLogic {
                 SimpleAclUser adminUser = new SimpleAclUser("admin", "password");
                 SimpleAclUser userUser = new SimpleAclUser("user", "password");
 
-                adminUser.getAclRoles().add(adminRole);
-
-                adminUser.getAclRoles().add(userRole);
-                userUser.getAclRoles().add(userRole);
+                adminUser.setAclRoles(new HashSet<>(Arrays.asList(adminRole, userRole)));
+                userUser.setAclRoles(new HashSet<>(Arrays.asList(userRole)));
 
                 em.persist(adminUser);
                 em.persist(userUser);
