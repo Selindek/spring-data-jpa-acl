@@ -23,17 +23,23 @@ import javax.persistence.Id;
 
 import org.springframework.core.style.ToStringCreator;
 
+import com.berrycloud.acl.AclConstants;
+import com.berrycloud.acl.annotation.AclRoleCondition;
+import com.berrycloud.acl.annotation.AclRolePermission;
+
 /**
  * Default implementation of the {@link AclRole} interface.
  *
  * @author István Rátkai (Selindek)
  */
 @Entity
+@AclRolePermission(roles={},value=AclConstants.READ_PERMISSION)
+@AclRoleCondition(roles=AclConstants.ROLE_ADMIN)
 public class SimpleAclRole implements AclRole {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Integer id;
+    private Long id;
     @Column(unique = true, nullable = false)
     private String roleName;
 
@@ -44,11 +50,11 @@ public class SimpleAclRole implements AclRole {
         this.roleName = roleName;
     }
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

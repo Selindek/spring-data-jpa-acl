@@ -40,32 +40,16 @@ public class AclEntityMetaData {
         return ownerDataList;
     }
 
-    public void setOwnerDataList(List<OwnerData> ownerDataList) {
-        this.ownerDataList = ownerDataList;
-    }
-
     public List<ParentData> getParentDataList() {
         return parentDataList;
-    }
-
-    public void setDataParentList(List<ParentData> parentDataList) {
-        this.parentDataList = parentDataList;
     }
 
     public List<OwnerData> getOwnerGroupDataList() {
         return ownerGroupDataList;
     }
 
-    public void setOwnerGroupDataList(List<OwnerData> ownerGroupDataList) {
-        this.ownerGroupDataList = ownerGroupDataList;
-    }
-
     public List<PermissionLinkData> getPermissionLinkList() {
         return permissionLinkList;
-    }
-
-    public void setPermissionLinkList(List<PermissionLinkData> permissionLinkList) {
-        this.permissionLinkList = permissionLinkList;
     }
 
     public SingularAttribute<? super Object, ?> getIdAttribute() {
@@ -80,16 +64,8 @@ public class AclEntityMetaData {
         return rolePermissionList;
     }
 
-    public void setRolePermissionList(List<RolePermissionData> rolePermissionList) {
-        this.rolePermissionList = rolePermissionList;
-    }
-
     public List<RolePermissionData> getRoleConditionList() {
         return roleConditionList;
-    }
-
-    public void setRoleConditionList(List<RolePermissionData> roleConditionList) {
-        this.roleConditionList = roleConditionList;
     }
 
 }

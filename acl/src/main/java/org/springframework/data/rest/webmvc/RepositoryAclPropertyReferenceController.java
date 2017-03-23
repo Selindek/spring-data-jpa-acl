@@ -78,7 +78,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import com.berrycloud.acl.repository.PropertyRepository;
+import com.berrycloud.acl.repository.AclJpaRepository;
 
 /**
  * @author Jon Brisbin
@@ -87,423 +87,426 @@ import com.berrycloud.acl.repository.PropertyRepository;
  * @author István Rátkai (Selindek)
  */
 @RepositoryRestController
-@SuppressWarnings({ "unchecked" })
+@SuppressWarnings({"unchecked"})
 // By using specific header requirement we make these controller methods more specific than the original ones
-@RequestMapping(headers = { ACL_PROPERTY_HEADER_NAME + "=" + ACL_PROPERTY_HEADER_VALUE })
-class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestController
-        implements ApplicationEventPublisherAware {
+@RequestMapping(headers = {ACL_PROPERTY_HEADER_NAME + "=" + ACL_PROPERTY_HEADER_VALUE})
+class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestController implements ApplicationEventPublisherAware {
 
-    private static final String BASE_MAPPING = "/{repository}/{id}/{property}";
-    private static final Collection<HttpMethod> AUGMENTING_METHODS = Arrays.asList(HttpMethod.PATCH, HttpMethod.POST);
+	private static final String BASE_MAPPING = "/{repository}/{id}/{property}";
+	private static final Collection<HttpMethod> AUGMENTING_METHODS = Arrays.asList(HttpMethod.PATCH, HttpMethod.POST);
 
-    private final Repositories repositories;
-    private final RepositoryInvokerFactory repositoryInvokerFactory;
+	private final Repositories repositories;
+	private final RepositoryInvokerFactory repositoryInvokerFactory;
 
-    private ApplicationEventPublisher publisher;
+	private ApplicationEventPublisher publisher;
 
-    @Autowired
-    public RepositoryAclPropertyReferenceController(Repositories repositories,
-            RepositoryInvokerFactory repositoryInvokerFactory, PagedResourcesAssembler<Object> assembler) {
+	@Autowired
+	public RepositoryAclPropertyReferenceController(Repositories repositories, RepositoryInvokerFactory repositoryInvokerFactory,
+			PagedResourcesAssembler<Object> assembler) {
 
-        super(assembler);
+		super(assembler);
 
-        this.repositories = repositories;
-        this.repositoryInvokerFactory = repositoryInvokerFactory;
-    }
+		this.repositories = repositories;
+		this.repositoryInvokerFactory = repositoryInvokerFactory;
+	}
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.springframework.context.ApplicationEventPublisherAware#setApplicationEventPublisher(org.springframework.
-     * context. ApplicationEventPublisher)
-     */
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        this.publisher = applicationEventPublisher;
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.springframework.context.ApplicationEventPublisherAware#setApplicationEventPublisher(org.springframework.
+	 * context. ApplicationEventPublisher)
+	 */
+	@Override
+	public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+		this.publisher = applicationEventPublisher;
+	}
 
-    @RequestMapping(value = BASE_MAPPING, method = GET)
-    public ResponseEntity<ResourceSupport> followPropertyReference(final RootResourceInformation repoRequest,
-            @BackendId Serializable id, final @PathVariable String property,
-            final PersistentEntityResourceAssembler assembler, DefaultedPageable pageable) throws Exception {
+	@RequestMapping(value = BASE_MAPPING, method = GET)
+	public ResponseEntity<ResourceSupport> followPropertyReference(final RootResourceInformation repoRequest, @BackendId Serializable id,
+			final @PathVariable String property, final PersistentEntityResourceAssembler assembler, DefaultedPageable pageable) throws Exception {
 
-        final HttpHeaders headers = new HttpHeaders();
+		final HttpHeaders headers = new HttpHeaders();
 
-        Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
+		Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
 
-            @Override
-            public ResourceSupport apply(ReferencedProperty prop) {
+			@Override
+			public ResourceSupport apply(ReferencedProperty prop) {
 
-                if (null == prop.propertyValue) {
-                    throw new ResourceNotFoundException();
-                }
+				if (null == prop.propertyValue) {
+					throw new ResourceNotFoundException();
+				}
 
-                if (prop.property.isCollectionLike()) {
-
-                    return toResources((Iterable<?>) prop.propertyValue, assembler, prop.propertyType, null);
+				if (prop.property.isCollectionLike()) {
 
-                } else if (prop.property.isMap()) {
-
-                    Map<Object, Resource<?>> resources = new HashMap<Object, Resource<?>>();
+					return toResources((Iterable<?>) prop.propertyValue, assembler, prop.propertyType, null);
 
-                    for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) prop.propertyValue).entrySet()) {
-                        resources.put(entry.getKey(), assembler.toResource(entry.getValue()));
-                    }
+				} else if (prop.property.isMap()) {
 
-                    return new Resource<Object>(resources);
-
-                } else {
+					Map<Object, Resource<?>> resources = new HashMap<Object, Resource<?>>();
 
-                    PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
-                    headers.set("Content-Location", resource.getId().getHref());
-                    return resource;
-                }
-            }
-        };
+					for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) prop.propertyValue).entrySet()) {
+						resources.put(entry.getKey(), assembler.toResource(entry.getValue()));
+					}
 
-        ResourceSupport responseResource = doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.GET,
-                pageable, null);
-        return ControllerUtils.toResponseEntity(HttpStatus.OK, headers, responseResource);
-    }
+					return new Resource<Object>(resources);
 
-    @RequestMapping(value = BASE_MAPPING, method = DELETE)
-    public ResponseEntity<? extends ResourceSupport> deletePropertyReference(final RootResourceInformation repoRequest,
-            @BackendId Serializable id, @PathVariable String property) throws Exception {
+				} else {
 
-        final RepositoryInvoker repoMethodInvoker = repoRequest.getInvoker();
+					PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
+					headers.set("Content-Location", resource.getId().getHref());
+					return resource;
+				}
+			}
+		};
 
-        Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
+		ResourceSupport responseResource = doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.GET, pageable, null);
+		return ControllerUtils.toResponseEntity(HttpStatus.OK, headers, responseResource);
+	}
 
-            @Override
-            public Resource<?> apply(ReferencedProperty prop) throws HttpRequestMethodNotSupportedException {
+	@RequestMapping(value = BASE_MAPPING, method = DELETE)
+	public ResponseEntity<? extends ResourceSupport> deletePropertyReference(final RootResourceInformation repoRequest, @BackendId Serializable id,
+			@PathVariable String property) throws Exception {
 
-                if (null == prop.propertyValue) {
-                    return null;
-                }
+		AclJpaRepository<Object, Serializable> aclRepository = getAclRepository(repoRequest.getDomainType());
+		//final RepositoryInvoker repoMethodInvoker = repoRequest.getInvoker();
 
-                if (prop.property.isCollectionLike()) {
-                    throw new HttpRequestMethodNotSupportedException("DELETE");
-                } else if (prop.property.isMap()) {
-                    throw new HttpRequestMethodNotSupportedException("DELETE");
-                } else {
-                    prop.accessor.setProperty(prop.property, null);
-                }
+		Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
 
-                publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), prop.propertyValue));
-                Object result = repoMethodInvoker.invokeSave(prop.accessor.getBean());
-                publisher.publishEvent(new AfterLinkDeleteEvent(result, prop.propertyValue));
-
-                return null;
-            }
-        };
-        doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.DELETE, null, null);
-
-        return ControllerUtils.toEmptyResponse(HttpStatus.NO_CONTENT);
-    }
-
-    @RequestMapping(value = BASE_MAPPING + "/{propertyId}", method = GET)
-    public ResponseEntity<ResourceSupport> followPropertyReference(final RootResourceInformation repoRequest,
-            @BackendId Serializable id, @PathVariable String property, final @PathVariable String propertyId,
-            final PersistentEntityResourceAssembler assembler) throws Exception {
+			@Override
+			public Resource<?> apply(ReferencedProperty prop) throws HttpRequestMethodNotSupportedException {
 
-        final HttpHeaders headers = new HttpHeaders();
+				if (null == prop.propertyValue) {
+					return null;
+				}
 
-        Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
+				if (prop.property.isCollectionLike() || prop.property.isMap()) {
+					throw new HttpRequestMethodNotSupportedException("DELETE",new String[]{"DELETE"},"Cannot DELETE map or collection-like properties.");
+				} else {
+					prop.accessor.setProperty(prop.property, null);
+				}
 
-            @Override
-            public ResourceSupport apply(ReferencedProperty prop) {
+				publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), prop.propertyValue));
+				//Object result = repoMethodInvoker.invokeSave(prop.accessor.getBean());
+				Object result = aclRepository.updateWithoutSave(prop.accessor.getBean());
+				publisher.publishEvent(new AfterLinkDeleteEvent(result, prop.propertyValue));
 
-                if (null == prop.propertyValue) {
-                    throw new ResourceNotFoundException();
-                }
-                if (prop.property.isCollectionLike()) {
-                    PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
-                    headers.set("Content-Location", resource.getId().getHref());
-                    return resource;
-                } else if (prop.property.isMap()) {
-                    PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
-                    headers.set("Content-Location", resource.getId().getHref());
-                    return resource;
-                } else {
-                    return new Resource<Object>(prop.propertyValue);
-                }
-            }
-        };
+				return null;
+			}
+		};
+		doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.DELETE, null, null);
 
-        ResourceSupport responseResource = doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.GET,
-                null, propertyId);
-        return ControllerUtils.toResponseEntity(HttpStatus.OK, headers, responseResource);
-    }
+		return ControllerUtils.toEmptyResponse(HttpStatus.NO_CONTENT);
+	}
 
-    @RequestMapping(value = BASE_MAPPING, method = GET, produces = { SPRING_DATA_COMPACT_JSON_VALUE,
-            TEXT_URI_LIST_VALUE })
-    public ResponseEntity<ResourceSupport> followPropertyReferenceCompact(RootResourceInformation repoRequest,
-            @BackendId Serializable id, @PathVariable String property, PersistentEntityResourceAssembler assembler,
-            DefaultedPageable pageable) throws Exception {
+	@RequestMapping(value = BASE_MAPPING + "/{propertyId}", method = GET)
+	public ResponseEntity<ResourceSupport> followPropertyReference(final RootResourceInformation repoRequest, @BackendId Serializable id,
+			@PathVariable String property, final @PathVariable String propertyId, final PersistentEntityResourceAssembler assembler) throws Exception {
 
-        ResponseEntity<ResourceSupport> response = followPropertyReference(repoRequest, id, property, assembler,
-                pageable);
+		final HttpHeaders headers = new HttpHeaders();
 
-        if (response.getStatusCode() != HttpStatus.OK) {
-            return response;
-        }
+		Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
 
-        ResourceMetadata repoMapping = repoRequest.getResourceMetadata();
-        PersistentProperty<?> persistentProp = repoRequest.getPersistentEntity().getPersistentProperty(property);
-        ResourceMapping propertyMapping = repoMapping.getMappingFor(persistentProp);
+			@Override
+			public ResourceSupport apply(ReferencedProperty prop) {
 
-        ResourceSupport resource = response.getBody();
+				if (null == prop.propertyValue) {
+					throw new ResourceNotFoundException();
+				}
+				if (prop.property.isCollectionLike()) {
+					PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
+					headers.set("Content-Location", resource.getId().getHref());
+					return resource;
+				} else if (prop.property.isMap()) {
+					PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
+					headers.set("Content-Location", resource.getId().getHref());
+					return resource;
+				} else {
+					return new Resource<Object>(prop.propertyValue);
+				}
+			}
+		};
 
-        List<Link> links = new ArrayList<Link>();
+		ResourceSupport responseResource = doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.GET, null, propertyId);
+		return ControllerUtils.toResponseEntity(HttpStatus.OK, headers, responseResource);
+	}
 
-        ControllerLinkBuilder linkBuilder = linkTo(methodOn(RepositoryAclPropertyReferenceController.class)
-                .followPropertyReference(repoRequest, id, property, assembler, pageable));
+	@RequestMapping(value = BASE_MAPPING, method = GET, produces = {SPRING_DATA_COMPACT_JSON_VALUE, TEXT_URI_LIST_VALUE})
+	public ResponseEntity<ResourceSupport> followPropertyReferenceCompact(RootResourceInformation repoRequest, @BackendId Serializable id,
+			@PathVariable String property, PersistentEntityResourceAssembler assembler, DefaultedPageable pageable) throws Exception {
 
-        if (resource instanceof Resource) {
+		ResponseEntity<ResourceSupport> response = followPropertyReference(repoRequest, id, property, assembler, pageable);
 
-            Object content = ((Resource<?>) resource).getContent();
-            if (content instanceof Iterable) {
+		if (response.getStatusCode() != HttpStatus.OK) {
+			return response;
+		}
 
-                for (Resource<?> res : (Iterable<Resource<?>>) content) {
-                    Link l = new Link(res.getLink("self").getHref(), res.getId().toString());
-                    links.add(l);
-                    // links.add(linkBuilder.withRel(propertyMapping.getRel()));
-                }
+		ResourceMetadata repoMapping = repoRequest.getResourceMetadata();
+		PersistentProperty<?> persistentProp = repoRequest.getPersistentEntity().getPersistentProperty(property);
+		ResourceMapping propertyMapping = repoMapping.getMappingFor(persistentProp);
 
-            } else if (content instanceof Map) {
+		ResourceSupport resource = response.getBody();
 
-                Map<Object, Resource<?>> map = (Map<Object, Resource<?>>) content;
+		List<Link> links = new ArrayList<Link>();
 
-                for (Entry<Object, Resource<?>> entry : map.entrySet()) {
-                    Link l = new Link(entry.getValue().getLink("self").getHref(), entry.getKey().toString());
-                    links.add(l);
-                }
-            }
+		ControllerLinkBuilder linkBuilder = linkTo(
+				methodOn(RepositoryAclPropertyReferenceController.class).followPropertyReference(repoRequest, id, property, assembler, pageable));
 
-        } else {
-            links.add(linkBuilder.withRel(propertyMapping.getRel()));
-        }
+		if (resource instanceof Resource) {
 
-        return ControllerUtils.toResponseEntity(HttpStatus.OK, null, new Resource<Object>(EMPTY_RESOURCE_LIST, links));
-    }
+			Object content = ((Resource<?>) resource).getContent();
+			if (content instanceof Iterable) {
 
-    @RequestMapping(value = BASE_MAPPING, method = { PATCH, PUT, POST }, //
-    consumes = { MediaType.APPLICATION_JSON_VALUE, SPRING_DATA_COMPACT_JSON_VALUE, TEXT_URI_LIST_VALUE })
-    public ResponseEntity<? extends ResourceSupport> createPropertyReference(
-            final RootResourceInformation resourceInformation, final HttpMethod requestMethod,
-            final @RequestBody(required = false) Resources<Object> incoming, @BackendId Serializable id,
-            @PathVariable String property) throws Exception {
+				for (Resource<?> res : (Iterable<Resource<?>>) content) {
+					Link l = new Link(res.getLink("self").getHref(), res.getId().toString());
+					links.add(l);
+					// links.add(linkBuilder.withRel(propertyMapping.getRel()));
+				}
 
-        final Resources<Object> source = incoming == null ? new Resources<Object>(Collections.emptyList()) : incoming;
-        final RepositoryInvoker invoker = resourceInformation.getInvoker();
+			} else if (content instanceof Map) {
 
-        Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
+				Map<Object, Resource<?>> map = (Map<Object, Resource<?>>) content;
 
-            @Override
-            public ResourceSupport apply(ReferencedProperty prop) throws HttpRequestMethodNotSupportedException {
+				for (Entry<Object, Resource<?>> entry : map.entrySet()) {
+					Link l = new Link(entry.getValue().getLink("self").getHref(), entry.getKey().toString());
+					links.add(l);
+				}
+			}
 
-                // Reload propertyValue - We need the collection for modification
-                Object propertyValue = prop.accessor.getProperty(prop.property);
+		} else {
+			links.add(linkBuilder.withRel(propertyMapping.getRel()));
+		}
 
-                Class<?> propertyType = prop.property.getType();
+		return ControllerUtils.toResponseEntity(HttpStatus.OK, null, new Resource<Object>(EMPTY_RESOURCE_LIST, links));
+	}
 
-                if (prop.property.isCollectionLike()) {
+	@RequestMapping(value = BASE_MAPPING, method = {PATCH, PUT, POST}, //
+			consumes = {MediaType.APPLICATION_JSON_VALUE, SPRING_DATA_COMPACT_JSON_VALUE, TEXT_URI_LIST_VALUE})
+	public ResponseEntity<? extends ResourceSupport> createPropertyReference(final RootResourceInformation resourceInformation, final HttpMethod requestMethod,
+			final @RequestBody(required = false) Resources<Object> incoming, @BackendId Serializable id, @PathVariable String property) throws Exception {
 
-                    Collection<Object> collection = AUGMENTING_METHODS.contains(requestMethod)
-                            ? (Collection<Object>) propertyValue : CollectionFactory.createCollection(propertyType, 0);
+		final Resources<Object> source = incoming == null ? new Resources<Object>(Collections.emptyList()) : incoming;
+		//final RepositoryInvoker invoker = resourceInformation.getInvoker();
+		AclJpaRepository<Object, Serializable> aclRepository = getAclRepository(resourceInformation.getDomainType());
+		
+		Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
 
-                    // Add to the existing collection
-                    for (Link l : source.getLinks()) {
-                        collection.add(loadPropertyValue(prop.propertyType, l));
-                    }
+			@Override
+			public ResourceSupport apply(ReferencedProperty prop) throws HttpRequestMethodNotSupportedException {
 
-                    prop.accessor.setProperty(prop.property, collection);
+				// Reload propertyValue - We need the original collection for modification
+				Object propertyValue = prop.accessor.getProperty(prop.property);
 
-                } else if (prop.property.isMap()) {
+				Class<?> propertyType = prop.property.getType();
 
-                    Map<String, Object> map = AUGMENTING_METHODS.contains(requestMethod)
-                            ? (Map<String, Object>) propertyValue
-                            : CollectionFactory.<String, Object> createMap(propertyType, 0);
+				if (prop.property.isCollectionLike()) {
 
-                    // Add to the existing collection
-                    for (Link l : source.getLinks()) {
-                        map.put(l.getRel(), loadPropertyValue(prop.propertyType, l));
-                    }
+					Collection<Object> collection = AUGMENTING_METHODS.contains(requestMethod)
+							? (Collection<Object>) propertyValue
+							: CollectionFactory.createCollection(propertyType, 0);
 
-                    prop.accessor.setProperty(prop.property, map);
+					// Add to the existing collection
+					for (Link l : source.getLinks()) {
+						Object property = loadPropertyValue(prop.propertyType, l);
+						if(property!=null) {		
+							collection.add(property);
+						}
+					}
 
-                } else {
+					prop.accessor.setProperty(prop.property, collection);
 
-                    if (HttpMethod.PATCH.equals(requestMethod)) {
-                        throw new HttpRequestMethodNotSupportedException(HttpMethod.PATCH.name(),
-                                new String[] { "PATCH" },
-                                "Cannot PATCH a reference to this singular property since the property type is not a List or a Map.");
-                    }
+				} else if (prop.property.isMap()) {
 
-                    if (source.getLinks().size() != 1) {
-                        throw new IllegalArgumentException(
-                                "Must send only 1 link to update a property reference that isn't a List or a Map.");
-                    }
+					Map<String, Object> map = AUGMENTING_METHODS.contains(requestMethod)
+							? (Map<String, Object>) propertyValue
+							: CollectionFactory.<String, Object> createMap(propertyType, 0);
 
-                    Object propVal = loadPropertyValue(prop.propertyType, source.getLinks().get(0));
-                    prop.accessor.setProperty(prop.property, propVal);
-                }
+					// Add to the existing collection
+					for (Link l : source.getLinks()) {
+						Object property = loadPropertyValue(prop.propertyType, l);
+						if(property!=null) {
+							map.put(l.getRel(), property);
+						}
+					}
 
-                publisher.publishEvent(new BeforeLinkSaveEvent(prop.accessor.getBean(), propertyValue));
-                Object result = invoker.invokeSave(prop.accessor.getBean());
-                publisher.publishEvent(new AfterLinkSaveEvent(result, propertyValue));
+					prop.accessor.setProperty(prop.property, map);
 
-                return null;
-            }
-        };
+				} else {
 
-        doWithReferencedProperty(resourceInformation, id, property, handler, requestMethod, null, null);
+					if (HttpMethod.PATCH.equals(requestMethod)) {
+						throw new HttpRequestMethodNotSupportedException(HttpMethod.PATCH.name(), new String[]{"PATCH"},
+								"Cannot PATCH a reference to this singular property since the property type is not a List or a Map.");
+					}
 
-        return ControllerUtils.toEmptyResponse(HttpStatus.NO_CONTENT);
-    }
+					if (source.getLinks().size() != 1) {
+						throw new IllegalArgumentException("Must send only 1 link to update a property reference that isn't a List or a Map.");
+					}
 
-    @RequestMapping(value = BASE_MAPPING + "/{propertyId}", method = DELETE)
-    public ResponseEntity<ResourceSupport> deletePropertyReferenceId(final RootResourceInformation repoRequest,
-            @BackendId Serializable id, @PathVariable String property, final @PathVariable String propertyId)
-                    throws Exception {
+					Object propVal = loadPropertyValue(prop.propertyType, source.getLinks().get(0));
+					prop.accessor.setProperty(prop.property, propVal);
+				}
 
-        final RepositoryInvoker invoker = repoRequest.getInvoker();
+				publisher.publishEvent(new BeforeLinkSaveEvent(prop.accessor.getBean(), propertyValue));
+				//Object result = invoker.invokeSave(prop.accessor.getBean());
+				Object result = aclRepository.updateWithoutSave(prop.accessor.getBean());
+				publisher.publishEvent(new AfterLinkSaveEvent(result, propertyValue));
 
-        Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
+				return null;
+			}
+		};
 
-            @Override
-            public ResourceSupport apply(ReferencedProperty prop) {
+		doWithReferencedProperty(resourceInformation, id, property, handler, requestMethod, null, null);
 
-                if (null == prop.propertyValue) {
-                    return null;
-                }
+		return ControllerUtils.toEmptyResponse(HttpStatus.NO_CONTENT);
+	}
 
-                // Reload propertyValue - We need the collection for deletion
-                Object propertyValue = prop.accessor.getProperty(prop.property);
+	@RequestMapping(value = BASE_MAPPING + "/{propertyId}", method = DELETE)
+	public ResponseEntity<ResourceSupport> deletePropertyReferenceId(final RootResourceInformation repoRequest, @BackendId Serializable id,
+			@PathVariable String property, final @PathVariable String propertyId) throws Exception {
 
-                if (prop.property.isCollectionLike()) {
-                    Collection<Object> coll = (Collection<Object>) propertyValue;
-                    Iterator<Object> itr = coll.iterator();
-                    while (itr.hasNext()) {
-                        Object obj = itr.next();
+		//final RepositoryInvoker invoker = repoRequest.getInvoker();
+		AclJpaRepository<Object, Serializable> aclRepository = getAclRepository(repoRequest.getDomainType());
+		
+		Function<ReferencedProperty, ResourceSupport> handler = new Function<ReferencedProperty, ResourceSupport>() {
 
-                        IdentifierAccessor accessor = prop.entity.getIdentifierAccessor(obj);
-                        String s = accessor.getIdentifier().toString();
+			@Override
+			public ResourceSupport apply(ReferencedProperty prop) {
 
-                        if (propertyId.equals(s)) {
-                            itr.remove();
-                        }
-                    }
-                } else if (prop.property.isMap()) {
+				if (null == prop.propertyValue) {
+					return null;
+				}
 
-                    Map<Object, Object> m = (Map<Object, Object>) propertyValue;
-                    Iterator<Entry<Object, Object>> itr = m.entrySet().iterator();
+				// Reload propertyValue - We need the collection for deletion
+				Object propertyValue = prop.accessor.getProperty(prop.property);
 
-                    while (itr.hasNext()) {
+				if (prop.property.isCollectionLike()) {
+					Collection<Object> coll = (Collection<Object>) propertyValue;
+					Iterator<Object> itr = coll.iterator();
+					while (itr.hasNext()) {
+						Object obj = itr.next();
 
-                        Object key = itr.next().getKey();
+						IdentifierAccessor accessor = prop.entity.getIdentifierAccessor(obj);
+						String s = accessor.getIdentifier().toString();
 
-                        IdentifierAccessor accessor = prop.entity.getIdentifierAccessor(m.get(key));
-                        String s = accessor.getIdentifier().toString();
+						if (propertyId.equals(s)) {
+							itr.remove();
+						}
+					}
+				} else if (prop.property.isMap()) {
 
-                        if (propertyId.equals(s)) {
-                            itr.remove();
-                        }
-                    }
+					Map<Object, Object> m = (Map<Object, Object>) propertyValue;
+					Iterator<Entry<Object, Object>> itr = m.entrySet().iterator();
 
-                } else {
-                    prop.accessor.setProperty(prop.property, null);
-                }
+					while (itr.hasNext()) {
 
-                publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
-                Object result = invoker.invokeSave(prop.accessor.getBean());
-                publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
+						Object key = itr.next().getKey();
 
-                return null;
-            }
-        };
+						IdentifierAccessor accessor = prop.entity.getIdentifierAccessor(m.get(key));
+						String s = accessor.getIdentifier().toString();
 
-        doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.DELETE, null, propertyId);
+						if (propertyId.equals(s)) {
+							itr.remove();
+						}
+					}
 
-        return ControllerUtils.toEmptyResponse(HttpStatus.NO_CONTENT);
-    }
+				} else {
+					prop.accessor.setProperty(prop.property, null);
+				}
 
-    private Object loadPropertyValue(Class<?> type, Link link) {
+				publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
+				//Object result = invoker.invokeSave(prop.accessor.getBean());
+				Object result = aclRepository.updateWithoutSave(prop.accessor.getBean());
+				publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
 
-        String href = link.expand().getHref();
-        String id = href.substring(href.lastIndexOf('/') + 1);
+				return null;
+			}
+		};
 
-        RepositoryInvoker invoker = repositoryInvokerFactory.getInvokerFor(type);
+		doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.DELETE, null, propertyId);
 
-        return invoker.invokeFindOne(id);
-    }
+		return ControllerUtils.toEmptyResponse(HttpStatus.NO_CONTENT);
+	}
 
-    private ResourceSupport doWithReferencedProperty(RootResourceInformation resourceInformation, Serializable id,
-            String propertyPath, Function<ReferencedProperty, ResourceSupport> handler, HttpMethod method,
-            DefaultedPageable pageable, String propertyId) throws Exception {
+	private Object loadPropertyValue(Class<?> type, Link link) {
 
-        ResourceMetadata metadata = resourceInformation.getResourceMetadata();
-        PropertyAwareResourceMapping mapping = metadata.getProperty(propertyPath);
+		String href = link.expand().getHref();
+		String id = href.substring(href.lastIndexOf('/') + 1);
 
-        if (mapping == null || !mapping.isExported()) {
-            throw new ResourceNotFoundException();
-        }
+		RepositoryInvoker invoker = repositoryInvokerFactory.getInvokerFor(type);
 
-        PersistentProperty<?> property = mapping.getProperty();
-        resourceInformation.verifySupportedMethod(method, property);
+		return invoker.invokeFindOne(id);
+	}
 
-        RepositoryInvoker invoker = resourceInformation.getInvoker();
-        // We first load the domainObject and check its accessibility
-        Object domainObj = invoker.invokeFindOne(id);
+	private ResourceSupport doWithReferencedProperty(RootResourceInformation resourceInformation, Serializable id, String propertyPath,
+			Function<ReferencedProperty, ResourceSupport> handler, HttpMethod method, DefaultedPageable pageable, String propertyId) throws Exception {
 
-        if (null == domainObj) {
-            // Doesn't exist or the current user has no permission to it
-            throw new ResourceNotFoundException();
-        }
+		ResourceMetadata metadata = resourceInformation.getResourceMetadata();
+		PropertyAwareResourceMapping mapping = metadata.getProperty(propertyPath);
 
-        PersistentPropertyAccessor accessor = property.getOwner().getPropertyAccessor(domainObj);
-        // Then we load the property itself
-        Object propertyValue = findProperty(pageable, property, accessor, propertyId);
+		if (mapping == null || !mapping.isExported()) {
+			throw new ResourceNotFoundException();
+		}
 
-        return handler.apply(new ReferencedProperty(property, propertyValue, accessor));
-    }
+		PersistentProperty<?> property = mapping.getProperty();
+		resourceInformation.verifySupportedMethod(method, property);
 
-    protected Object findProperty(DefaultedPageable pageable, PersistentProperty<?> property,
-            PersistentPropertyAccessor accessor, String propertyId) {
-        Object repository = repositories.getRepositoryFor(property.getOwner().getType());
-        if (PropertyRepository.class.isAssignableFrom(AopUtils.getTargetClass(repository))) {
-            PropertyRepository<Object, Serializable> propertyRepository = (PropertyRepository<Object, Serializable>) repository;
-            // Must clear the JPA cache otherwise lazily-loaded properties of the domainObject may
-            // appear in the property as proxy-classes and totally mess up the content
-            propertyRepository.clear();
-            Serializable ownerId = (Serializable) accessor.getProperty(property.getOwner().getIdProperty());
-            if (propertyId != null) {
-                // find the property as an object
-                return propertyRepository.findProperty(ownerId, property, propertyId);
-            }
-            // find the property as a collection
-            Pageable page = pageable == null ? null : pageable.getPageable();
-            return propertyRepository.findProperty(ownerId, property, page);
-        }
-        return null;
-    }
+		AclJpaRepository<Object, Serializable> propertyRepository = getAclRepository(property.getOwner().getType());
 
-    private class ReferencedProperty {
+		// We first load the domainObject and check its accessibility
+		Object domainObj = propertyRepository.findOne(id, HttpMethod.GET.equals(method) ? "read" : "update");
 
-        final PersistentEntity<?, ?> entity;
-        final PersistentProperty<?> property;
-        final Class<?> propertyType;
-        final Object propertyValue;
-        final PersistentPropertyAccessor accessor;
+		if (null == domainObj) {
+			// Doesn't exist or the current user has no permission to it
+			throw new ResourceNotFoundException();
+		}
+		// Must clear the JPA cache otherwise lazily-loaded properties of the domainObject may
+		// appear in the property as proxy-classes and totally mess up the content
+		if(HttpMethod.GET.equals(method)) {
+			propertyRepository.clear();
+		}
 
-        private ReferencedProperty(PersistentProperty<?> property, Object propertyValue,
-                PersistentPropertyAccessor wrapper) {
+		PersistentPropertyAccessor accessor = property.getOwner().getPropertyAccessor(domainObj);
+		// Then we load the property itself
+		Object propertyValue = findProperty(pageable, property, accessor, propertyId, propertyRepository);
 
-            this.property = property;
-            this.propertyValue = propertyValue;
-            this.accessor = wrapper;
-            this.propertyType = property.getActualType();
-            this.entity = repositories.getPersistentEntity(propertyType);
-        }
-    }
+		return handler.apply(new ReferencedProperty(property, propertyValue, accessor));
+	}
+
+	protected AclJpaRepository<Object, Serializable> getAclRepository(Class<?> type) {
+		Object repository = repositories.getRepositoryFor(type);
+		if (!AclJpaRepository.class.isAssignableFrom(AopUtils.getTargetClass(repository))) {
+			throw new ResourceNotFoundException();
+		}
+		return (AclJpaRepository<Object, Serializable>) repository;
+	}
+
+	protected Object findProperty(DefaultedPageable pageable, PersistentProperty<?> property, PersistentPropertyAccessor accessor, String propertyId,
+			AclJpaRepository<Object, Serializable> propertyRepository) {
+
+		Serializable ownerId = (Serializable) accessor.getProperty(property.getOwner().getIdProperty());
+		if (propertyId != null) {
+			// find the property as an object
+			return propertyRepository.findProperty(ownerId, property, propertyId);
+		}
+		// find the property as a collection
+		Pageable page = pageable == null ? null : pageable.getPageable();
+		return propertyRepository.findProperty(ownerId, property, page);
+	}
+
+	private class ReferencedProperty {
+
+		final PersistentEntity<?, ?> entity;
+		final PersistentProperty<?> property;
+		final Class<?> propertyType;
+		final Object propertyValue;
+		final PersistentPropertyAccessor accessor;
+
+		private ReferencedProperty(PersistentProperty<?> property, Object propertyValue, PersistentPropertyAccessor wrapper) {
+
+			this.property = property;
+			this.propertyValue = propertyValue;
+			this.accessor = wrapper;
+			this.propertyType = property.getActualType();
+			this.entity = repositories.getPersistentEntity(propertyType);
+		}
+	}
 }

@@ -20,7 +20,7 @@ package com.berrycloud.acl;
  *
  * @author István Rátkai (Selindek)
  */
-public class AclConstants {
+public final class AclConstants {
 
     public static final String ALL_PERMISSION = "all";
     public static final String READ_PERMISSION = "read";

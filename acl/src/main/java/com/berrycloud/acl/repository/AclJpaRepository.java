@@ -66,4 +66,6 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
 
     T findOne(Specification<T> spec, String permission);
 
+	List<T> findAll(Iterable<ID> ids, String permission);
+
 }

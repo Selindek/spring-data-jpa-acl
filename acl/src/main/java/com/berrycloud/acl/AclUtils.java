@@ -17,61 +17,110 @@ package com.berrycloud.acl;
 
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.berrycloud.acl.security.AclUserDetails;
+import com.berrycloud.acl.security.AclUserDetailsService;
 
 /**
  * Utility methods for ACL Security.
  *
  * @author István Rátkai (Selindek)
  */
-public interface AclUtils {
+public class AclUtils {
+
+    @Autowired
+    AclUserDetailsService<?> aclUserDetailsService;
 
     /**
      * Get the Principal from the SecurityContext or null if there is no authentication
-     *
-     * @return
      */
-    Object getPrincipal();
+    public Object getPrincipal() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null) {
+            return authentication.getPrincipal();
+        }
+        return null;
+    }
+
+    /**
+     * Get the current user's AclUserDetails object from the securityContext or null if it's not an AclUserDetails
+     */
+    public AclUserDetails getAclUserDetails() {
+        Object principal = getPrincipal();
+        if (principal instanceof AclUserDetails) {
+            return (AclUserDetails) principal;
+        }
+        return null;
+    }
+
+    /**
+     * Get the current user's UserDetails object from the securityContext or null if it's not an UserDetails
+     */
+    public UserDetails getUserDetails() {
+        Object principal = getPrincipal();
+        if (principal instanceof UserDetails) {
+            return (UserDetails) principal;
+        }
+        return null;
+    }
+
+    /**
+     * Get the current user's username from the securityContext or null if it cannot be found
+     */
+    public String getUsername() {
+        Object principal = getPrincipal();
+        if (principal instanceof UserDetails) {
+            return ((UserDetails) principal).getUsername();
+        } else if (principal != null) {
+            return principal.toString();
+        }
+        return null;
+    }
+
 
     /**
      * Checks if the current user is an administrator (Has ROLE_ADMIN role)
-     *
-     * @return
      */
-    boolean isAdmin();
+    public boolean isAdmin() {
+        return hasAuthority(AclConstants.ROLE_ADMIN);
+    }
 
     /**
      * Checks if the current user has the given authority
      *
      * @param authority
-     * @return
      */
-    boolean hasAuthority(String authority);
+    public boolean hasAuthority(String authority) {
+        UserDetails currentUser = getUserDetails();
+        return currentUser != null
+                && currentUser.getAuthorities().contains(aclUserDetailsService.createGrantedAuthority(authority));
+    }
 
     /**
      * Checks if any authority of the current user is in the provided set. If the set is empty it automatically returns
      * true. (Empty set means: ANY authority)
      *
      * @param authorities
-     * @return
      */
-    boolean hasAnyAuthorities(Set<GrantedAuthority> authorities);
+    public boolean hasAnyAuthorities(Set<GrantedAuthority> authorities) {
+        if (authorities.isEmpty()) {
+            return true;
+        }
+        UserDetails currentUser = getUserDetails();
+        if (currentUser != null) {
 
-    /**
-     * Get the current user's AclUserDetails object from the securityContext or null if it's not an AclUserDetails
-     */
-    AclUserDetails getAclUserDetails();
+            for (GrantedAuthority authority : authorities) {
+                if (currentUser.getAuthorities().contains(authority)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
-    /**
-     * Get the current user's UserDetails object from the securityContext or null if it's not an UserDetails
-     */
-    UserDetails getUserDetails();
-
-    /**
-     * Get the current user's username from the securityContext or null if it cannot be found
-     */
-    String getUsername();
 }

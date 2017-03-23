@@ -114,7 +114,7 @@ public class AclLogicImpl implements AclLogic {
 
         Map<Class<?>, AclEntityMetaData> metaDataMap = createMetaDataMap();
 
-        return new AclMetaData(aclUserType, aclRoleType, metaDataMap, new PermissionData(defaultSelfPermissions));
+        return new AclMetaData(metaDataMap, new PermissionData(defaultSelfPermissions));
     }
 
     private void createJavaTypeSet() {
@@ -338,6 +338,9 @@ public class AclLogicImpl implements AclLogic {
                 @SuppressWarnings("unchecked")
                 Collection<Object> values = beanWrapper.convertIfNecessary(beanWrapper.getPropertyValue(propertyName),
                         Collection.class);
+                if(values==null) {
+                  continue;
+                }
                 for (Object value : values) {
                     LOG.trace("Collecting roles from {}", value);
                     roleSet.addAll(getRoles(value));

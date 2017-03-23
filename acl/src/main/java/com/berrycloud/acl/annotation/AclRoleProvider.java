@@ -25,13 +25,13 @@ import java.lang.annotation.Target;
 
 /**
  * Indicates that the annotated property can provide roles for this AclUser. It can be used on properties of an AclUser,
- * otherwise ignored. All of the annotated properties are checked for Collections of AclRole properties, and those roles
- * are added to the UserDeatails of the current user. Can be used on collections and simple properties.
+ * otherwise ignored. All of the annotated properties are checked for AclRole and Collections of AclRole properties, and
+ * those roles are added to the UserDeatails of the current user. Can be used on collections and simple properties.
  *
  * @author István Rátkai (Selindek)
  *
  */
-@Target({ METHOD, FIELD })
+@Target({METHOD, FIELD})
 @Retention(RUNTIME)
 @Documented
 public @interface AclRoleProvider {

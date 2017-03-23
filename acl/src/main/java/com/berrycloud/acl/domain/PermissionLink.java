@@ -50,7 +50,7 @@ public abstract class PermissionLink<O, T> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Integer id;
+    private Long id;
 
     @AclOwner
     @ManyToOne()
@@ -67,7 +67,7 @@ public abstract class PermissionLink<O, T> {
     public PermissionLink() {
     }
 
-    public PermissionLink(Integer id) {
+    public PermissionLink(Long id) {
         this.id = id;
     }
 
@@ -77,11 +77,11 @@ public abstract class PermissionLink<O, T> {
         this.permission = permission;
     }
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(final Integer id) {
+    public void setId(final Long id) {
         this.id = id;
     }
 

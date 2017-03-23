@@ -24,17 +24,29 @@ import java.io.Serializable;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mapping.PersistentProperty;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 public interface PropertyRepository<T, ID extends Serializable> {
 
-    Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable);
+	Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable);
 
-    Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId);
+	Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId);
 
-    /**
-     * Helper method for calling clear on the EntityManager.
-     *
-     */
-    void clear();
+	/**
+	 * Helper method for calling clear on the EntityManager.
+	 *
+	 */
+	void clear();
+
+	/**
+	 * Update the entity without permission check. This method should be used with extreme caution. The permission must
+	 * be checked manually before using this method. (I.e. methods protected by {@link PreAuthorize} annotation.) This
+	 * method is used by {@link RepositoryAclPropertyReferenceController} where the permissions are checked for the
+	 * entity and all the modified properties manually before update.
+	 * 
+	 * @param entity
+	 * @return merged entity
+	 */
+	<S extends T> S updateWithoutSave(S entity);
 
 }

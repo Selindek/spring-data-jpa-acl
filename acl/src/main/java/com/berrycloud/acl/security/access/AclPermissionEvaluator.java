@@ -21,7 +21,6 @@ import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceException;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
@@ -85,7 +84,7 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
     /**
      * Check permission by directly creating a JPA count query with ACL support for the given permission
      */
-    public <T, ID extends Serializable> boolean hasPermission(Authentication authentication, ID targetId,
+    public <T> boolean hasPermission(Authentication authentication, Object targetId,
             Class<T> domainClass, Object permission) {
         String permissionString = getPermissionString(permission);
 
@@ -98,27 +97,16 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
         Predicate idPredicate = builder.equal(root.get(getEntityInformation(domainClass).getIdAttribute()), targetId);
         Predicate aclPredicate = aclSpecification.toPredicate(root, query, builder, permissionString);
         query.where(builder.and(idPredicate, aclPredicate));
-
-        try {
-            return em.createQuery(query).getSingleResult() != 0;
-        } catch (PersistenceException e) {
-            return false;
-        }
-
+        return em.createQuery(query).getSingleResult() != 0;
     }
 
-    protected <T> Serializable getId(T object) {
+    protected <T> Object getId(T object) {
         @SuppressWarnings("unchecked")
         Class<T> domainClass = (Class<T>) object.getClass();
         JpaEntityInformation<T, ?> entityInformation = getEntityInformation(domainClass);
-        if (entityInformation == null) {
-            throw new IllegalArgumentException("Not a valid JPA entity class: " + domainClass);
-        }
+
         Object id = entityInformation.getId(object);
-        if (id instanceof Serializable) {
-            return (Serializable) id;
-        }
-        throw new IllegalArgumentException("Id is not Serializable for " + domainClass);
+        return id;
     }
 
     protected <T> JpaEntityInformation<T, ?> getEntityInformation(Class<T> domainClass) {
