@@ -153,7 +153,7 @@ public class AclAllRepositoryIntegrationTest {
 		assertTrue(aclLogic.isManagedType(Document.class));
 		assertTrue(aclLogic.isManagedType(TestGroup.class));
 	}
-
+	
 	@Test
 	public void testGivenNullAuthenticationWhenCallIsAdminTheReturnFalse() {
 		setAuthentication(null);
@@ -189,6 +189,30 @@ public class AclAllRepositoryIntegrationTest {
 		assertFalse(aclLogic.isManagedType(null));
 	}
 
+	@Test
+	public void testGivenNullAuthenticationWhenCallExistOnSimpleAclRoleThenReturnTrue() {
+		setAuthentication(null);
+		assertTrue(roleRepository.exists(adminRole.getId()));
+	}
+
+	@Test(expected = JpaObjectRetrievalFailureException.class)
+	public void testGivenNullAuthenticationWhenCallUpdateOnSimpleAclRoleThenThrowException() {
+		setAuthentication(null);
+		roleRepository.save(adminRole);
+	}
+
+	@Test(expected = JpaObjectRetrievalFailureException.class)
+	public void testGivenUserRoleWhenCallUpdateOnSimpleAclRoleThenThrowException() {
+		setAuthentication("user");
+		roleRepository.save(adminRole);
+	}
+
+	@Test
+	public void testGivenAdminRoleWhenCallUpdateOnSimpleAclRoleThenNoException() {
+		setAuthentication("admin");
+		roleRepository.save(adminRole);
+	}
+	
 	@Test
 	public void testGivenNoAuthenticationWhenCallCountThenReturnZero() {
 		setAuthentication(null);

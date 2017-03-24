@@ -25,62 +25,57 @@ import com.berrycloud.acl.sample.minimal.AclAppMinimal;
 import com.berrycloud.acl.security.AclUserDetailsService;
 import com.berrycloud.acl.security.access.AclPermissionEvaluator;
 
-@SpringBootTest(classes=AclAppMinimal.class)
+@SpringBootTest(classes = AclAppMinimal.class)
 @RunWith(SpringRunner.class)
 public class AclMinimalIntegrationTest {
 
-  @Autowired(required=false)
-  private AclLogicImpl aclLogic;
-  
-  @Autowired(required=false)
-  private AclUserDetailsService<?> aclUserDetailsService;
-  
-  @Autowired(required=false)
-  private AclUtils aclUtils;
-  
-  @Autowired(required=false)
-  private AclPermissionEvaluator aclPermissionEvaluator;
-  
-  @Autowired(required=false)
-  private AclMetaData aclMetaData;
+	@Autowired(required = false)
+	private AclLogicImpl aclLogic;
 
-  @Autowired(required=false)
-  private AclSpecification aclSpecification;
+	@Autowired(required = false)
+	private AclUserDetailsService<?> aclUserDetailsService;
 
-  @Test
-  public void testDefaultBeans() {
-    assertNotNull(aclLogic);
-    assertNotNull(aclUserDetailsService);
-    assertNotNull(aclMetaData);
-    assertNotNull(aclPermissionEvaluator);
-    assertNotNull(aclSpecification);
-    assertNotNull(aclUtils);
-  }
-  
-  @SuppressWarnings("unchecked")
-  @Test
-  @Transactional
-  public void testDefaultSettings() {
-    assertTrue(aclLogic.isManagedType(SimpleAclUser.class));
-    assertTrue(aclLogic.isManagedType(SimpleAclRole.class));
+	@Autowired(required = false)
+	private AclUtils aclUtils;
 
-    AclUser<AclRole> admin = aclLogic.loadUserByUsername("admin");
-    assertNotNull(admin);
-    assertEquals(aclLogic.getUserId(admin),1);
+	@Autowired(required = false)
+	private AclPermissionEvaluator aclPermissionEvaluator;
 
-    assertThat(admin.getAclRoles(), containsInAnyOrder(hasProperty("roleName", is("ROLE_ADMIN")),hasProperty("roleName", is("ROLE_USER"))));
-    
-    AclUser<AclRole> user = aclLogic.loadUserByUsername("user");
-    assertNotNull(user);
-    assertEquals(aclLogic.getUserId(user),2);
+	@Autowired(required = false)
+	private AclMetaData aclMetaData;
 
-    assertThat(user.getAclRoles(), contains(hasProperty("roleName", is("ROLE_USER"))));
+	@Autowired(required = false)
+	private AclSpecification aclSpecification;
 
-  }
-  
-  
-  
-  
+	@Test
+	public void testDefaultBeans() {
+		assertNotNull(aclLogic);
+		assertNotNull(aclUserDetailsService);
+		assertNotNull(aclMetaData);
+		assertNotNull(aclPermissionEvaluator);
+		assertNotNull(aclSpecification);
+		assertNotNull(aclUtils);
+	}
 
+	@SuppressWarnings("unchecked")
+	@Test
+	@Transactional
+	public void testDefaultSettings() {
+		assertTrue(aclLogic.isManagedType(SimpleAclUser.class));
+		assertTrue(aclLogic.isManagedType(SimpleAclRole.class));
+
+		AclUser<AclRole> admin = aclLogic.loadUserByUsername("admin");
+		assertNotNull(admin);
+		assertEquals(aclLogic.getUserId(admin), 1);
+
+		assertThat(admin.getAclRoles(), containsInAnyOrder(hasProperty("roleName", is("ROLE_ADMIN")), hasProperty("roleName", is("ROLE_USER"))));
+
+		AclUser<AclRole> user = aclLogic.loadUserByUsername("user");
+		assertNotNull(user);
+		assertEquals(aclLogic.getUserId(user), 2);
+
+		assertThat(user.getAclRoles(), contains(hasProperty("roleName", is("ROLE_USER"))));
+
+	}
 
 }

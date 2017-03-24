@@ -396,7 +396,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
 	@Override
 	@Transactional
-	public <S extends T> S updateWithoutSave(S entity) {
+	public <S extends T> S saveWithoutPermissionCheck(S entity) {
 		return em.merge(entity);
 	}
 	

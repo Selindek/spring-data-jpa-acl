@@ -47,6 +47,6 @@ public interface PropertyRepository<T, ID extends Serializable> {
 	 * @param entity
 	 * @return merged entity
 	 */
-	<S extends T> S updateWithoutSave(S entity);
+	<S extends T> S saveWithoutPermissionCheck(S entity);
 
 }

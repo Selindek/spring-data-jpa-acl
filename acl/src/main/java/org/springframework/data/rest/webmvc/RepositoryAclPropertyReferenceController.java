@@ -187,7 +187,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
 				publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), prop.propertyValue));
 				//Object result = repoMethodInvoker.invokeSave(prop.accessor.getBean());
-				Object result = aclRepository.updateWithoutSave(prop.accessor.getBean());
+				Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
 				publisher.publishEvent(new AfterLinkDeleteEvent(result, prop.propertyValue));
 
 				return null;
@@ -347,7 +347,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
 				publisher.publishEvent(new BeforeLinkSaveEvent(prop.accessor.getBean(), propertyValue));
 				//Object result = invoker.invokeSave(prop.accessor.getBean());
-				Object result = aclRepository.updateWithoutSave(prop.accessor.getBean());
+				Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
 				publisher.publishEvent(new AfterLinkSaveEvent(result, propertyValue));
 
 				return null;
@@ -414,7 +414,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
 				publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
 				//Object result = invoker.invokeSave(prop.accessor.getBean());
-				Object result = aclRepository.updateWithoutSave(prop.accessor.getBean());
+				Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
 				publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
 
 				return null;
