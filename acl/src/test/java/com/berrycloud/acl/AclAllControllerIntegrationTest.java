@@ -23,8 +23,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.charset.Charset;
 import java.util.Locale;
 
-import javax.persistence.EntityManager;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,16 +41,9 @@ import com.berrycloud.acl.configuration.rest.AclPropertyFilter;
 import com.berrycloud.acl.domain.SimpleAclRole;
 import com.berrycloud.acl.sample.all.AclAppAll;
 import com.berrycloud.acl.sample.all.entity.Person;
-import com.berrycloud.acl.sample.all.repository.AttachmentRepository;
-import com.berrycloud.acl.sample.all.repository.DocumentRepository;
-import com.berrycloud.acl.sample.all.repository.GroupRepository;
 import com.berrycloud.acl.sample.all.repository.PersonHasPersonRepository;
-import com.berrycloud.acl.sample.all.repository.PersonRepository;
 import com.berrycloud.acl.sample.all.repository.PersonRepositoryNoAcl;
 import com.berrycloud.acl.sample.all.repository.RoleRepository;
-import com.berrycloud.acl.sample.all.repository.ThemeRepository;
-import com.berrycloud.acl.sample.all.service.PersonService;
-import com.berrycloud.acl.security.AclUserDetailsService;
 
 @SpringBootTest(classes = AclAppAll.class)
 @RunWith(SpringRunner.class)
@@ -64,20 +55,6 @@ public class AclAllControllerIntegrationTest {
              Charset.forName("utf8")                     
              );
 	 
-	@Autowired
-	private EntityManager em;
-
-	@Autowired
-	private AclLogic aclLogic;
-
-	@Autowired
-	private AclUtils aclUtils;
-
-	@Autowired
-	private AclUserDetailsService<?> aclUserDetailsService;
-
-	@Autowired
-	private PersonRepository personRepository;
 
 	@Autowired
 	PersonHasPersonRepository personHasPersonRepository;
@@ -86,22 +63,7 @@ public class AclAllControllerIntegrationTest {
 	private PersonRepositoryNoAcl personRepositoryNoAcl;
 
 	@Autowired
-	private DocumentRepository documentRepository;
-
-	@Autowired
-	private GroupRepository groupRepository;
-
-	@Autowired
 	private RoleRepository roleRepository;
-
-	@Autowired
-	private AttachmentRepository attachmentRepository;
-
-	@Autowired
-	private ThemeRepository themeRepository;
-
-	@Autowired
-	private PersonService personService;
 
 	@Autowired
 	private AclPropertyFilter aclFilter;
