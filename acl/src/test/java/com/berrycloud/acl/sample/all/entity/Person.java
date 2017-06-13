@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Entity
 @AclSelf({ "read" })
 // @NoAcl
-public class Person implements AclUser<SimpleAclRole> {
+public class Person implements AclUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -182,7 +182,6 @@ public class Person implements AclUser<SimpleAclRole> {
         this.id = id;
     }
 
-    @Override
     public Set<SimpleAclRole> getAclRoles() {
         return aclRoles;
     }

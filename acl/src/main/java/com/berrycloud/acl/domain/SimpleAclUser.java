@@ -33,7 +33,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  *
  */
 @Entity
-public class SimpleAclUser implements AclUser<SimpleAclRole> {
+public class SimpleAclUser implements AclUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -68,7 +68,6 @@ public class SimpleAclUser implements AclUser<SimpleAclRole> {
         this.id = id;
     }
 
-    @Override
     public Set<SimpleAclRole> getAclRoles() {
         return aclRoles;
     }

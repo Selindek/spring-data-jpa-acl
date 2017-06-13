@@ -44,7 +44,7 @@ public abstract class AbstractAclUserDetailsService<A extends GrantedAuthority> 
     @Transactional(readOnly = true)
     public AclUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        AclUser<AclRole> aclUser = aclLogic.loadUserByUsername(username);
+        AclUser aclUser = aclLogic.loadUserByUsername(username);
 
         return createUserDetails(aclUser, createAuthorities(aclLogic.getAllRoles(aclUser)));
     }
@@ -52,9 +52,12 @@ public abstract class AbstractAclUserDetailsService<A extends GrantedAuthority> 
     /**
      * Subclasses should override this method for creating extended AclUserDetails objects.
      */
-    protected AclUserDetails createUserDetails(AclUser<AclRole> aclUser, Collection<A> authorities) {
+    protected AclUserDetails createUserDetails(AclUser aclUser, Collection<A> authorities) {
         return new SimpleAclUserDetails(aclLogic.getUserId(aclUser), aclUser.getUsername(), aclUser.getPassword(),
                 authorities);
+    }
+    protected Collection<A> createAuthorities(AclUser aclUser) {
+    	return createAuthorities(aclLogic.getAllRoles(aclUser));
     }
 
     protected Collection<A> createAuthorities(Set<AclRole> roleSet) {

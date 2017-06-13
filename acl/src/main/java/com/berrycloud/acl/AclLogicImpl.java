@@ -96,8 +96,8 @@ public class AclLogicImpl implements AclLogic {
     @Value("${spring.data.jpa.acl.self-permissions:" + ALL_PERMISSION + "}")
     private String[] defaultSelfPermissions;
 
-    private Class<AclUser<AclRole>> aclUserType;
-    private JpaEntityInformation<AclUser<AclRole>, ?> userInformation;
+    private Class<AclUser> aclUserType;
+    private JpaEntityInformation<AclUser, ?> userInformation;
     private Class<AclRole> aclRoleType;
     private Set<Class<?>> javaTypes;
 
@@ -106,7 +106,7 @@ public class AclLogicImpl implements AclLogic {
     public AclMetaData createAclMetaData() {
         createJavaTypeSet();
 
-        aclUserType = (Class<AclUser<AclRole>>) searchEntityType(javaTypes, AclUser.class);
+        aclUserType = (Class<AclUser>) searchEntityType(javaTypes, AclUser.class);
         userInformation = JpaEntityInformationSupport.getEntityInformation(aclUserType, em);
         aclRoleType = (Class<AclRole>) searchEntityType(javaTypes, AclRole.class);
 
@@ -323,7 +323,7 @@ public class AclLogicImpl implements AclLogic {
     }
 
     @Override
-    public Set<AclRole> getAllRoles(AclUser<AclRole> aclUser) {
+    public Set<AclRole> getAllRoles(AclUser aclUser) {
 
         Set<AclRole> roleSet = new HashSet<>();
         roleSet.addAll(getRoles(aclUser));
@@ -378,13 +378,13 @@ public class AclLogicImpl implements AclLogic {
      */
     @Override
     @Transactional(readOnly = true)
-    public AclUser<AclRole> loadUserByUsername(String username) {
+    public AclUser loadUserByUsername(String username) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<AclUser<AclRole>> query = cb.createQuery(aclUserType);
-        Root<AclUser<AclRole>> root = query.from(aclUserType);
+        CriteriaQuery<AclUser> query = cb.createQuery(aclUserType);
+        Root<AclUser> root = query.from(aclUserType);
         query.select(root).where(cb.equal(root.get("username"), username));
 
-        AclUser<AclRole> aclUser = em.createQuery(query).getSingleResult();
+        AclUser aclUser = em.createQuery(query).getSingleResult();
 
         if (aclUser == null) {
             throw (new UsernameNotFoundException("User with username'" + username + "' cannot be found."));
@@ -393,7 +393,7 @@ public class AclLogicImpl implements AclLogic {
     }
 
     @Override
-    public Serializable getUserId(AclUser<AclRole> user) {
+    public Serializable getUserId(AclUser user) {
         return userInformation.getId(user);
     }
 
@@ -405,7 +405,7 @@ public class AclLogicImpl implements AclLogic {
 
             CriteriaBuilder cb = em.getCriteriaBuilder();
             CriteriaQuery<Long> query = cb.createQuery(Long.class);
-            Root<AclUser<AclRole>> root = query.from(aclUserType);
+            Root<AclUser> root = query.from(aclUserType);
             query.select(cb.count(root));
 
             if (em.createQuery(query).getSingleResult() == 0) {

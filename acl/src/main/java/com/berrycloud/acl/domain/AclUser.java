@@ -37,9 +37,9 @@ import com.berrycloud.acl.annotation.AclSelf;
  * @param <R>
  *            A domain class what implements the {@link AclRole} interface
  */
-public interface AclUser<R extends AclRole> {
+public interface AclUser {
 
-    Set<R> getAclRoles();
+    //Set<? extends AclRole> getAclRoles();
 
     @Column(nullable = false, unique = true)
     String getUsername();

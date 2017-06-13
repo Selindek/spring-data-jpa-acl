@@ -28,11 +28,11 @@ import com.berrycloud.acl.domain.AclUser;
  */
 public interface AclLogic {
 
-    AclUser<AclRole> loadUserByUsername(String username);
+    AclUser loadUserByUsername(String username);
 
-    Set<AclRole> getAllRoles(AclUser<AclRole> aclUser);
+    Set<AclRole> getAllRoles(AclUser aclUser);
 
-    Serializable getUserId(AclUser<AclRole> user);
+    Serializable getUserId(AclUser user);
 
     boolean isManagedType(Class<?> javaType);
 }

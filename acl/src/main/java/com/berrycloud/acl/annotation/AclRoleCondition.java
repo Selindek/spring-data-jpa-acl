@@ -101,5 +101,5 @@ public @interface AclRoleCondition {
      * The list of roles (by string representation) which gains the permission defined in the values field. Empty list
      * means: ANY role. (No role preconditions for the given permissions)
      */
-    String[] roles();
+    String[] roles() default {};
 }

@@ -64,13 +64,13 @@ public class AclMinimalIntegrationTest {
 		assertTrue(aclLogic.isManagedType(SimpleAclUser.class));
 		assertTrue(aclLogic.isManagedType(SimpleAclRole.class));
 
-		AclUser<AclRole> admin = aclLogic.loadUserByUsername("admin");
+		SimpleAclUser admin = (SimpleAclUser) aclLogic.loadUserByUsername("admin");
 		assertNotNull(admin);
 		assertEquals(aclLogic.getUserId(admin), 1);
 
 		assertThat(admin.getAclRoles(), containsInAnyOrder(hasProperty("roleName", is("ROLE_ADMIN")), hasProperty("roleName", is("ROLE_USER"))));
 
-		AclUser<AclRole> user = aclLogic.loadUserByUsername("user");
+		SimpleAclUser user = (SimpleAclUser) aclLogic.loadUserByUsername("user");
 		assertNotNull(user);
 		assertEquals(aclLogic.getUserId(user), 2);
 
