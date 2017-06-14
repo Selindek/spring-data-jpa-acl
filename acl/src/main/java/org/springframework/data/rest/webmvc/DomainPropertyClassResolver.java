@@ -43,9 +43,9 @@ public class DomainPropertyClassResolver {
     private final BaseUri baseUri;
 
     public DomainPropertyClassResolver(Repositories repositories, ResourceMappings mappings, BaseUri baseUri) {
-        Assert.notNull(repositories);
-        Assert.notNull(mappings);
-        Assert.notNull(baseUri);
+        Assert.notNull(repositories, "repositories cannot be null");
+        Assert.notNull(mappings, "mappings cannot be null");
+        Assert.notNull(baseUri, "baseUri cannot be null");
 
         this.repositories = repositories;
         this.mappings = mappings;

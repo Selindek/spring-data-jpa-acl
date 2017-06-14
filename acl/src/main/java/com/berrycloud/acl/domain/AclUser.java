@@ -15,8 +15,6 @@
  */
 package com.berrycloud.acl.domain;
 
-import java.util.Set;
-
 import javax.persistence.Column;
 
 import com.berrycloud.acl.annotation.AclOwner;

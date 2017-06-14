@@ -47,8 +47,8 @@ public class MappingAwareDefaultedPropertyPageableArgumentResolver implements Ha
 
     public MappingAwareDefaultedPropertyPageableArgumentResolver(JacksonMappingAwarePropertySortTranslator translator,
             PageableHandlerMethodArgumentResolver delegate) {
-        Assert.notNull(translator);
-        Assert.notNull(delegate);
+        Assert.notNull(translator, "translator cannot be null");
+        Assert.notNull(delegate, "delegate cannot be null");
 
         this.translator = translator;
         this.delegate = delegate;

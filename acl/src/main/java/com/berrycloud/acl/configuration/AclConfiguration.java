@@ -23,8 +23,8 @@ import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder.EntityManagerFactoryBeanCallback;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.repository.support.Repositories;
 import org.springframework.data.rest.webmvc.ExportAwareRepositories;
 import org.springframework.orm.jpa.JpaVendorAdapter;
@@ -40,7 +40,7 @@ import com.berrycloud.acl.AclPersistenceUnitPostProcessor;
 import com.berrycloud.acl.AclSpecification;
 import com.berrycloud.acl.AclUserPermissionSpecification;
 import com.berrycloud.acl.AclUtils;
-import com.berrycloud.acl.configuration.rest.AclPropertyFilter;
+import com.berrycloud.acl.configuration.rest.AclRepositoryRestConfiguration;
 import com.berrycloud.acl.data.AclMetaData;
 import com.berrycloud.acl.security.SimpleAclUserDetailsService;
 import com.berrycloud.acl.security.access.AclPermissionEvaluator;
@@ -53,7 +53,7 @@ import com.berrycloud.acl.security.access.AclPermissionEvaluator;
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-@ComponentScan(basePackageClasses = { AclPropertyFilter.class })
+@Import(AclRepositoryRestConfiguration.class)
 public class AclConfiguration {
 
     @Autowired

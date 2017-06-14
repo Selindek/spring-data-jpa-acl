@@ -130,9 +130,9 @@ public class JacksonMappingAwarePropertySortTranslator {
 
         public SortTranslator(PersistentEntities persistentEntities, ObjectMapper objectMapper,
                 Associations associations) {
-            Assert.notNull(persistentEntities);
-            Assert.notNull(objectMapper);
-            Assert.notNull(associations);
+            Assert.notNull(persistentEntities,"persistentEntities cannot be null");
+            Assert.notNull(objectMapper,"objectMapper cannot be null");
+            Assert.notNull(associations,"associations cannot be null");
 
             this.persistentEntities = persistentEntities;
             this.objectMapper = objectMapper;

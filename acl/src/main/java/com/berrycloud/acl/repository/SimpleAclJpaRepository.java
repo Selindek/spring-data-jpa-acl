@@ -482,8 +482,8 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 	 */
 	private <S, U extends T> Root<U> applySpecificationToCriteria(Specification<U> spec, Class<U> domainClass, CriteriaQuery<S> query, String permission) {
 
-		Assert.notNull(query);
-		Assert.notNull(domainClass);
+		Assert.notNull(query, "query cannot be null");
+		Assert.notNull(domainClass, "domainClass cannot be null");
 		Root<U> root = query.from(domainClass);
 
 		CriteriaBuilder builder = em.getCriteriaBuilder();
