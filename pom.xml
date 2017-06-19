@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   
   <groupId>com.berrycloud.acl</groupId>
-  <artifactId>spring-data-jpa-acl</artifactId>
+  <artifactId>acl-root</artifactId>
   <version>0.0.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>example-root</name>
