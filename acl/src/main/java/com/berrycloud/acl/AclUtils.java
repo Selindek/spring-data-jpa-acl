@@ -82,7 +82,6 @@ public class AclUtils {
         return null;
     }
 
-
     /**
      * Checks if the current user is an administrator (Has ROLE_ADMIN role)
      */
@@ -102,7 +101,7 @@ public class AclUtils {
     }
 
     /**
-     * Checks if any authority of the current user is in the provided set. If the set is empty it automatically returns
+     * Checks if any authority of the current principal is in the provided set. If the set is empty it automatically returns
      * true. (Empty set means: ANY authority)
      *
      * @param authorities
@@ -111,11 +110,11 @@ public class AclUtils {
         if (authorities.isEmpty()) {
             return true;
         }
-        UserDetails currentUser = getUserDetails();
-        if (currentUser != null) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication != null) {
             for (GrantedAuthority authority : authorities) {
-                if (currentUser.getAuthorities().contains(authority)) {
+                if (authentication.getAuthorities().contains(authority)) {
                     return true;
                 }
             }
