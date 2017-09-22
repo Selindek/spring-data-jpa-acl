@@ -73,5 +73,5 @@ public @interface AclRolePermission {
      * The list of roles (by string representation) which gains the permission defined in the values field. Empty array
      * means ANY role.
      */
-    String[] roles();
+    String[] roles() default {};
 }

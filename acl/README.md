@@ -32,12 +32,17 @@ Sometimes it means that you have to add a few extra relations to your tables whe
 Add the following dependency to your pom.xml:
 
 	<dependency>
-      	<groupId>com.berrycloud.acl</groupId>
-      	<artifactId>spring-data-jpa-acl</artifactId>
+    	<groupId>com.github.BerryCloud.spring-data-jpa-acl</groupId>
+		<artifactId>spring-data-jpa-acl</artifactId>
 		<version>LATEST</version>
 	</dependency>
-	
-*** Repository ???
+
+... and the following repository:
+
+	<repository>
+		<id>jitpack.io</id>
+		<url>https://jitpack.io</url>
+	</repository>
 
 Thanks to Spring's auto-configuration all necessary beans are initialized automatically. All you have to do is add the following annotation to one of your configuration classes:
 	
@@ -67,7 +72,7 @@ You can use all Spring Data Repository features exactly the same way as it's des
 	    Long countByIdGreaterThan(@Param("id") Integer id);
 	}
 
-The results of all query methods will be filtered by the ACL rules and all save and delete methods will be executed only on entities what the current user has permission to based on the AC rules.
+The results of all query methods will be filtered by the ACL rules and all save and delete methods will be executed only on entities what the current user has permission to based on the ACL rules.
 
 Unfortunately the query methods where you manually define the native or JPA query cannot be processed by the ACL, so if any of your repositories contains such methods you will get a warning during startup:
 
@@ -75,6 +80,7 @@ Unfortunately the query methods where you manually define the native or JPA quer
 	    List<SimpleAclUser> mySelect();
 
 You can annotate such methods with the @NoAcl annotation to prevent these warnings.
+#_These methods WON'T BE secured by the ACL at all even if you don't add the @NoAcl annotation!_
 
 @NoAcl annotation is also useful if you want to create methods (or repositories) without permission checks. (E.g. you want a repository with full ACL support for your API and an other one without permission checks for inner use for your scheduled tasks.)
 
