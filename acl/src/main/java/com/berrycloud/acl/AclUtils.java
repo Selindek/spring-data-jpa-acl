@@ -15,8 +15,6 @@
  */
 package com.berrycloud.acl;
 
-import java.util.Set;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -107,16 +105,18 @@ public class AclUtils {
      *
      * @param authorities
      */
-    public boolean hasAnyAuthorities(Set<GrantedAuthority> authorities) {
-        if (authorities.isEmpty()) {
+    public boolean hasAnyAuthorities(String[] authorities) {
+        if (authorities.length == 0) {
             return true;
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication != null) {
-            for (GrantedAuthority authority : authorities) {
-                if (authentication.getAuthorities().contains(authority)) {
-                    return true;
+            for (GrantedAuthority grantedAuthority : authentication.getAuthorities()) {
+                for (String authority : authorities) {
+                    if (authority.equals(grantedAuthority.getAuthority())) {
+                        return true;
+                    }
                 }
             }
         }

@@ -15,10 +15,6 @@
  */
 package com.berrycloud.acl.data;
 
-import java.util.Set;
-
-import org.springframework.security.core.GrantedAuthority;
-
 import com.berrycloud.acl.annotation.AclRolePermission;
 
 /**
@@ -28,14 +24,14 @@ import com.berrycloud.acl.annotation.AclRolePermission;
  */
 public class RolePermissionData extends PermissionData {
 
-    private Set<GrantedAuthority> authorities;
+    private String[] authorities;
 
-    public RolePermissionData(Set<GrantedAuthority> authorities, String[] permissions) {
+    public RolePermissionData(String[] authorities, String[] permissions) {
         super(permissions);
         this.authorities = authorities;
     }
 
-    public Set<GrantedAuthority> getAuthorities() {
+    public String[] getAuthorities() {
         return authorities;
     }
 

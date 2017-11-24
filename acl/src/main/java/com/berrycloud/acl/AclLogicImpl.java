@@ -45,13 +45,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.JpaEntityInformationSupport;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,7 +74,6 @@ import com.berrycloud.acl.domain.PermissionLink;
 import com.berrycloud.acl.domain.SimpleAclRole;
 import com.berrycloud.acl.domain.SimpleAclUser;
 import com.berrycloud.acl.repository.NoAcl;
-import com.berrycloud.acl.security.AclUserDetailsService;
 
 /**
  * Default implementation of the {@link AclLogic}
@@ -89,9 +86,6 @@ public class AclLogicImpl implements AclLogic {
 
     @PersistenceContext
     private EntityManager em;
-
-    @Autowired
-    private AclUserDetailsService<?> userDetailsService;
 
     @Value("${spring.data.jpa.acl.self-permissions:" + ALL_PERMISSION + "}")
     private String[] defaultSelfPermissions;
@@ -201,12 +195,12 @@ public class AclLogicImpl implements AclLogic {
                 AclRolePermission.class, AclRolePermissions.class);
         for (AclRolePermission rolePermission : rolePermissions) {
             metaData.getRolePermissionList()
-                    .add(new RolePermissionData(convertToAuthorities(rolePermission.roles()), rolePermission.value()));
+                    .add(new RolePermissionData(rolePermission.roles(), rolePermission.value()));
         }
         if (metaData.getRolePermissionList().isEmpty()) {
             // Add default behaviour - users with ROLE_ADMIN role automatically gain all permissions
-            metaData.getRolePermissionList().add(new RolePermissionData(
-                    convertToAuthorities(new String[] { ROLE_ADMIN }), new String[] { ALL_PERMISSION }));
+            metaData.getRolePermissionList()
+                    .add(new RolePermissionData(new String[] { ROLE_ADMIN }, new String[] { ALL_PERMISSION }));
         }
 
     }
@@ -215,13 +209,12 @@ public class AclLogicImpl implements AclLogic {
         Set<AclRoleCondition> roleConditions = AnnotationUtils.getDeclaredRepeatableAnnotations(javaType,
                 AclRoleCondition.class, AclRoleConditions.class);
         for (AclRoleCondition roleCondition : roleConditions) {
-            metaData.getRoleConditionList()
-                    .add(new RolePermissionData(convertToAuthorities(roleCondition.roles()), roleCondition.value()));
+            metaData.getRoleConditionList().add(new RolePermissionData(roleCondition.roles(), roleCondition.value()));
         }
         if (metaData.getRoleConditionList().isEmpty()) {
             // Add default behaviour - users with ANY roles could gain any permissions
-            metaData.getRoleConditionList().add(
-                    new RolePermissionData(convertToAuthorities(new String[] {}), new String[] { ALL_PERMISSION }));
+            metaData.getRoleConditionList()
+                    .add(new RolePermissionData(new String[] {}, new String[] { ALL_PERMISSION }));
         }
 
     }
@@ -232,17 +225,9 @@ public class AclLogicImpl implements AclLogic {
             metaData.getRoleConditionList().clear();
             metaData.getRolePermissionList().clear();
             // Turn off ACL - users with ANY roles automatically gain all permissions
-            metaData.getRolePermissionList().add(
-                    new RolePermissionData(convertToAuthorities(new String[] {}), new String[] { ALL_PERMISSION }));
+            metaData.getRolePermissionList()
+                    .add(new RolePermissionData(new String[] {}, new String[] { ALL_PERMISSION }));
         }
-    }
-
-    private Set<GrantedAuthority> convertToAuthorities(String[] authoritiNames) {
-        Set<GrantedAuthority> authorities = new HashSet<>();
-        for (String authorityName : authoritiNames) {
-            authorities.add(userDetailsService.createGrantedAuthority(authorityName));
-        }
-        return authorities;
     }
 
     private void checkSelfPermissions(Class<?> javaType) {
@@ -338,8 +323,8 @@ public class AclLogicImpl implements AclLogic {
                 @SuppressWarnings("unchecked")
                 Collection<Object> values = beanWrapper.convertIfNecessary(beanWrapper.getPropertyValue(propertyName),
                         Collection.class);
-                if(values==null) {
-                  continue;
+                if (values == null) {
+                    continue;
                 }
                 for (Object value : values) {
                     LOG.trace("Collecting roles from {}", value);
