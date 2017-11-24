@@ -17,8 +17,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.berrycloud.acl.data.AclMetaData;
-import com.berrycloud.acl.domain.AclRole;
-import com.berrycloud.acl.domain.AclUser;
 import com.berrycloud.acl.domain.SimpleAclRole;
 import com.berrycloud.acl.domain.SimpleAclUser;
 import com.berrycloud.acl.sample.minimal.AclAppMinimal;
@@ -29,53 +27,54 @@ import com.berrycloud.acl.security.access.AclPermissionEvaluator;
 @RunWith(SpringRunner.class)
 public class AclMinimalIntegrationTest {
 
-	@Autowired(required = false)
-	private AclLogicImpl aclLogic;
+    @Autowired(required = false)
+    private AclLogicImpl aclLogic;
 
-	@Autowired(required = false)
-	private AclUserDetailsService<?> aclUserDetailsService;
+    @Autowired(required = false)
+    private AclUserDetailsService<?> aclUserDetailsService;
 
-	@Autowired(required = false)
-	private AclUtils aclUtils;
+    @Autowired(required = false)
+    private AclUtils aclUtils;
 
-	@Autowired(required = false)
-	private AclPermissionEvaluator aclPermissionEvaluator;
+    @Autowired(required = false)
+    private AclPermissionEvaluator aclPermissionEvaluator;
 
-	@Autowired(required = false)
-	private AclMetaData aclMetaData;
+    @Autowired(required = false)
+    private AclMetaData aclMetaData;
 
-	@Autowired(required = false)
-	private AclSpecification aclSpecification;
+    @Autowired(required = false)
+    private AclSpecification aclSpecification;
 
-	@Test
-	public void testDefaultBeans() {
-		assertNotNull(aclLogic);
-		assertNotNull(aclUserDetailsService);
-		assertNotNull(aclMetaData);
-		assertNotNull(aclPermissionEvaluator);
-		assertNotNull(aclSpecification);
-		assertNotNull(aclUtils);
-	}
+    @Test
+    public void testDefaultBeans() {
+        assertNotNull(aclLogic);
+        assertNotNull(aclUserDetailsService);
+        assertNotNull(aclMetaData);
+        assertNotNull(aclPermissionEvaluator);
+        assertNotNull(aclSpecification);
+        assertNotNull(aclUtils);
+    }
 
-	@SuppressWarnings("unchecked")
-	@Test
-	@Transactional
-	public void testDefaultSettings() {
-		assertTrue(aclLogic.isManagedType(SimpleAclUser.class));
-		assertTrue(aclLogic.isManagedType(SimpleAclRole.class));
+    @SuppressWarnings("unchecked")
+    @Test
+    @Transactional
+    public void testDefaultSettings() {
+        assertTrue(aclLogic.isManagedType(SimpleAclUser.class));
+        assertTrue(aclLogic.isManagedType(SimpleAclRole.class));
 
-		SimpleAclUser admin = (SimpleAclUser) aclLogic.loadUserByUsername("admin");
-		assertNotNull(admin);
-		assertEquals(aclLogic.getUserId(admin), 1);
+        SimpleAclUser admin = (SimpleAclUser) aclLogic.loadUserByUsername("admin");
+        assertNotNull(admin);
+        assertEquals(aclLogic.getUserId(admin), 1);
 
-		assertThat(admin.getAclRoles(), containsInAnyOrder(hasProperty("roleName", is("ROLE_ADMIN")), hasProperty("roleName", is("ROLE_USER"))));
+        assertThat(admin.getAclRoles(), containsInAnyOrder(hasProperty("roleName", is("ROLE_ADMIN")),
+                hasProperty("roleName", is("ROLE_USER"))));
 
-		SimpleAclUser user = (SimpleAclUser) aclLogic.loadUserByUsername("user");
-		assertNotNull(user);
-		assertEquals(aclLogic.getUserId(user), 2);
+        SimpleAclUser user = (SimpleAclUser) aclLogic.loadUserByUsername("user");
+        assertNotNull(user);
+        assertEquals(aclLogic.getUserId(user), 2);
 
-		assertThat(user.getAclRoles(), contains(hasProperty("roleName", is("ROLE_USER"))));
+        assertThat(user.getAclRoles(), contains(hasProperty("roleName", is("ROLE_USER"))));
 
-	}
+    }
 
 }

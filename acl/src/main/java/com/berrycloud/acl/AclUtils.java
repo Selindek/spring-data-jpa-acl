@@ -17,14 +17,12 @@ package com.berrycloud.acl;
 
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.berrycloud.acl.security.AclUserDetails;
-import com.berrycloud.acl.security.AclUserDetailsService;
 
 /**
  * Utility methods for ACL Security.
@@ -32,9 +30,6 @@ import com.berrycloud.acl.security.AclUserDetailsService;
  * @author István Rátkai (Selindek)
  */
 public class AclUtils {
-
-    @Autowired
-    AclUserDetailsService<?> aclUserDetailsService;
 
     /**
      * Get the Principal from the SecurityContext or null if there is no authentication
@@ -96,13 +91,19 @@ public class AclUtils {
      */
     public boolean hasAuthority(String authority) {
         UserDetails currentUser = getUserDetails();
-        return currentUser != null
-                && currentUser.getAuthorities().contains(aclUserDetailsService.createGrantedAuthority(authority));
+        if (authority != null && currentUser != null) {
+            for (GrantedAuthority grantedAuthority : currentUser.getAuthorities()) {
+                if (authority.equals(grantedAuthority.getAuthority())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
-     * Checks if any authority of the current principal is in the provided set. If the set is empty it automatically returns
-     * true. (Empty set means: ANY authority)
+     * Checks if any authority of the current principal is in the provided set. If the set is empty it automatically
+     * returns true. (Empty set means: ANY authority)
      *
      * @param authorities
      */
