@@ -4,7 +4,7 @@
 
   <groupId>com.berrycloud.acl</groupId>
   <artifactId>spring-data-jpa-acl</artifactId>
-  <version>0.0.3-SNAPSHOT</version>
+  <version>0.8</version>
   <packaging>jar</packaging>
 
   <name>acl</name>

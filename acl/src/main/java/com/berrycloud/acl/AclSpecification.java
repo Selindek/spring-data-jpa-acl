@@ -25,4 +25,14 @@ import org.springframework.data.jpa.domain.Specification;
 public interface AclSpecification extends Specification<Object> {
 
     Predicate toPredicate(Root<?> root, CriteriaQuery<?> query, CriteriaBuilder cb, String permission);
+
+    /**
+     * Checks whether this new entity can be created based on the Acl rules. (Does the current user have create
+     * permission on this entity type or not.)
+     * 
+     * @param newEntity
+     * @return
+     */
+    boolean canBeCreated(Object newEntity);
+
 }

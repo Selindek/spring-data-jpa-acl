@@ -96,7 +96,8 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
             @Override
             protected boolean isHandler(Class<?> beanType) {
                 return super.isHandler(beanType)
-                        && !beanType.getSimpleName().equals("RepositoryPropertyReferenceController");
+                        && !beanType.getSimpleName().equals("RepositoryPropertyReferenceController")
+                        && !beanType.getSimpleName().equals("RepositoryEntityController");
             }
         };
         repositoryMapping.setJpaHelper(jpaHelper());
@@ -109,7 +110,7 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
         basePathMapping.setCorsConfigurations(corsConfigurations);
         basePathMapping.afterPropertiesSet();
 
-        List<HandlerMapping> mappings = new ArrayList<HandlerMapping>();
+        List<HandlerMapping> mappings = new ArrayList<>();
         mappings.add(basePathMapping);
         mappings.add(repositoryMapping);
 
