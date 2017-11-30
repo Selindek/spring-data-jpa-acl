@@ -280,6 +280,11 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
         em.createQuery(delete).executeUpdate();
     }
 
+    @Override
+    public T findOneWithoutPermissionCheck(ID id) {
+        return findOne(id, null);
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -521,7 +526,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
         Predicate predicate = spec == null ? null : spec.toPredicate(root, query, builder);
 
         // Permission specification must be executed AFTER all of the other specifications
-        if (aclSpecification != null) {
+        if (aclSpecification != null && permission != null) {
             Predicate permissionPredicate = aclSpecification.toPredicate(root, query, builder, permission);
             predicate = predicate == null ? permissionPredicate : builder.and(predicate, permissionPredicate);
         }

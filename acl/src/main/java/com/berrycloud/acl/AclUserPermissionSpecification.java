@@ -197,7 +197,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
             // Not handled entity type
             return true;
         }
-        return hasRolePermission(metaData, CREATE_PERMISSION) || hasRoleCondition(metaData, CREATE_PERMISSION);
+        return hasRolePermission(metaData, CREATE_PERMISSION);
     }
 
     /**

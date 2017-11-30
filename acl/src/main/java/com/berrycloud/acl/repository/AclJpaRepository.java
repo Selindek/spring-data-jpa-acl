@@ -22,6 +22,7 @@ import javax.persistence.EntityNotFoundException;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Repository interface extension for loading entities by non-default permission. Most ethods are used by
@@ -66,6 +67,25 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
 
     T findOne(Specification<T> spec, String permission);
 
-	List<T> findAll(Iterable<ID> ids, String permission);
+    List<T> findAll(Iterable<ID> ids, String permission);
+
+    /**
+     * Delete the entity without permission check. This method should be used with extreme caution. The permission
+     * should be checked manually before using this method. (I.e. methods protected by {@link PreAuthorize} annotation.)
+     *
+     * @param entity
+     */
+    void deleteWithoutPermissionCheck(T entity);
+
+    /**
+     * Find an entity by id with without testing the current user's permission to it.
+     *
+     * @param id
+     *            the id of the entity
+     * @param permission
+     *            the permission we check against
+     * @return the entity with the given id or null if it's not exist or the current user has no proper permission to it
+     */
+    T findOneWithoutPermissionCheck(ID id);
 
 }
