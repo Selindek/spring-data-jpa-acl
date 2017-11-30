@@ -49,13 +49,4 @@ public interface PropertyRepository<T, ID extends Serializable> {
      */
     <S extends T> S saveWithoutPermissionCheck(S entity);
 
-    /**
-     * Delete the entity without permission check. This method should be used with extreme caution. The permission
-     * should be checked manually before using this method. (I.e. methods protected by {@link PreAuthorize} annotation.)
-     * 
-     * @param entity
-     * @return merged entity
-     */
-    void deleteWithoutPermissionCheck(T entity);
-
 }
