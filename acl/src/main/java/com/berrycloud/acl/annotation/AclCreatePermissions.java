@@ -23,7 +23,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * Container annotation for AclRolePermission annotations
+ * Container annotation for RolePermission annotations
  *
  * @author István Rátkai (Selindek)
  *
@@ -31,11 +31,11 @@ import java.lang.annotation.Target;
 @Target({ TYPE })
 @Retention(RUNTIME)
 @Documented
-public @interface AclRolePermissions {
+public @interface AclCreatePermissions {
 
     /**
-     * The list {@link AclRolePermission} annotations
+     * The list {@link AclCreatePermission} annotations
      */
-    AclRolePermission[] value();
+    AclCreatePermission[] value();
 
 }

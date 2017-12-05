@@ -19,23 +19,29 @@ import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Documented;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * Container annotation for AclRolePermission annotations
+ * Defines create permission for a list of roles for this domain class. All of the users who has at least one role from
+ * the provided list will gain create permission to the annotated domain class.
+ * <p>
+ * An empty list in the {@code roles} field means: ANY role.
+ * <p>
+ * This annotation can be used multiple times.
  *
- * @author István Rátkai (Selindek)
+ * @@author István Rátkai (Selindek)
  *
  */
 @Target({ TYPE })
 @Retention(RUNTIME)
 @Documented
-public @interface AclRolePermissions {
+@Repeatable(value = AclCreatePermissions.class)
+public @interface AclCreatePermission {
 
     /**
-     * The list {@link AclRolePermission} annotations
+     * The list of roles (by string representation) which gains the create permission Empty array means ANY role.
      */
-    AclRolePermission[] value();
-
+    String[] roles() default {};
 }

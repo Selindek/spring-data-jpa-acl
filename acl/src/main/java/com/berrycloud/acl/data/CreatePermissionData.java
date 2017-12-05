@@ -13,29 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.berrycloud.acl.annotation;
+package com.berrycloud.acl.data;
 
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import com.berrycloud.acl.annotation.AclCreatePermission;
 
 /**
- * Container annotation for AclRolePermission annotations
+ * Storage class for storing the processed data of {@link AclCreatePermission} annotations.
  *
  * @author István Rátkai (Selindek)
- *
  */
-@Target({ TYPE })
-@Retention(RUNTIME)
-@Documented
-public @interface AclRolePermissions {
+public class CreatePermissionData {
 
-    /**
-     * The list {@link AclRolePermission} annotations
-     */
-    AclRolePermission[] value();
+    private String[] authorities;
+
+    public CreatePermissionData(String[] authorities) {
+        this.authorities = authorities;
+    }
+
+    public String[] getAuthorities() {
+        return authorities;
+    }
 
 }

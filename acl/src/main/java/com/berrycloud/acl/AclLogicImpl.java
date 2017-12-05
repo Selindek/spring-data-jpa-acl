@@ -53,6 +53,8 @@ import org.springframework.data.jpa.repository.support.JpaEntityInformationSuppo
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.berrycloud.acl.annotation.AclCreatePermission;
+import com.berrycloud.acl.annotation.AclCreatePermissions;
 import com.berrycloud.acl.annotation.AclOwner;
 import com.berrycloud.acl.annotation.AclParent;
 import com.berrycloud.acl.annotation.AclRoleCondition;
@@ -63,6 +65,7 @@ import com.berrycloud.acl.annotation.AclRoleProvider;
 import com.berrycloud.acl.annotation.AclSelf;
 import com.berrycloud.acl.data.AclEntityMetaData;
 import com.berrycloud.acl.data.AclMetaData;
+import com.berrycloud.acl.data.CreatePermissionData;
 import com.berrycloud.acl.data.OwnerData;
 import com.berrycloud.acl.data.ParentData;
 import com.berrycloud.acl.data.PermissionData;
@@ -183,11 +186,21 @@ public class AclLogicImpl implements AclLogic {
             LOG.error("Cannot instantiate {} ", javaType);
         }
         checkSelfPermissions(javaType);
+        checkAclCreatePermission(metaData, javaType);
         checkAclRolePermission(metaData, javaType);
         checkAclRoleCondition(metaData, javaType);
         // call this one last. It overrides the role annotations
         checkNoAcl(metaData, javaType);
         return metaData;
+    }
+
+    private void checkAclCreatePermission(AclEntityMetaData metaData, Class<?> javaType) {
+        Set<AclCreatePermission> createPermissions = AnnotationUtils.getDeclaredRepeatableAnnotations(javaType,
+                AclCreatePermission.class, AclCreatePermissions.class);
+        for (AclCreatePermission createPermission : createPermissions) {
+            metaData.getCreatePermissionList().add(new CreatePermissionData(createPermission.roles()));
+        }
+
     }
 
     private void checkAclRolePermission(AclEntityMetaData metaData, Class<?> javaType) {

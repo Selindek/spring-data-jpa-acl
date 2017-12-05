@@ -351,19 +351,23 @@ We can also use prefixed permissions. So if want to hire a freelancer artist to 
 
 And that's all. using the above annotations and maybe some PermissionLink objects you can easily define almost any permission-schema. And all of your permission rules will be defined right in the domain-classes, you don't have to create special methods and don't have to use @PreAuthorize annotations on your logic or repository methods.
 
-## Object Creation
+## @AclCreatePermission
 
 Granting permissions for object-creation is usually a weak-point of any ACL, because you cannot define permission to an object what is about to create, simply because it's not exist at the time when the permission should be checked. 
+Using the @AclCreatePermission annotation we can control the object creation in a similar way as any other permissions.
 But we also have role-based annotations! So if we can simply allow or deny object creation by setting the 'create' permission to a domain class via the @AclRolePermission annotation.
 
 The following annotation grants 'create' permission for managers:
 
-	@AclRolePermission(value="create", roles="ROLE_MANAGER")
-	@AclRolePermission(value="all", roles="ROLE_ADMIN")
+	@AclCreatePermission(roles="ROLE_MANAGER")
 	@Entity
 	public class UserNote
 
-Note that we have to set a permission set for administrators too because we override the default AclRolePermission value. 
+This annotation also works like all the other annotations: the empty roles property means: any roles. (You can even stack these annotations but it makes not much sense.)
+
+When the Acl checks for 'create' permissions it also checks the @AclRolePermission annotations, so by default all users with ROLE_ADMIN role can create any kind of objects.
+You can add a 'create' permission to certain roles by a @AclRolePermission annotation too, but don't forget that in this case those roles also automatically gain 'read' permission too! 
+
 	
 ## @PreAuthorize
 

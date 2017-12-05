@@ -44,6 +44,7 @@ import com.berrycloud.acl.annotation.AclOwner;
 import com.berrycloud.acl.annotation.AclParent;
 import com.berrycloud.acl.data.AclEntityMetaData;
 import com.berrycloud.acl.data.AclMetaData;
+import com.berrycloud.acl.data.CreatePermissionData;
 import com.berrycloud.acl.data.OwnerData;
 import com.berrycloud.acl.data.ParentData;
 import com.berrycloud.acl.data.PermissionLinkData;
@@ -196,6 +197,11 @@ public class AclUserPermissionSpecification implements AclSpecification {
         if (metaData == null) {
             // Not handled entity type
             return true;
+        }
+        for (CreatePermissionData createPermissionData : metaData.getCreatePermissionList()) {
+            if (aclUtils.hasAnyAuthorities(createPermissionData.getAuthorities())) {
+                return true;
+            }
         }
         return hasRolePermission(metaData, CREATE_PERMISSION);
     }
