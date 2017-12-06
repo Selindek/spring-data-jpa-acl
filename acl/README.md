@@ -465,6 +465,13 @@ If you send the message this way:
 	 	
 ... then all the members of that group will get the message not only your friends.
 
+## Other features
+
+## Missing features
+
+Unfortunately the @DataJpaTest annotation what can be used for testing the JpaRepositories cannot be used together with this extension.
+If you have test classes in an existing project what uses this annotation then either turn off those tests by adding @Ignore or test the repository methods in a full context. 
+
 ## Conclusion
 
 Maybe this document is quite long and complex but creating a safe permission-system for your application what covers all of the use cases is still much more difficult than understanding the proper usage of these annotations. And your final code will be much more clear if you can handle everything by including some spring packages and adding a few annotations here or there.
