@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 import javax.persistence.OneToMany;
 import javax.persistence.PersistenceContext;
@@ -118,7 +119,7 @@ public class AclLogicImpl implements AclLogic {
         javaTypes = new HashSet<>();
         for (ManagedType<?> mt : em.getMetamodel().getManagedTypes()) {
             Class<?> type = mt.getJavaType();
-            if (!Modifier.isAbstract(type.getModifiers())) {
+            if (!Modifier.isAbstract(type.getModifiers()) && type.isAnnotationPresent(Entity.class)) {
                 javaTypes.add(type);
             }
         }
