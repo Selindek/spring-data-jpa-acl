@@ -109,27 +109,27 @@ public class AclAllRepositoryIntegrationTest {
         userRole = new SimpleAclRole(AclConstants.ROLE_USER);
         editorRole = new SimpleAclRole("ROLE_EDITOR");
         manipulatorRole = new SimpleAclRole("ROLE_MANIPULATOR");
-        roleRepository.save(adminRole);
-        roleRepository.save(userRole);
-        roleRepository.save(editorRole);
-        roleRepository.save(manipulatorRole);
+        roleRepository.saveWithoutPermissionCheck(adminRole);
+        roleRepository.saveWithoutPermissionCheck(userRole);
+        roleRepository.saveWithoutPermissionCheck(editorRole);
+        roleRepository.saveWithoutPermissionCheck(manipulatorRole);
 
         admin = new Person("admin", "a", "a");
         admin.getAclRoles().add(adminRole);
-        personRepository.save(admin);
+        personRepository.saveWithoutPermissionCheck(admin);
 
         user = new Person("user", "u", "u");
         user.getAclRoles().add(userRole);
-        personRepository.save(user);
+        personRepository.saveWithoutPermissionCheck(user);
 
         user2 = new Person("user2", "u2", "u2");
         user2.getAclRoles().add(userRole);
         user2.setCreatedBy(user);
-        personRepository.save(user2);
+        personRepository.saveWithoutPermissionCheck(user2);
 
         user3 = new Person("user3", "u3", "u3");
         user3.getAclRoles().add(userRole);
-        personRepository.save(user3);
+        personRepository.saveWithoutPermissionCheck(user3);
 
     }
 
@@ -284,7 +284,7 @@ public class AclAllRepositoryIntegrationTest {
         setAuthentication("user");
         Person deleteUser = new Person("delme", "d", "d");
         deleteUser.setCreatedBy(user);
-        personRepository.save(deleteUser);
+        personRepository.saveWithoutPermissionCheck(deleteUser);
         personRepository.deleteInBatch(Arrays.asList(admin, deleteUser));
         assertNull(personRepositoryNoAcl.findOne(deleteUser.getId()));
         assertNotNull(personRepositoryNoAcl.findOne(admin.getId()));
@@ -294,7 +294,7 @@ public class AclAllRepositoryIntegrationTest {
     public void testGivenNoAuthenticationWhenCallDeleteUserNoAclThenUserIsDeleted() {
         setAuthentication(null);
         Person deleteUser = new Person("delme", "d", "d");
-        personRepository.save(deleteUser);
+        personRepository.saveWithoutPermissionCheck(deleteUser);
         personRepositoryNoAcl.deleteInBatch(Arrays.asList(deleteUser));
         assertNull(personRepositoryNoAcl.findOne(deleteUser.getId()));
     }
@@ -304,7 +304,7 @@ public class AclAllRepositoryIntegrationTest {
         setAuthentication("user");
         Person deleteUser = new Person("delme", "d", "d");
         deleteUser.setCreatedBy(user);
-        personRepository.save(deleteUser);
+        personRepository.saveWithoutPermissionCheck(deleteUser);
         personRepository.deleteAll();
         assertNull(personRepositoryNoAcl.findOne(deleteUser.getId()));
         assertNotNull(personRepositoryNoAcl.findOne(admin.getId()));
@@ -316,7 +316,7 @@ public class AclAllRepositoryIntegrationTest {
         setAuthentication("user");
         Person deleteUser = new Person("delme", "d", "d");
         deleteUser.setCreatedBy(user);
-        personRepository.save(deleteUser);
+        personRepository.saveWithoutPermissionCheck(deleteUser);
         personRepository.deleteAllInBatch();
         assertNull(personRepositoryNoAcl.findOne(deleteUser.getId()));
         assertNotNull(personRepositoryNoAcl.findOne(admin.getId()));
@@ -558,7 +558,7 @@ public class AclAllRepositoryIntegrationTest {
         TestGroup editorGroup = new TestGroup("Editor's Group", admin);
         editorGroup.getMembers().add(user);
         editorGroup.setRole(editorRole);
-        groupRepository.save(editorGroup);
+        groupRepository.saveWithoutPermissionCheck(editorGroup);
         user.getGroups().add(editorGroup);
         personRepositoryNoAcl.save(user);
         setAuthentication("user");
@@ -570,7 +570,7 @@ public class AclAllRepositoryIntegrationTest {
         TestGroup editorGroup = new TestGroup("Editor's Group", admin);
         editorGroup.getMembers().add(user);
         editorGroup.setRole(editorRole);
-        groupRepository.save(editorGroup);
+        groupRepository.saveWithoutPermissionCheck(editorGroup);
         user.getGroups().add(editorGroup);
         personRepositoryNoAcl.save(user);
         setAuthentication("admin");
@@ -581,12 +581,12 @@ public class AclAllRepositoryIntegrationTest {
     public void testGivenGroupMembersWhenCallRepositoryMethodsThenReturnObjectAccordingToOwnerPermission() {
         setAuthentication("user");
         Person member = new Person("member", "m", "m");
-        personRepository.save(member);
+        personRepository.saveWithoutPermissionCheck(member);
         assertNull(personRepository.findOne(member.getId()));
 
         TestGroup editorGroup = new TestGroup("Editor's Group", user);
         editorGroup.getMembers().add(member);
-        groupRepository.save(editorGroup);
+        groupRepository.saveWithoutPermissionCheck(editorGroup);
         member.getGroups().add(editorGroup);
         personRepositoryNoAcl.save(member);
 
@@ -605,7 +605,7 @@ public class AclAllRepositoryIntegrationTest {
     public void testGivenFullOwnerPermissionsWhenCallDeleteThenObjectIsDeleted() {
         setAuthentication("user2");
         Document doc = new Document("doc", "content", user2);
-        documentRepository.save(doc);
+        documentRepository.saveWithoutPermissionCheck(doc);
         assertTrue(documentRepository.exists(doc.getId()));
         documentRepository.delete(doc);
         assertFalse(documentRepository.exists(doc.getId()));

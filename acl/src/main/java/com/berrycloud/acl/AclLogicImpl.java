@@ -119,7 +119,7 @@ public class AclLogicImpl implements AclLogic {
         javaTypes = new HashSet<>();
         for (ManagedType<?> mt : em.getMetamodel().getManagedTypes()) {
             Class<?> type = mt.getJavaType();
-            if (!Modifier.isAbstract(type.getModifiers()) && type.isAnnotationPresent(Entity.class)) {
+            if (type.isAnnotationPresent(Entity.class) && !Modifier.isAbstract(type.getModifiers())) {
                 javaTypes.add(type);
             }
         }

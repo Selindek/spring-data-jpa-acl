@@ -81,40 +81,40 @@ public class AclAllControllerIntegrationTest {
         userRole = new SimpleAclRole(AclConstants.ROLE_USER);
         editorRole = new SimpleAclRole("ROLE_EDITOR");
         manipulatorRole = new SimpleAclRole("ROLE_MANIPULATOR");
-        roleRepository.save(adminRole);
-        roleRepository.save(userRole);
-        roleRepository.save(editorRole);
-        roleRepository.save(manipulatorRole);
+        roleRepository.saveWithoutPermissionCheck(adminRole);
+        roleRepository.saveWithoutPermissionCheck(userRole);
+        roleRepository.saveWithoutPermissionCheck(editorRole);
+        roleRepository.saveWithoutPermissionCheck(manipulatorRole);
 
         admin = new Person("admin", "a", "a");
         admin.getAclRoles().add(adminRole);
-        personRepositoryNoAcl.save(admin);
+        personRepositoryNoAcl.saveWithoutPermissionCheck(admin);
 
         user = new Person("user", "u", "u");
         user.getAclRoles().add(userRole);
         user.setCreatedBy(admin);
-        personRepositoryNoAcl.save(user);
+        personRepositoryNoAcl.saveWithoutPermissionCheck(user);
 
         user2 = new Person("user2", "u2", "u2");
         user2.getAclRoles().add(userRole);
         user2.setCreatedBy(user);
         user2.getSupervisors().add(user);
         user2.getSupervisors().add(admin);
-        personRepositoryNoAcl.save(user2);
+        personRepositoryNoAcl.saveWithoutPermissionCheck(user2);
 
         admin.setControlled(user2);
-        personRepositoryNoAcl.save(admin);
+        personRepositoryNoAcl.saveWithoutPermissionCheck(admin);
         user.setControlled(user2);
-        personRepositoryNoAcl.save(user);
+        personRepositoryNoAcl.saveWithoutPermissionCheck(user);
 
         user3 = new Person("user3", "u3", "u3");
         user3.getAclRoles().add(userRole);
         user3.setCreatedBy(user);
-        personRepositoryNoAcl.save(user3);
+        personRepositoryNoAcl.saveWithoutPermissionCheck(user3);
 
         user4 = new Person("user4", "u4", "u4");
         user4.getAclRoles().add(userRole);
-        personRepositoryNoAcl.save(user4);
+        personRepositoryNoAcl.saveWithoutPermissionCheck(user4);
 
     }
 
