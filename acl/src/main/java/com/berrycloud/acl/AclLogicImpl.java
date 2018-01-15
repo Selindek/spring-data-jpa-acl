@@ -306,7 +306,10 @@ public class AclLogicImpl implements AclLogic {
             final TypeDescriptor typeDescriptor) {
         final AclParent aclParent = typeDescriptor.getAnnotation(AclParent.class);
         if (aclParent != null) {
-            if (isManagedType(typeDescriptor.getObjectType())) {
+            if (isManagedType(typeDescriptor.getObjectType())
+                    || ((typeDescriptor.isArray() || typeDescriptor.isCollection())
+                            && typeDescriptor.getElementTypeDescriptor() != null
+                            && isManagedType(typeDescriptor.getElementTypeDescriptor().getObjectType()))) {
                 if (aclParent.prefix().indexOf(PERMISSION_PREFIX_DELIMITER) != -1) {
                     LOG.warn("@AclParent's prefix property contains illegal character at '{}.{}' ... ignored", javaType,
                             propertyName);

@@ -26,8 +26,12 @@ import java.lang.annotation.Target;
 
 /**
  * Indicates that the annotated property is the parent of the current entity. That means if a user has permission on the
- * parent object then she also has permission on this object. Can be used only on Entities.
- *
+ * parent object then she also has permission on this object. Can be used on managed entities or entity collections.
+ * <p>
+ * Use with caution on collections because it could significantly slow down the ACl calculation process if the ACL graph
+ * is too complex or there are a LOT of records. When using on collections the user gains permission to the current
+ * object if he has permission on any entity in the collection.
+ * </p>
  * <p>
  * You can define multiple permissions in the {@link #value} field. If the list contains {@code "all"} then it provides
  * all possible permissions. If the list contains any permissions (not empty) it automatically provides {@code "read"}

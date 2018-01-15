@@ -41,6 +41,7 @@ import com.berrycloud.acl.sample.all.entity.Attachment;
 import com.berrycloud.acl.sample.all.entity.Document;
 import com.berrycloud.acl.sample.all.entity.Person;
 import com.berrycloud.acl.sample.all.entity.PersonHasPersonPermission;
+import com.berrycloud.acl.sample.all.entity.Project;
 import com.berrycloud.acl.sample.all.entity.TestGroup;
 import com.berrycloud.acl.sample.all.entity.Theme;
 import com.berrycloud.acl.sample.all.repository.AttachmentRepository;
@@ -49,6 +50,7 @@ import com.berrycloud.acl.sample.all.repository.GroupRepository;
 import com.berrycloud.acl.sample.all.repository.PersonHasPersonRepository;
 import com.berrycloud.acl.sample.all.repository.PersonRepository;
 import com.berrycloud.acl.sample.all.repository.PersonRepositoryNoAcl;
+import com.berrycloud.acl.sample.all.repository.ProjectRepository;
 import com.berrycloud.acl.sample.all.repository.RoleRepository;
 import com.berrycloud.acl.sample.all.repository.ThemeRepository;
 import com.berrycloud.acl.sample.all.service.PersonService;
@@ -86,6 +88,9 @@ public class AclAllRepositoryIntegrationTest {
 
     @Autowired
     private GroupRepository groupRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -591,6 +596,27 @@ public class AclAllRepositoryIntegrationTest {
         personRepositoryNoAcl.save(member);
 
         assertNotNull(personRepository.findOne(member.getId()));
+    }
+
+    @Test
+    public void testGivenGroupMembersWhenCallProjectRepositoryMethodsThenReturnObjectAccordingToParentOwnerPermission() {
+        setAuthentication("user");
+        Person member = new Person("member", "m", "m");
+        personRepository.saveWithoutPermissionCheck(member);
+
+        TestGroup projectGroup = new TestGroup("Project Group", user);
+        projectGroup.getMembers().add(member);
+        groupRepository.saveWithoutPermissionCheck(projectGroup);
+        member.getGroups().add(projectGroup);
+        personRepositoryNoAcl.save(member);
+
+        Project project = new Project();
+        project.getGroups().add(projectGroup);
+        projectRepository.saveWithoutPermissionCheck(project);
+        projectGroup.getProjects().add(project);
+        groupRepository.saveWithoutPermissionCheck(projectGroup);
+
+        assertNotNull(projectRepository.findOne(project.getId()));
     }
 
     @Test

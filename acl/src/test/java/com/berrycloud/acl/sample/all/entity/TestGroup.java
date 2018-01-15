@@ -33,10 +33,13 @@ public class TestGroup {
 
     @ManyToOne
     private SimpleAclRole role;
-    
+
     @AclOwner("read")
     @ManyToMany(mappedBy = "groups", fetch = FetchType.LAZY)
     private List<Person> members = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    private List<Project> projects = new ArrayList<>();
 
     public TestGroup() {
     }
@@ -87,13 +90,21 @@ public class TestGroup {
     public void setMembers(List<Person> members) {
         this.members = members;
     }
-    
+
     public SimpleAclRole getRole() {
         return role;
     }
 
     public void setRole(SimpleAclRole role) {
         this.role = role;
+    }
+
+    public List<Project> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<Project> projects) {
+        this.projects = projects;
     }
 
 }

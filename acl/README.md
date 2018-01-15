@@ -12,6 +12,7 @@ Let's see the main differences between traditional AC-List implementations and t
 4. The permission decisions are happened in the DB side, so there is much less traffic between your application and the DB, and you can even use paginated queries on permission-filtered entities.
 5. It's compatible with Spring Data Jpa Repositories so the ACL is automatically applied for all standard repository methods.
 6. It's also compatible with Spring Data Rest. All of your restful endpoints are automatically secured by the ACL
+7. As a side-effect, you can use paginated queries on all property-collection endpoints under Spring Data Rest. (Property collections are also filtered by the ACL)
 
 ## Basics
 
@@ -22,7 +23,7 @@ Let's see some example:
 - A user has full control to his documents (probably there is an author field in the document table). 
 - Users in the same work-group can see (but cannot modify) each-others. (There must be a workgroup table with a ManyToMany relationship with users.)
 - Administrators have full access to all objects. (They must have a special role attached to them somehow. Either directly or they are members of an admin group)
-- If a user is a moderator in a topic he can edit all messages sent to that topic (Must be a relation between messages and topics) and also the replies to these messages (There must be a field in the message table what stores the original message if the current one is a reply.)
+- If a user is a moderator in a topic he can edit all messages sent to that topic (Must be a relation between messages and topics) and also the replies to these messages (There must be a field in the message table what stores the id of the original message if the current one is a reply.)
 
 So instead of creating a new permission entry (or a bunch of entries) every time we are creating a new object, we simply use the existing relationships for access control.
 Sometimes it means that you have to add a few extra relations to your tables when you design your DB structure, but hey, that's why it's called 'relational DB'!
@@ -92,7 +93,7 @@ If you also want to use Spring Data Rest module, you can include it the usual wa
       <artifactId>spring-data-rest-webmvc</artifactId>
     </dependency>
     
-If this package is in the classpath the ACL module automatically creates the necessary beans and modification for the rest API and it will use the ACL secured repository methods. There is also a slight improvement in the rest API that allows using paginated queries on properties.
+If this package is in the classpath the ACL module automatically creates the necessary beans and modification for the Rest API and it will use the ACL secured repository methods. There is also a slight improvement in the rest API that allows using paginated queries on properties.
 
 You should also consider adding the following dependency if you use Hibernate, otherwise lazily loaded properties could appear in an inconsistent way:
     
@@ -168,7 +169,7 @@ With this annotation we can provide some permission to a user or group of users 
 	    private Person creator;
 	}
 
-Most of the time you create properties like 'creator' or 'createdBy' or 'owner' anyway so adding this association to your domain class won't waste any extra resources. But by adding only this one extra annotation here you can easily set a permission for all of the users  to all of their documents. (The default permission is 'all')
+Most of the time you create properties like 'creator' or 'createdBy' or 'owner' anyway so adding this association to your domain class won't waste any extra resources. But by adding only this one extra annotation here you can easily set a permission for all of the users to all of their documents. (The default permission is 'all')
 
 If the users of this system commonly share documents with each others (and can modify each-other's documents) then you can add the following association:
 
@@ -207,9 +208,9 @@ Let's allow the users to share their documents with any WorkGroups:
 	
 (Of course you have to define the other side of these associations, but there is no need to add any extra annotation to the other side, so ignore it now.)
 
-When you add an @AclOwner annotation to a filed what is not an AclUser or collection of AclUsers the ACL assumes that you want to grant permission to the AclUsers who are owners of that object. (I.e. all AclUser or collection of AclUsers who are annotated with @AclOwner in that domain class.) In this case it means that the owner of the groups and all members of the groups which are connected with the given document will gain "update" permission to the document. Notice that the members also gain the "update" permission even though they got only "read" permission to the group itself. When they gain permission to the WorkGroup object they get it via the @AclOwner annotation in the WorkGroup.class, but when they gain the permission to the document they get it by the @AclOwner annotation in the Document class.
+When you add an @AclOwner annotation to a field what is not an AclUser or collection of AclUsers the ACL assumes that you want to grant permission to the AclUsers who are owners of that object. (I.e. all AclUser or collection of AclUsers who are annotated with @AclOwner in that domain class.) In this case it means that the owner of the groups and all members of the groups which are connected with the given document will gain "update" permission to the document. Notice that the members also gain the "update" permission even though they got only "read" permission to the group itself. When they gain permission to the WorkGroup object they get it via the @AclOwner annotation in the WorkGroup.class, but when they gain the permission to the document they get it by the @AclOwner annotation in the Document class.
 
-(The current ACl implementation has some limitation here. You cannot grant different permissions to the members and the owner in the example above. However I will probably add this issue in a later revision)
+(The current ACl implementation has some limitation here. You cannot grant different permissions to the members and the owner in the example above. However I will probably solve this issue in a later revision)
 
 ## @AclParent
 
