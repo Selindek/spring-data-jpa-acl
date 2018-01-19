@@ -111,6 +111,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
 
         LOG.trace("Creating predicates for {}", from.getJavaType());
 
+        query.distinct(true);
         return toSubPredicate(from, cb, aclUserDetails.getUserId(), permission, maxDepth);
     }
 

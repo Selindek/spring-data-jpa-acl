@@ -620,6 +620,35 @@ public class AclAllRepositoryIntegrationTest {
     }
 
     @Test
+    public void testGivenCurrentUserHasPermissionInMultipleWaysWhenCallProjectRepositoryMethodsThenReturnListIsDistinct() {
+        setAuthentication("user");
+        Person member = new Person("member", "m", "m");
+        personRepository.saveWithoutPermissionCheck(member);
+        Person member2 = new Person("member2", "m2", "m2");
+        personRepository.saveWithoutPermissionCheck(member2);
+
+        TestGroup projectGroup = new TestGroup("Project Group", user);
+        projectGroup.getMembers().add(member);
+        projectGroup.getMembers().add(member2);
+        groupRepository.saveWithoutPermissionCheck(projectGroup);
+        member.getGroups().add(projectGroup);
+        member2.getGroups().add(projectGroup);
+        personRepositoryNoAcl.save(member);
+        personRepositoryNoAcl.save(member2);
+
+        Project project = new Project();
+        project.getGroups().add(projectGroup);
+        projectRepository.saveWithoutPermissionCheck(project);
+        projectGroup.getProjects().add(project);
+        groupRepository.saveWithoutPermissionCheck(projectGroup);
+
+        assertNotNull(projectRepository.findOne(project.getId()));
+
+        assertThat(projectRepository.findAll().size(), is(1));
+
+    }
+
+    @Test
     public void testGivenNoAclEntityWhenCallRepositoryMethodsThenReturnObject() {
         Theme theme = new Theme("theme", "content");
         themeRepository.save(theme);
