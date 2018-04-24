@@ -21,7 +21,6 @@ import static com.berrycloud.acl.AclConstants.ROLE_ADMIN;
 import static com.berrycloud.acl.AclConstants.ROLE_USER;
 
 import java.beans.PropertyDescriptor;
-import java.io.Serializable;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -395,8 +394,8 @@ public class AclLogicImpl implements AclLogic {
     }
 
     @Override
-    public Serializable getUserId(AclUser user) {
-        return (Serializable) userInformation.getId(user);
+    public Object getUserId(AclUser user) {
+        return userInformation.getId(user);
     }
 
     private void addDefaultUsersIfNeeded() {

@@ -159,7 +159,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     public ResponseEntity<? extends ResourceSupport> deletePropertyReference(final RootResourceInformation repoRequest,
             @BackendId Serializable id, @PathVariable String property) throws Exception {
 
-        AclJpaRepository<Object, Serializable> aclRepository = getAclRepository(repoRequest.getDomainType());
+        AclJpaRepository<Object, Object> aclRepository = getAclRepository(repoRequest.getDomainType());
         // final RepositoryInvoker repoMethodInvoker = repoRequest.getInvoker();
 
         Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
@@ -273,7 +273,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
         final Resources<Object> source = incoming == null ? new Resources<>(Collections.emptyList()) : incoming;
         // final RepositoryInvoker invoker = resourceInformation.getInvoker();
-        AclJpaRepository<Object, Serializable> aclRepository = getAclRepository(resourceInformation.getDomainType());
+        AclJpaRepository<Object, Object> aclRepository = getAclRepository(resourceInformation.getDomainType());
 
         Function<ReferencedProperty, ResourceSupport> handler = prop -> {
 
@@ -352,7 +352,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
             throws Exception {
 
         // final RepositoryInvoker invoker = repoRequest.getInvoker();
-        AclJpaRepository<Object, Serializable> aclRepository = getAclRepository(repoRequest.getDomainType());
+        AclJpaRepository<Object, Object> aclRepository = getAclRepository(repoRequest.getDomainType());
 
         Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
 
@@ -429,7 +429,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         PersistentProperty<?> property = mapping.getProperty();
         resourceInformation.verifySupportedMethod(method, property);
 
-        AclJpaRepository<Object, Serializable> propertyRepository = getAclRepository(property.getOwner().getType());
+        AclJpaRepository<Object, Object> propertyRepository = getAclRepository(property.getOwner().getType());
 
         // We first load the domainObject and check its accessibility
         Object domainObj = propertyRepository.findById(id, HttpMethod.GET.equals(method) ? "read" : "update")
@@ -448,19 +448,19 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         return Optional.ofNullable(handler.apply(new ReferencedProperty(property, propertyValue, accessor)));
     }
 
-    protected AclJpaRepository<Object, Serializable> getAclRepository(Class<?> type) {
+    protected AclJpaRepository<Object, Object> getAclRepository(Class<?> type) {
         Object repository = repositories.getRepositoryFor(type).orElseThrow(() -> new ResourceNotFoundException());
         if (!AclJpaRepository.class.isAssignableFrom(AopUtils.getTargetClass(repository))) {
             throw new ResourceNotFoundException();
         }
-        return (AclJpaRepository<Object, Serializable>) repository;
+        return (AclJpaRepository<Object, Object>) repository;
     }
 
     protected Object findProperty(DefaultedPageable pageable, PersistentProperty<?> property,
             PersistentPropertyAccessor accessor, String propertyId,
-            AclJpaRepository<Object, Serializable> propertyRepository) {
+            AclJpaRepository<Object, Object> propertyRepository) {
 
-        Serializable ownerId = (Serializable) accessor.getProperty(property.getOwner().getIdProperty());
+        Object ownerId = accessor.getProperty(property.getOwner().getIdProperty());
         if (propertyId != null) {
             // find the property as an object
             return propertyRepository.findProperty(ownerId, property, propertyId);

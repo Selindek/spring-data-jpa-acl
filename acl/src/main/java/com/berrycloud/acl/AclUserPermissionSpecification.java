@@ -20,7 +20,6 @@ import static com.berrycloud.acl.AclConstants.CREATE_PERMISSION;
 import static com.berrycloud.acl.AclConstants.PERMISSION_PREFIX_DELIMITER;
 import static com.berrycloud.acl.AclConstants.READ_PERMISSION;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,8 +116,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
         return toSubPredicate(from, cb, aclUserDetails.getUserId(), permission, maxDepth);
     }
 
-    private Predicate toSubPredicate(From<?, ?> from, CriteriaBuilder cb, Serializable userId, String permission,
-            int depth) {
+    private Predicate toSubPredicate(From<?, ?> from, CriteriaBuilder cb, Object userId, String permission, int depth) {
         LOG.trace("Checking {} for '{}' permission", from.getJavaType(), permission);
 
         List<Predicate> predicates = new ArrayList<>();
@@ -213,7 +211,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
      * Creates a predicate for current user to its own entity
      *
      */
-    private List<Predicate> createSelfPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
+    private List<Predicate> createSelfPredicates(From<?, ?> from, CriteriaBuilder cb, Object userId,
             String permission) {
         List<Predicate> predicates = new ArrayList<>();
         if (AclUser.class.isAssignableFrom(from.getJavaType())) {
@@ -232,8 +230,8 @@ public class AclUserPermissionSpecification implements AclSpecification {
      *
      * @param permission
      */
-    private List<Predicate> createOwnerPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
-            String permission, boolean ownerGroup) {
+    private List<Predicate> createOwnerPredicates(From<?, ?> from, CriteriaBuilder cb, Object userId, String permission,
+            boolean ownerGroup) {
         List<Predicate> predicates = new ArrayList<>();
         AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
         for (OwnerData ownerData : metaData.getOwnerDataList()) {
@@ -258,7 +256,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
      *
      * @param permission
      */
-    private List<Predicate> createOwnerGroupPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
+    private List<Predicate> createOwnerGroupPredicates(From<?, ?> from, CriteriaBuilder cb, Object userId,
             String permission) {
         List<Predicate> predicates = new ArrayList<>();
         AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
@@ -279,7 +277,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
      * @param permission
      *
      */
-    private List<Predicate> createParentPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
+    private List<Predicate> createParentPredicates(From<?, ?> from, CriteriaBuilder cb, Object userId,
             String permission, int depth) {
         List<Predicate> predicates = new ArrayList<>();
         AclEntityMetaData metaData = aclMetaData.getAclEntityMetaData(from.getJavaType());
@@ -301,7 +299,7 @@ public class AclUserPermissionSpecification implements AclSpecification {
      * Creates predicates for permissionLinks
      *
      */
-    private List<Predicate> createPermissionLinkPredicates(From<?, ?> from, CriteriaBuilder cb, Serializable userId,
+    private List<Predicate> createPermissionLinkPredicates(From<?, ?> from, CriteriaBuilder cb, Object userId,
             String permission) {
         List<Predicate> predicates = new ArrayList<>();
 

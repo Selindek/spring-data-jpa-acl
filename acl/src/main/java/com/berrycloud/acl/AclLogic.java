@@ -15,7 +15,6 @@
  */
 package com.berrycloud.acl;
 
-import java.io.Serializable;
 import java.util.Set;
 
 import com.berrycloud.acl.domain.AclRole;
@@ -32,7 +31,7 @@ public interface AclLogic {
 
     Set<AclRole> getAllRoles(AclUser aclUser);
 
-    Serializable getUserId(AclUser user);
+    Object getUserId(AclUser user);
 
     boolean isManagedType(Class<?> javaType);
 }

@@ -84,8 +84,8 @@ public class AclPermissionEvaluator implements PermissionEvaluator {
     /**
      * Check permission by directly creating a JPA count query with ACL support for the given permission
      */
-    public <T> boolean hasPermission(Authentication authentication, Object targetId,
-            Class<T> domainClass, Object permission) {
+    public <T> boolean hasPermission(Authentication authentication, Object targetId, Class<T> domainClass,
+            Object permission) {
         String permissionString = getPermissionString(permission);
 
         CriteriaBuilder builder = em.getCriteriaBuilder();

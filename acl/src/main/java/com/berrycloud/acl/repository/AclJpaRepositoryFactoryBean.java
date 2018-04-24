@@ -15,8 +15,6 @@
  */
 package com.berrycloud.acl.repository;
 
-import java.io.Serializable;
-
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 
@@ -31,7 +29,7 @@ import com.berrycloud.acl.AclSpecification;
  *
  * @author István Rátkai (Selindek)
  */
-public class AclJpaRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extends Serializable>
+public class AclJpaRepositoryFactoryBean<T extends Repository<S, ID>, S, ID>
         extends JpaRepositoryFactoryBean<T, S, ID> {
 
     @Resource
