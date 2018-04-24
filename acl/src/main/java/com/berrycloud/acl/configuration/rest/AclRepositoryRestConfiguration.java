@@ -19,13 +19,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.data.rest.RepositoryRestProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.data.rest.webmvc.BasePathAwareHandlerMapping;
 import org.springframework.data.rest.webmvc.DomainPropertyClassResolver;
 import org.springframework.data.rest.webmvc.RepositoryRestHandlerMapping;
@@ -51,8 +52,13 @@ import org.springframework.web.servlet.HandlerMapping;
 @Import({ SpringBootRepositoryRestConfigurer.class })
 public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfiguration {
 
-    @Autowired
     ApplicationContext applicationContext;
+
+    public AclRepositoryRestConfiguration(ApplicationContext context,
+            ObjectFactory<ConversionService> conversionService) {
+        super(context, conversionService);
+        applicationContext = context;
+    }
 
     /**
      * The PageableResolver what is constructed in the super method is not handling the domain-properties, so we have to
@@ -89,10 +95,11 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
     @Override
     public DelegatingHandlerMapping restHandlerMapping() {
 
-        Map<String, CorsConfiguration> corsConfigurations = config().getCorsRegistry().getCorsConfigurations();
+        Map<String, CorsConfiguration> corsConfigurations = repositoryRestConfiguration().getCorsRegistry()
+                .getCorsConfigurations();
 
-        RepositoryRestHandlerMapping repositoryMapping = new RepositoryRestHandlerMapping(resourceMappings(), config(),
-                repositories()) {
+        RepositoryRestHandlerMapping repositoryMapping = new RepositoryRestHandlerMapping(resourceMappings(),
+                repositoryRestConfiguration(), repositories()) {
             @Override
             protected boolean isHandler(Class<?> beanType) {
                 return super.isHandler(beanType)
@@ -105,7 +112,7 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
         repositoryMapping.setCorsConfigurations(corsConfigurations);
         repositoryMapping.afterPropertiesSet();
 
-        BasePathAwareHandlerMapping basePathMapping = new BasePathAwareHandlerMapping(config());
+        BasePathAwareHandlerMapping basePathMapping = new BasePathAwareHandlerMapping(repositoryRestConfiguration());
         basePathMapping.setApplicationContext(applicationContext);
         basePathMapping.setCorsConfigurations(corsConfigurations);
         basePathMapping.afterPropertiesSet();

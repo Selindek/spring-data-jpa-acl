@@ -87,7 +87,7 @@ public class MappingAwareDefaultedPropertyPageableArgumentResolver implements Ha
         }
 
         Sort translated = translator.translateSort(pageable.getSort(), parameter, webRequest);
-        pageable = new PageRequest(pageable.getPageNumber(), pageable.getPageSize(), translated);
+        pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), translated);
 
         return new DefaultedPageable(pageable, delegate.isFallbackPageable(pageable));
     }

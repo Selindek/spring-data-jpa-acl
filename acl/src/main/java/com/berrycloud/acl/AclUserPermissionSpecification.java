@@ -59,6 +59,8 @@ import com.berrycloud.acl.security.AclUserDetails;
  */
 public class AclUserPermissionSpecification implements AclSpecification {
 
+    private static final long serialVersionUID = 920905870030120482L;
+
     private static Logger LOG = LoggerFactory.getLogger(AclUserPermissionSpecification.class);
 
     @Autowired

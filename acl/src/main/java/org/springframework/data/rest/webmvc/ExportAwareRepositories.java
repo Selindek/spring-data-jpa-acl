@@ -15,13 +15,13 @@
  */
 package org.springframework.data.rest.webmvc;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.BeanFactory;
@@ -63,12 +63,12 @@ public class ExportAwareRepositories extends Repositories {
 
     static final Repositories NONE = new ExportAwareRepositories();
 
-    private static final RepositoryFactoryInformation<Object, Serializable> EMPTY_REPOSITORY_FACTORY_INFO = EmptyRepositoryFactoryInformation.INSTANCE;
+    private static final RepositoryFactoryInformation<Object, Object> EMPTY_REPOSITORY_FACTORY_INFO = EmptyRepositoryFactoryInformation.INSTANCE;
     private static final String DOMAIN_TYPE_MUST_NOT_BE_NULL = "Domain type must not be null!";
 
-    private final BeanFactory beanFactory;
+    private final Optional<BeanFactory> beanFactory;
     private final Map<Class<?>, String> repositoryBeanNames;
-    private final Map<Class<?>, RepositoryFactoryInformation<Object, Serializable>> repositoryFactoryInfos;
+    private final Map<Class<?>, RepositoryFactoryInformation<Object, Object>> repositoryFactoryInfos;
 
     /**
      * Constructor to create the {@link #NONE} instance.
@@ -76,10 +76,9 @@ public class ExportAwareRepositories extends Repositories {
     private ExportAwareRepositories() {
         /* Mug off the superclass with an empty beanfactory to placate the Assert.notNull */
         super(new DefaultListableBeanFactory());
-        this.beanFactory = null;
-        this.repositoryBeanNames = Collections.<Class<?>, String> emptyMap();
-        this.repositoryFactoryInfos = Collections
-                .<Class<?>, RepositoryFactoryInformation<Object, Serializable>> emptyMap();
+        this.beanFactory = Optional.empty();
+        this.repositoryBeanNames = Collections.emptyMap();
+        this.repositoryFactoryInfos = Collections.emptyMap();
     }
 
     /**
@@ -94,9 +93,9 @@ public class ExportAwareRepositories extends Repositories {
         super(new DefaultListableBeanFactory());
         Assert.notNull(factory, "Factory must not be null!");
 
-        this.beanFactory = factory;
-        this.repositoryFactoryInfos = new HashMap<Class<?>, RepositoryFactoryInformation<Object, Serializable>>();
-        this.repositoryBeanNames = new HashMap<Class<?>, String>();
+        this.beanFactory = Optional.of(factory);
+        this.repositoryFactoryInfos = new HashMap<>();
+        this.repositoryBeanNames = new HashMap<>();
 
         populateRepositoryFactoryInformation(factory);
     }
@@ -112,7 +111,7 @@ public class ExportAwareRepositories extends Repositories {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private synchronized void cacheRepositoryFactory(String name) {
 
-        RepositoryFactoryInformation repositoryFactoryInformation = beanFactory.getBean(name,
+        RepositoryFactoryInformation repositoryFactoryInformation = beanFactory.get().getBean(name,
                 RepositoryFactoryInformation.class);
         Class<?> domainType = ClassUtils
                 .getUserClass(repositoryFactoryInformation.getRepositoryInformation().getDomainType());
@@ -121,7 +120,7 @@ public class ExportAwareRepositories extends Repositories {
         Set<Class<?>> alternativeDomainTypes = information.getAlternativeDomainTypes();
         String beanName = BeanFactoryUtils.transformedBeanName(name);
 
-        Set<Class<?>> typesToRegister = new HashSet<Class<?>>(alternativeDomainTypes.size() + 1);
+        Set<Class<?>> typesToRegister = new HashSet<>(alternativeDomainTypes.size() + 1);
         typesToRegister.add(domainType);
         typesToRegister.addAll(alternativeDomainTypes);
 
@@ -159,7 +158,9 @@ public class ExportAwareRepositories extends Repositories {
 
         Assert.notNull(domainClass, DOMAIN_TYPE_MUST_NOT_BE_NULL);
 
-        return repositoryFactoryInfos.containsKey(domainClass);
+        Class<?> userClass = ClassUtils.getUserClass(domainClass);
+
+        return repositoryFactoryInfos.containsKey(userClass);
     }
 
     /**
@@ -170,12 +171,14 @@ public class ExportAwareRepositories extends Repositories {
      * @return
      */
     @Override
-    public Object getRepositoryFor(Class<?> domainClass) {
+    public Optional<Object> getRepositoryFor(Class<?> domainClass) {
 
         Assert.notNull(domainClass, DOMAIN_TYPE_MUST_NOT_BE_NULL);
 
-        String repositoryBeanName = repositoryBeanNames.get(domainClass);
-        return repositoryBeanName == null || beanFactory == null ? null : beanFactory.getBean(repositoryBeanName);
+        Class<?> userClass = ClassUtils.getUserClass(domainClass);
+        Optional<String> repositoryBeanName = Optional.ofNullable(repositoryBeanNames.get(userClass));
+
+        return beanFactory.flatMap(it -> repositoryBeanName.map(it::getBean));
     }
 
     /**
@@ -187,12 +190,12 @@ public class ExportAwareRepositories extends Repositories {
      * @return the {@link RepositoryFactoryInformation} for the given domain class or {@literal null} if no repository
      *         registered for this domain class.
      */
-    private RepositoryFactoryInformation<Object, Serializable> getRepositoryFactoryInfoFor(Class<?> domainClass) {
+    private RepositoryFactoryInformation<Object, Object> getRepositoryFactoryInfoFor(Class<?> domainClass) {
 
         Assert.notNull(domainClass, DOMAIN_TYPE_MUST_NOT_BE_NULL);
 
         Class<?> userType = ClassUtils.getUserClass(domainClass);
-        RepositoryFactoryInformation<Object, Serializable> repositoryInfo = repositoryFactoryInfos.get(userType);
+        RepositoryFactoryInformation<Object, Object> repositoryInfo = repositoryFactoryInfos.get(userType);
 
         if (repositoryInfo != null) {
             return repositoryInfo;
@@ -214,7 +217,7 @@ public class ExportAwareRepositories extends Repositories {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public <T, S extends Serializable> EntityInformation<T, S> getEntityInformationFor(Class<?> domainClass) {
+    public <T, S> EntityInformation<T, S> getEntityInformationFor(Class<?> domainClass) {
 
         Assert.notNull(domainClass, DOMAIN_TYPE_MUST_NOT_BE_NULL);
 
@@ -230,12 +233,29 @@ public class ExportAwareRepositories extends Repositories {
      *         registered for this domain class.
      */
     @Override
-    public RepositoryInformation getRepositoryInformationFor(Class<?> domainClass) {
+    public Optional<RepositoryInformation> getRepositoryInformationFor(Class<?> domainClass) {
 
         Assert.notNull(domainClass, DOMAIN_TYPE_MUST_NOT_BE_NULL);
 
-        RepositoryFactoryInformation<Object, Serializable> information = getRepositoryFactoryInfoFor(domainClass);
-        return information == EMPTY_REPOSITORY_FACTORY_INFO ? null : information.getRepositoryInformation();
+        RepositoryFactoryInformation<Object, Object> information = getRepositoryFactoryInfoFor(domainClass);
+        return information == EMPTY_REPOSITORY_FACTORY_INFO ? Optional.empty()
+                : Optional.of(information.getRepositoryInformation());
+    }
+
+    /**
+     * Returns the {@link RepositoryInformation} for the given domain type.
+     * 
+     * @param domainType
+     *            must not be {@literal null}.
+     * @return the {@link RepositoryInformation} for the given domain type.
+     * @throws IllegalArgumentException
+     *             in case no {@link RepositoryInformation} could be found for the given domain type.
+     */
+    @Override
+    public RepositoryInformation getRequiredRepositoryInformation(Class<?> domainType) {
+
+        return getRepositoryInformationFor(domainType).orElseThrow(() -> new IllegalArgumentException(
+                "No required RepositoryInformation found for domain type " + domainType.getName() + "!"));
     }
 
     /**
@@ -248,18 +268,12 @@ public class ExportAwareRepositories extends Repositories {
      * @since 1.12
      */
     @Override
-    public RepositoryInformation getRepositoryInformation(Class<?> repositoryInterface) {
+    public Optional<RepositoryInformation> getRepositoryInformation(Class<?> repositoryInterface) {
 
-        for (RepositoryFactoryInformation<Object, Serializable> factoryInformation : repositoryFactoryInfos.values()) {
-
-            RepositoryInformation information = factoryInformation.getRepositoryInformation();
-
-            if (information.getRepositoryInterface().equals(repositoryInterface)) {
-                return information;
-            }
-        }
-
-        return null;
+        return repositoryFactoryInfos.values().stream()//
+                .map(RepositoryFactoryInformation::getRepositoryInformation)//
+                .filter(information -> information.getRepositoryInterface().equals(repositoryInterface))//
+                .findFirst();
     }
 
     /**
@@ -304,32 +318,31 @@ public class ExportAwareRepositories extends Repositories {
 
     /**
      * Null-object to avoid nasty {@literal null} checks in cache lookups.
-     *
+     * 
      * @author Thomas Darimont
      */
-    private static enum EmptyRepositoryFactoryInformation
-        implements RepositoryFactoryInformation<Object, Serializable> {
+    private static enum EmptyRepositoryFactoryInformation implements RepositoryFactoryInformation<Object, Object> {
 
         INSTANCE;
 
         @Override
-        public EntityInformation<Object, Serializable> getEntityInformation() {
-            return null;
+        public EntityInformation<Object, Object> getEntityInformation() {
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public RepositoryInformation getRepositoryInformation() {
-            return null;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public PersistentEntity<?, ?> getPersistentEntity() {
-            return null;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public List<QueryMethod> getQueryMethods() {
-            return Collections.<QueryMethod> emptyList();
+            return Collections.emptyList();
         }
     }
 }

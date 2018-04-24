@@ -9,6 +9,5 @@ import com.berrycloud.acl.configuration.EnableAclJpaRepositories;
 @EnableAutoConfiguration
 @EnableAclJpaRepositories
 public class AclAppMinimal {
-  
+
 }
-  

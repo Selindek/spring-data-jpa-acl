@@ -15,22 +15,15 @@
  */
 package com.berrycloud.acl.repository;
 
-/**
- * Interface for repositories with property support.
- *
- * @author István Rátkai (Selindek)
- */
-import java.io.Serializable;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
 
-public interface PropertyRepository<T, ID extends Serializable> {
+public interface PropertyRepository<T, ID> {
 
     Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable);
 
-    Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Serializable propertyId);
+    Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Object propertyId);
 
     /**
      * Helper method for calling clear on the EntityManager.

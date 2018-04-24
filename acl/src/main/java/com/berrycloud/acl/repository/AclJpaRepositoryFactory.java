@@ -15,12 +15,15 @@
  */
 package com.berrycloud.acl.repository;
 
+import java.util.Optional;
+
 import javax.persistence.EntityManager;
 
 import org.springframework.data.jpa.provider.PersistenceProvider;
 import org.springframework.data.jpa.provider.QueryExtractor;
 import org.springframework.data.jpa.repository.query.AclJpaQueryLookupStrategy;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
+import org.springframework.data.jpa.repository.support.SimpleAclJpaRepository;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.RepositoryMetadata;
@@ -69,9 +72,10 @@ public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
     }
 
     @Override
-    protected QueryLookupStrategy getQueryLookupStrategy(Key key, EvaluationContextProvider evaluationContextProvider) {
-        return AclJpaQueryLookupStrategy.create(entityManager, key, extractor, evaluationContextProvider,
-                aclSpecification);
+    protected Optional<QueryLookupStrategy> getQueryLookupStrategy(Key key,
+            EvaluationContextProvider evaluationContextProvider) {
+        return Optional.of(AclJpaQueryLookupStrategy.create(entityManager, key, extractor, evaluationContextProvider,
+                aclSpecification));
     }
 
 }

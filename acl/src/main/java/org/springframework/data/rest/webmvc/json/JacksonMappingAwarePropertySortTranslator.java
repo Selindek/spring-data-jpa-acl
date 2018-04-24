@@ -18,6 +18,7 @@ package org.springframework.data.rest.webmvc.json;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -130,9 +131,9 @@ public class JacksonMappingAwarePropertySortTranslator {
 
         public SortTranslator(PersistentEntities persistentEntities, ObjectMapper objectMapper,
                 Associations associations) {
-            Assert.notNull(persistentEntities,"persistentEntities cannot be null");
-            Assert.notNull(objectMapper,"objectMapper cannot be null");
-            Assert.notNull(associations,"associations cannot be null");
+            Assert.notNull(persistentEntities, "persistentEntities cannot be null");
+            Assert.notNull(objectMapper, "objectMapper cannot be null");
+            Assert.notNull(associations, "associations cannot be null");
 
             this.persistentEntities = persistentEntities;
             this.objectMapper = objectMapper;
@@ -154,11 +155,11 @@ public class JacksonMappingAwarePropertySortTranslator {
             Assert.notNull(input, "Sort must not be null!");
             Assert.notNull(rootEntity, "PersistentEntity must not be null!");
 
-            List<Order> filteredOrders = new ArrayList<Order>();
+            List<Order> filteredOrders = new ArrayList<>();
 
             for (Order order : input) {
 
-                List<String> iteratorSource = new ArrayList<String>();
+                List<String> iteratorSource = new ArrayList<>();
                 Matcher matcher = SPLITTER.matcher("_" + order.getProperty());
 
                 while (matcher.find()) {
@@ -172,7 +173,7 @@ public class JacksonMappingAwarePropertySortTranslator {
                 }
             }
 
-            return filteredOrders.isEmpty() ? null : new Sort(filteredOrders);
+            return filteredOrders.isEmpty() ? Sort.unsorted() : Sort.by(filteredOrders);
         }
 
         private String getMappedPropertyPath(PersistentEntity<?, ?> rootEntity, List<String> iteratorSource) {
@@ -188,7 +189,7 @@ public class JacksonMappingAwarePropertySortTranslator {
 
         private List<String> mapPropertyPath(PersistentEntity<?, ?> rootEntity, List<String> iteratorSource) {
 
-            List<String> persistentPropertyPath = new ArrayList<String>(iteratorSource.size());
+            List<String> persistentPropertyPath = new ArrayList<>(iteratorSource.size());
 
             TypedSegment typedSegment = TypedSegment.create(persistentEntities, objectMapper, rootEntity);
 
@@ -229,32 +230,27 @@ public class JacksonMappingAwarePropertySortTranslator {
 
         private final PersistentEntities persistentEntities;
         private final ObjectMapper objectMapper;
-        private final PersistentEntity<?, ?> currentType;
+        private final Optional<PersistentEntity<?, ? extends PersistentProperty<?>>> currentType;
         private final MappedProperties currentProperties;
         private final WrappedProperties currentWrappedProperties;
 
-        private TypedSegment(TypedSegment previous, PersistentEntity<?, ?> persistentEntity) {
+        private TypedSegment(TypedSegment previous,
+                Optional<PersistentEntity<?, ? extends PersistentProperty<?>>> persistentEntity) {
             this(previous.persistentEntities, previous.objectMapper, persistentEntity);
         }
 
         private TypedSegment(PersistentEntities persistentEntities, ObjectMapper objectMapper,
-                PersistentEntity<?, ?> persistentEntity) {
+                Optional<PersistentEntity<?, ? extends PersistentProperty<?>>> persistentEntity) {
 
             this.persistentEntities = persistentEntities;
             this.objectMapper = objectMapper;
             this.currentType = persistentEntity;
-
-            if (persistentEntity != null) {
-
-                this.currentProperties = MappedProperties.fromJacksonProperties(currentType, objectMapper);
-                this.currentWrappedProperties = WrappedProperties.fromJacksonProperties(persistentEntities, currentType,
-                        objectMapper);
-
-            } else {
-
-                this.currentProperties = null;
-                this.currentWrappedProperties = null;
-            }
+            this.currentProperties = persistentEntity//
+                    .map(it -> MappedProperties.fromJacksonProperties(it, objectMapper))//
+                    .orElseGet(() -> MappedProperties.none());
+            this.currentWrappedProperties = persistentEntity//
+                    .map(it -> WrappedProperties.fromJacksonProperties(persistentEntities, it, objectMapper))//
+                    .orElseGet(() -> WrappedProperties.none());
         }
 
         /**
@@ -276,7 +272,7 @@ public class JacksonMappingAwarePropertySortTranslator {
             Assert.notNull(objectMapper, "ObjectMapper must not be null!");
             Assert.notNull(rootEntity, "PersistentEntity must not be null!");
 
-            return new TypedSegment(persistentEntities, objectMapper, rootEntity);
+            return new TypedSegment(persistentEntities, objectMapper, Optional.of(rootEntity));
         }
 
         /**
@@ -290,9 +286,7 @@ public class JacksonMappingAwarePropertySortTranslator {
 
             Assert.notNull(persistentProperty, "PersistentProperty must not be null!");
 
-            PersistentEntity<?, ?> persistentEntity = persistentEntities
-                    .getPersistentEntity(persistentProperty.getType());
-            return new TypedSegment(this, persistentEntity);
+            return new TypedSegment(this, persistentEntities.getPersistentEntity(persistentProperty.getType()));
         }
 
         private boolean hasPersistentPropertyForField(String fieldName) {

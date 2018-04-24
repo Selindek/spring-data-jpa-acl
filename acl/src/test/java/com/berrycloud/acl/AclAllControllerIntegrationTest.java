@@ -303,7 +303,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findOne(user2.getId()).getCreatedBy());
+        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getCreatedBy());
     }
 
     @Test
@@ -318,7 +318,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findOne(user2.getId()).getCreatedBy());
+        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getCreatedBy());
     }
 
     @Test
@@ -335,7 +335,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNotNull(personRepositoryNoAcl.findOne(user2.getId()).getCreatedBy());
+        assertNotNull(personRepositoryNoAcl.findById(user2.getId()).get().getCreatedBy());
     }
 
     @Test
@@ -364,7 +364,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findOne(user2.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("user")))));
     }
 
@@ -381,7 +381,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findOne(user2.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
                 hasItem(hasProperty("username", is("admin"))));
     }
 
@@ -398,7 +398,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNotNull(personRepositoryNoAcl.findOne(user.getId()).getControlled());
+        assertNotNull(personRepositoryNoAcl.findById(user.getId()).get().getControlled());
     }
 
     @Test
@@ -414,8 +414,8 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNotNull(personRepositoryNoAcl.findOne(user2.getId()).getControlled());
-        assertThat(personRepositoryNoAcl.findOne(user2.getId()).getControlled().getUsername(), is("user"));
+        assertNotNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
+        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getControlled().getUsername(), is("user"));
     }
 
     @Test
@@ -431,7 +431,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findOne(user2.getId()).getControlled());
+        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
     }
 
     @Test
@@ -448,7 +448,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findOne(user2.getId()).getControlled());
+        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
     }
 
     @Test
@@ -464,7 +464,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findOne(user2.getId()).getControlled());
+        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
     }
 
     @Test
@@ -481,7 +481,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findOne(user2.getId()).getControlled());
+        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
     }
 
     @Test
@@ -498,9 +498,9 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findOne(user3.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
                 hasItem(hasProperty("username", is("user"))));
-        assertThat(personRepositoryNoAcl.findOne(user3.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("admin")))));
 
     }
@@ -519,9 +519,9 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findOne(user3.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
                 hasItem(hasProperty("username", is("user"))));
-        assertThat(personRepositoryNoAcl.findOne(user3.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("admin")))));
 
     }
@@ -538,7 +538,7 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findOne(user3.getId()).getSupervisors(), empty());
+        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(), empty());
 
     }
 
@@ -557,13 +557,13 @@ public class AclAllControllerIntegrationTest {
         ;
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findOne(user2.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
                 hasItem(hasProperty("username", is("user"))));
-        assertThat(personRepositoryNoAcl.findOne(user2.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
                 hasItem(hasProperty("username", is("admin"))));
-        assertThat(personRepositoryNoAcl.findOne(user2.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
                 hasItem(hasProperty("username", is("user3"))));
-        assertThat(personRepositoryNoAcl.findOne(user2.getId()).getSupervisors(),
+        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("user4")))));
 
     }

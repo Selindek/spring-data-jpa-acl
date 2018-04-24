@@ -15,8 +15,8 @@
  */
 package com.berrycloud.acl.repository;
 
-import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 import javax.persistence.EntityNotFoundException;
 
@@ -30,7 +30,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
  *
  * @author István Rátkai (Selindek)
  */
-public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRepository<T, ID>, JpaRepository<T, ID> {
+public interface AclJpaRepository<T, ID> extends PropertyRepository<T, ID>, JpaRepository<T, ID> {
 
     /**
      * Find an entity by id with testing the current user's permission against the given permission during
@@ -40,9 +40,10 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
      *            the id of the entity
      * @param permission
      *            the permission we check against
-     * @return the entity with the given id or null if it's not exist or the current user has no proper permission to it
+     * @return Optional containing the entity with the given id or null if it's not exist or the current user has no
+     *         proper permission to it
      */
-    T findOne(ID id, String permission);
+    Optional<T> findById(ID id, String permission);
 
     /**
      * Find an entity by id with testing the current user's permission against the given permission during
@@ -65,9 +66,9 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
      */
     List<T> findAll(String permission);
 
-    T findOne(Specification<T> spec, String permission);
+    Optional<T> findOne(Specification<T> spec, String permission);
 
-    List<T> findAll(Iterable<ID> ids, String permission);
+    List<T> findAllById(Iterable<ID> ids, String permission);
 
     /**
      * Delete the entity without permission check. This method should be used with extreme caution. The permission
@@ -86,6 +87,6 @@ public interface AclJpaRepository<T, ID extends Serializable> extends PropertyRe
      *            the permission we check against
      * @return the entity with the given id or null if it's not exist or the current user has no proper permission to it
      */
-    T findOneWithoutPermissionCheck(ID id);
+    Optional<T> findByIdWithoutPermissionCheck(ID id);
 
 }

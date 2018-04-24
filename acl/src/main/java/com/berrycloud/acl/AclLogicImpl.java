@@ -396,7 +396,7 @@ public class AclLogicImpl implements AclLogic {
 
     @Override
     public Serializable getUserId(AclUser user) {
-        return userInformation.getId(user);
+        return (Serializable) userInformation.getId(user);
     }
 
     private void addDefaultUsersIfNeeded() {

@@ -13,18 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.berrycloud.acl.repository;
+package org.springframework.data.jpa.repository.support;
 
 import static com.berrycloud.acl.AclConstants.DELETE_PERMISSION;
 import static com.berrycloud.acl.AclConstants.READ_PERMISSION;
 import static com.berrycloud.acl.AclConstants.UPDATE_PERMISSION;
+import static org.springframework.data.jpa.repository.query.QueryUtils.DELETE_ALL_QUERY_STRING;
+import static org.springframework.data.jpa.repository.query.QueryUtils.applyAndBind;
+import static org.springframework.data.jpa.repository.query.QueryUtils.getQueryString;
+import static org.springframework.data.jpa.repository.query.QueryUtils.toOrders;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
@@ -48,19 +52,17 @@ import javax.persistence.criteria.Selection;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.support.CrudMethodMetadata;
-import org.springframework.data.jpa.repository.support.JpaEntityInformation;
-import org.springframework.data.jpa.repository.support.JpaEntityInformationSupport;
-import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import com.berrycloud.acl.AclSpecification;
+import com.berrycloud.acl.repository.AclJpaRepository;
 
 /**
  * Default implementation of the {@link AclJpaRepository} interface. This class uses the default SimpleJpaRepository
@@ -79,15 +81,14 @@ import com.berrycloud.acl.AclSpecification;
  */
 @Repository
 @Transactional(readOnly = true)
-public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJpaRepository<T, ID>
-        implements AclJpaRepository<T, ID> {
+public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> implements AclJpaRepository<T, ID> {
 
     private static final String ID_MUST_NOT_BE_NULL = "The given id must not be null!";
 
     private final JpaEntityInformation<T, ?> entityInformation;
     private final EntityManager em;
 
-    private CrudMethodMetadata metadata;
+    // private CrudMethodMetadata metadata;
     private AclSpecification aclSpecification;
 
     /**
@@ -117,47 +118,44 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
         this(JpaEntityInformationSupport.getEntityInformation(domainClass, em), em);
     }
 
-    /**
-     * Configures a custom {@link CrudMethodMetadata} to be used to detect {@link LockModeType}s and query hints to be
-     * applied to queries.
-     *
-     * @param crudMethodMetadata
-     */
-    @Override
-    public void setRepositoryMethodMetadata(CrudMethodMetadata crudMethodMetadata) {
-        super.setRepositoryMethodMetadata(crudMethodMetadata);
-        this.metadata = crudMethodMetadata;
-    }
+    // /**
+    // * Configures a custom {@link CrudMethodMetadata} to be used to detect {@link LockModeType}s and query hints to be
+    // * applied to queries.
+    // *
+    // * @param crudMethodMetadata
+    // */
+    // @Override
+    // public void setRepositoryMethodMetadata(CrudMethodMetadata crudMethodMetadata) {
+    // super.setRepositoryMethodMetadata(crudMethodMetadata);
+    // this.metadata = crudMethodMetadata;
+    // }
 
     public void setAclSpecification(AclSpecification aclSpecification) {
         this.aclSpecification = aclSpecification;
     }
 
-    @Override
-    protected CrudMethodMetadata getRepositoryMethodMetadata() {
-        return metadata;
-    }
+    // @Override
+    // protected CrudMethodMetadata getRepositoryMethodMetadata() {
+    // return metadata;
+    // }
 
-    @Override
-    protected Class<T> getDomainClass() {
-        return entityInformation.getJavaType();
-    }
+    // @Override
+    // protected Class<T> getDomainClass() {
+    // return entityInformation.getJavaType();
+    // }
 
     /*
      * (non-Javadoc)
      *
-     * @see org.springframework.data.repository.CrudRepository#delete(java.io. Serializable)
+     * @see org.springframework.data.repository.CrudRepository#deleteById(java.lang.Object)
      */
     @Override
     @Transactional
-    public void delete(ID id) {
-        T entity = findOne(id, DELETE_PERMISSION);
+    public void deleteById(ID id) {
 
-        if (entity == null) {
-            throw new EntityNotFoundException("Entity cannot be deleted");
-        }
-        deleteWithoutPermissionCheck(entity);
-
+        deleteWithoutPermissionCheck(
+                findById(id, DELETE_PERMISSION).orElseThrow(() -> new EmptyResultDataAccessException(
+                        String.format("No %s entity with id %s exists!", entityInformation.getJavaType(), id), 1)));
     }
 
     @Override
@@ -177,7 +175,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
     public void delete(T entity) {
 
         Assert.notNull(entity, "The entity must not be null!");
-        delete((ID) (entityInformation.getId(entity)));
+        deleteById((ID) (entityInformation.getId(entity)));
 
     }
 
@@ -197,22 +195,18 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
             return;
         }
 
-        List<T> list;
-
         if (aclSpecification != null) {
             List<ID> ids = new ArrayList<>();
             for (T e : entities) {
                 ids.add((ID) entityInformation.getId(e));
             }
-            list = findAll(ids, DELETE_PERMISSION);
+            doDelete(findAllById(ids, DELETE_PERMISSION));
+
         } else {
-            list = new ArrayList<>();
-            for (T e : entities) {
-                list.add(e);
-            }
+            applyAndBind(getQueryString(DELETE_ALL_QUERY_STRING, entityInformation.getEntityName()), entities, em)
+                    .executeUpdate();
         }
 
-        doDelete(list);
     }
 
     protected void doDelete(List<T> list) {
@@ -228,7 +222,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
     }
 
     @Override
-    public List<T> findAll(Iterable<ID> ids, String permission) {
+    public List<T> findAllById(Iterable<ID> ids, String permission) {
 
         if (ids == null || !ids.iterator().hasNext()) {
             return Collections.emptyList();
@@ -239,14 +233,14 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
             List<T> results = new ArrayList<>();
 
             for (ID id : ids) {
-                results.add(findOne(id));
+                findById(id).ifPresent(results::add);
             }
 
             return results;
         }
 
         ByIdsSpecification<T> specification = new ByIdsSpecification<>(entityInformation);
-        TypedQuery<T> query = getQuery(specification, (Sort) null, permission);
+        TypedQuery<T> query = getQuery(specification, Sort.unsorted(), permission);
 
         return query.setParameter(specification.parameter, ids).getResultList();
     }
@@ -281,24 +275,26 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
     }
 
     @Override
-    public T findOneWithoutPermissionCheck(ID id) {
-        return findOne(id, null);
+    public Optional<T> findByIdWithoutPermissionCheck(ID id) {
+        return findById(id, null);
     }
 
     /*
      * (non-Javadoc)
      *
-     * @see org.springframework.data.repository.CrudRepository#findOne(java.io. Serializable)
+     * @see org.springframework.data.repository.CrudRepository#findById(java.lang.Object)
      */
     @Override
-    public T findOne(ID id) {
-        return findOne(id, READ_PERMISSION);
+    public Optional<T> findById(ID id) {
+        return findById(id, READ_PERMISSION);
     }
 
     @Override
-    public T findOne(ID id, String permission) {
+    public Optional<T> findById(ID id, String permission) {
         Assert.notNull(id, ID_MUST_NOT_BE_NULL);
         return findOne(new Specification<T>() {
+
+            private static final long serialVersionUID = 1L;
 
             @Override
             public Predicate toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
@@ -312,7 +308,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
     /*
      * (non-Javadoc)
      *
-     * @see org.springframework.data.jpa.repository.JpaRepository#getOne(java.io. Serializable)
+     * @see org.springframework.data.jpa.repository.JpaRepository#getOne(java.lang.Object)
      */
     @Override
     public T getOne(ID id) {
@@ -322,21 +318,18 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
     @Override
     public T getOne(ID id, String permission) {
 
-        T entity = this.findOne(id, permission);
-        if (entity == null) {
-            throw new EntityNotFoundException("Unable to find " + getDomainClass().getName() + " with id " + id);
-        }
-        return entity;
+        return findById(id, permission).orElseThrow(
+                () -> new EntityNotFoundException("Unable to find " + getDomainClass().getName() + " with id " + id));
     }
 
     /*
      * (non-Javadoc)
      *
-     * @see org.springframework.data.repository.CrudRepository#exists(java.io. Serializable)
+     * @see org.springframework.data.repository.CrudRepository#existsById(java.lang.Object)
      */
     @Override
-    public boolean exists(ID id) {
-        return findOne(id) != null;
+    public boolean existsById(ID id) {
+        return findById(id).isPresent();
     }
 
     /*
@@ -351,7 +344,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
     @Override
     public List<T> findAll(String permission) {
-        return getQuery(null, (Sort) null, permission).getResultList();
+        return getQuery(null, Sort.unsorted(), permission).getResultList();
     }
 
     /*
@@ -361,18 +354,19 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
      * org.springframework.data.jpa.domain.Specification)
      */
     @Override
-    public T findOne(Specification<T> spec) {
+    public Optional<T> findOne(Specification<T> spec) {
         return findOne(spec, READ_PERMISSION);
     }
 
     @Override
-    public T findOne(Specification<T> spec, String permission) {
+    public Optional<T> findOne(Specification<T> spec, String permission) {
 
         try {
-            return getQuery(spec, (Sort) null, permission).getSingleResult();
+            return Optional.of(getQuery(spec, Sort.unsorted(), permission).getSingleResult());
         } catch (NoResultException e) {
-            return null;
+            return Optional.empty();
         }
+
     }
 
     /*
@@ -467,9 +461,12 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
         if (query.getSelection() == null) {
             query.select(root);
         }
-        if (sort != null && query.getSelection() instanceof From) {
-            query.orderBy(AclQueryUtils.toOrders(sort, (From<?, ?>) query.getSelection(), builder));
+        if (sort.isSorted() && query.getSelection() instanceof From) {
+            query.orderBy(toOrders(sort, (From<?, ?>) query.getSelection(), builder));
         }
+        // if (sort != null && query.getSelection() instanceof From) {
+        // query.orderBy(AclQueryUtils.toOrders(sort, (From<?, ?>) query.getSelection(), builder));
+        // }
 
         return applyRepositoryMethodMetadata(em.createQuery(query));
     }
@@ -540,11 +537,11 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
     private <S> TypedQuery<S> applyRepositoryMethodMetadata(TypedQuery<S> query) {
 
-        if (metadata == null) {
+        if (getRepositoryMethodMetadata() == null) {
             return query;
         }
 
-        LockModeType type = metadata.getLockModeType();
+        LockModeType type = getRepositoryMethodMetadata().getLockModeType();
         TypedQuery<S> toReturn = type == null ? query : query.setLockMode(type);
 
         applyQueryHints(toReturn);
@@ -554,7 +551,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
 
     private void applyQueryHints(Query query) {
 
-        for (Entry<String, Object> hint : getQueryHints().entrySet()) {
+        for (Entry<String, Object> hint : getQueryHints().withFetchGraphs(em)) {
             query.setHint(hint.getKey(), hint.getValue());
         }
     }
@@ -568,28 +565,29 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
     @Override
     @Transactional
     public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable) {
-        if (property.isCollectionLike()) {
+        if (property.isCollectionLike() || property.isMap()) {
             return findAll(new PropertySpecification<T>(id, property), pageable);
         }
-        return findOne(new PropertySpecification<T>(id, property));
+        return findOne(new PropertySpecification<T>(id, property)).orElse(null);
     }
 
     @Override
     @Transactional
-    public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property,
-            Serializable propertyId) {
-        if (property.isCollectionLike()) {
-            return findOne(new PropertySpecification<T>(id, property, propertyId));
+    public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Object propertyId) {
+        if (property.isCollectionLike() || property.isMap()) {
+            return findOne(new PropertySpecification<T>(id, property, propertyId)).orElse(null);
         }
-        return findOne(new PropertySpecification<T>(id, property));
+        return findOne(new PropertySpecification<T>(id, property)).orElse(null);
     }
 
     private class PropertySpecification<S> implements Specification<S> {
 
+        private static final long serialVersionUID = -4028956621540675971L;
+
         private String propertyName;
         private ID ownerId;
         private String ownerIdName;
-        private Serializable propertyId = null;
+        private Object propertyId = null;
 
         public PropertySpecification(ID id, PersistentProperty<? extends PersistentProperty<?>> property) {
             this.propertyName = property.getName();
@@ -598,7 +596,7 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
         }
 
         public PropertySpecification(ID id, PersistentProperty<? extends PersistentProperty<?>> property,
-                Serializable propertyId) {
+                Object propertyId) {
             this(id, property);
             this.propertyId = propertyId;
         }
@@ -631,6 +629,8 @@ public class SimpleAclJpaRepository<T, ID extends Serializable> extends SimpleJp
      */
     @SuppressWarnings("rawtypes")
     private static final class ByIdsSpecification<T> implements Specification<T> {
+
+        private static final long serialVersionUID = 3169714074463601580L;
 
         private final JpaEntityInformation<T, ?> entityInformation;
 
