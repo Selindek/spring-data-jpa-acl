@@ -52,7 +52,6 @@ import javax.persistence.criteria.Selection;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -153,9 +152,8 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     @Transactional
     public void deleteById(ID id) {
 
-        deleteWithoutPermissionCheck(
-                findById(id, DELETE_PERMISSION).orElseThrow(() -> new EmptyResultDataAccessException(
-                        String.format("No %s entity with id %s exists!", entityInformation.getJavaType(), id), 1)));
+        deleteWithoutPermissionCheck(findById(id, DELETE_PERMISSION).orElseThrow(
+                () -> new EntityNotFoundException("Cannot find " + getDomainClass().getName() + " with id " + id)));
     }
 
     @Override
@@ -319,7 +317,7 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     public T getOne(ID id, String permission) {
 
         return findById(id, permission).orElseThrow(
-                () -> new EntityNotFoundException("Unable to find " + getDomainClass().getName() + " with id " + id));
+                () -> new EntityNotFoundException("Cannot find " + getDomainClass().getName() + " with id " + id));
     }
 
     /*
