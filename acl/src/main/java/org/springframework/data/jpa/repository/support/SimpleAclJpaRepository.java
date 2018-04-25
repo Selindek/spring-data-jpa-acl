@@ -67,10 +67,6 @@ import com.berrycloud.acl.repository.AclJpaRepository;
  * Default implementation of the {@link AclJpaRepository} interface. This class uses the default SimpleJpaRepository
  * methods and logic and extends it with the ACL support
  *
- * @author Oliver Gierke
- * @author Eberhard Wolff
- * @author Thomas Darimont
- * @author Mark Paluch
  * @author István Rátkai (Selindek)
  *
  * @param <T>
@@ -87,7 +83,6 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     private final JpaEntityInformation<T, ?> entityInformation;
     private final EntityManager em;
 
-    // private CrudMethodMetadata metadata;
     private AclSpecification aclSpecification;
 
     /**
@@ -117,31 +112,9 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
         this(JpaEntityInformationSupport.getEntityInformation(domainClass, em), em);
     }
 
-    // /**
-    // * Configures a custom {@link CrudMethodMetadata} to be used to detect {@link LockModeType}s and query hints to be
-    // * applied to queries.
-    // *
-    // * @param crudMethodMetadata
-    // */
-    // @Override
-    // public void setRepositoryMethodMetadata(CrudMethodMetadata crudMethodMetadata) {
-    // super.setRepositoryMethodMetadata(crudMethodMetadata);
-    // this.metadata = crudMethodMetadata;
-    // }
-
     public void setAclSpecification(AclSpecification aclSpecification) {
         this.aclSpecification = aclSpecification;
     }
-
-    // @Override
-    // protected CrudMethodMetadata getRepositoryMethodMetadata() {
-    // return metadata;
-    // }
-
-    // @Override
-    // protected Class<T> getDomainClass() {
-    // return entityInformation.getJavaType();
-    // }
 
     /*
      * (non-Javadoc)
@@ -159,7 +132,8 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     @Override
     @Transactional
     public void deleteWithoutPermissionCheck(T entity) {
-        em.remove(em.contains(entity) ? entity : em.merge(entity));
+        super.delete(entity);
+        // em.remove(em.contains(entity) ? entity : em.merge(entity));
     }
 
     /*
@@ -274,7 +248,8 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
 
     @Override
     public Optional<T> findByIdWithoutPermissionCheck(ID id) {
-        return findById(id, null);
+        return super.findById(id);
+        // return findById(id, null);
     }
 
     /*
@@ -407,12 +382,13 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     @Override
     @Transactional
     public <S extends T> S saveWithoutPermissionCheck(S entity) {
-        if (entityInformation.isNew(entity)) {
-            em.persist(entity);
-            return entity;
-        } else {
-            return em.merge(entity);
-        }
+        return super.save(entity);
+        // if (entityInformation.isNew(entity)) {
+        // em.persist(entity);
+        // return entity;
+        // } else {
+        // return em.merge(entity);
+        // }
     }
 
     /**
@@ -462,9 +438,6 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
         if (sort.isSorted() && query.getSelection() instanceof From) {
             query.orderBy(toOrders(sort, (From<?, ?>) query.getSelection(), builder));
         }
-        // if (sort != null && query.getSelection() instanceof From) {
-        // query.orderBy(AclQueryUtils.toOrders(sort, (From<?, ?>) query.getSelection(), builder));
-        // }
 
         return applyRepositoryMethodMetadata(em.createQuery(query));
     }

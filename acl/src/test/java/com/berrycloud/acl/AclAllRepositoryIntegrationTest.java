@@ -22,7 +22,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -236,7 +235,7 @@ public class AclAllRepositoryIntegrationTest {
         assertThat(personRepository.count(), greaterThan(0l));
     }
 
-    @Test(expected = EmptyResultDataAccessException.class)
+    @Test(expected = JpaObjectRetrievalFailureException.class)
     public void testGivenNoAuthenticationWhenCallDeleteThenThrowException() {
         setAuthentication(null);
         personRepository.delete(admin);
@@ -251,7 +250,7 @@ public class AclAllRepositoryIntegrationTest {
         assertFalse(personRepository.existsById(deleteUser.getId()));
     }
 
-    @Test(expected = EmptyResultDataAccessException.class)
+    @Test(expected = JpaObjectRetrievalFailureException.class)
     public void testGivenNoAuthenticationWhenCallDeleteUserThenThrowException() {
         setAuthentication(null);
         personRepository.deleteById(admin.getId());
