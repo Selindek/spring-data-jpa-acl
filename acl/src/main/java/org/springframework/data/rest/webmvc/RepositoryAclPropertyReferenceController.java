@@ -15,30 +15,7 @@
  */
 package org.springframework.data.rest.webmvc;
 
-import static org.springframework.data.rest.webmvc.ControllerUtils.EMPTY_RESOURCE_LIST;
-import static org.springframework.data.rest.webmvc.RestMediaTypes.SPRING_DATA_COMPACT_JSON_VALUE;
-import static org.springframework.data.rest.webmvc.RestMediaTypes.TEXT_URI_LIST_VALUE;
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
-import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.PATCH;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
-import static org.springframework.web.bind.annotation.RequestMethod.PUT;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.function.Function;
-
+import com.berrycloud.acl.repository.AclJpaRepository;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -76,7 +53,29 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import com.berrycloud.acl.repository.AclJpaRepository;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.function.Function;
+
+import static org.springframework.data.rest.webmvc.ControllerUtils.EMPTY_RESOURCE_LIST;
+import static org.springframework.data.rest.webmvc.RestMediaTypes.SPRING_DATA_COMPACT_JSON_VALUE;
+import static org.springframework.data.rest.webmvc.RestMediaTypes.TEXT_URI_LIST_VALUE;
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.PATCH;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 /**
  * @author Jon Brisbin
@@ -85,7 +84,7 @@ import com.berrycloud.acl.repository.AclJpaRepository;
  * @author István Rátkai (Selindek)
  */
 @RepositoryRestController
-@SuppressWarnings({ "unchecked" })
+@SuppressWarnings({"unchecked"})
 class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestController
         implements ApplicationEventPublisherAware {
 
@@ -99,7 +98,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     @Autowired
     public RepositoryAclPropertyReferenceController(Repositories repositories,
-            RepositoryInvokerFactory repositoryInvokerFactory, PagedResourcesAssembler<Object> assembler) {
+                                                    RepositoryInvokerFactory repositoryInvokerFactory, PagedResourcesAssembler<Object> assembler) {
 
         super(assembler);
 
@@ -109,7 +108,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.springframework.context.ApplicationEventPublisherAware#setApplicationEventPublisher(org.springframework.
      * context. ApplicationEventPublisher)
      */
@@ -120,15 +119,13 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     @RequestMapping(value = BASE_MAPPING, method = GET)
     public ResponseEntity<ResourceSupport> followPropertyReference(final RootResourceInformation repoRequest,
-            @BackendId Serializable id, final @PathVariable String property,
-            final PersistentEntityResourceAssembler assembler, DefaultedPageable pageable) throws Exception {
+                                                                   @BackendId Serializable id, final @PathVariable String property,
+                                                                   final PersistentEntityResourceAssembler assembler, DefaultedPageable pageable) throws Exception {
 
         final HttpHeaders headers = new HttpHeaders();
 
         Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
-
             if (prop.property.isCollectionLike()) {
-
                 return toResources((Iterable<?>) it, assembler, prop.propertyType, Optional.empty());
 
             } else if (prop.property.isMap()) {
@@ -147,23 +144,22 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
                 headers.set("Content-Location", resource.getId().getHref());
                 return resource;
             }
-
         }).orElseThrow(() -> new ResourceNotFoundException());
 
         Optional<ResourceSupport> responseResource = doWithReferencedProperty(repoRequest, id, property, handler,
                 HttpMethod.GET, pageable, null);
+
         return ControllerUtils.toResponseEntity(HttpStatus.OK, headers, responseResource);
     }
 
     @RequestMapping(value = BASE_MAPPING, method = DELETE)
     public ResponseEntity<? extends ResourceSupport> deletePropertyReference(final RootResourceInformation repoRequest,
-            @BackendId Serializable id, @PathVariable String property) throws Exception {
+                                                                             @BackendId Serializable id, @PathVariable String property) throws Exception {
 
         AclJpaRepository<Object, Object> aclRepository = getAclRepository(repoRequest.getDomainType());
         // final RepositoryInvoker repoMethodInvoker = repoRequest.getInvoker();
 
         Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
-
             if (prop.property.isCollectionLike() || prop.property.isMap()) {
                 throw HttpRequestMethodNotSupportedException.forRejectedMethod(HttpMethod.DELETE)
                         .withAllowedMethods(HttpMethod.GET, HttpMethod.HEAD);
@@ -186,13 +182,12 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     @RequestMapping(value = BASE_MAPPING + "/{propertyId}", method = GET)
     public ResponseEntity<ResourceSupport> followPropertyReference(final RootResourceInformation repoRequest,
-            @BackendId Serializable id, @PathVariable String property, final @PathVariable String propertyId,
-            final PersistentEntityResourceAssembler assembler) throws Exception {
+                                                                   @BackendId Serializable id, @PathVariable String property, final @PathVariable String propertyId,
+                                                                   final PersistentEntityResourceAssembler assembler) throws Exception {
 
         final HttpHeaders headers = new HttpHeaders();
 
         Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
-
             if (prop.property.isCollectionLike()) {
                 PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
                 headers.set("Content-Location", resource.getId().getHref());
@@ -212,11 +207,11 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         return ControllerUtils.toResponseEntity(HttpStatus.OK, headers, responseResource);
     }
 
-    @RequestMapping(value = BASE_MAPPING, method = GET, produces = { SPRING_DATA_COMPACT_JSON_VALUE,
-            TEXT_URI_LIST_VALUE })
+    @RequestMapping(value = BASE_MAPPING, method = GET, produces = {SPRING_DATA_COMPACT_JSON_VALUE,
+            TEXT_URI_LIST_VALUE})
     public ResponseEntity<ResourceSupport> followPropertyReferenceCompact(RootResourceInformation repoRequest,
-            @BackendId Serializable id, @PathVariable String property, PersistentEntityResourceAssembler assembler,
-            DefaultedPageable pageable) throws Exception {
+                                                                          @BackendId Serializable id, @PathVariable String property, PersistentEntityResourceAssembler assembler,
+                                                                          DefaultedPageable pageable) throws Exception {
 
         ResponseEntity<ResourceSupport> response = followPropertyReference(repoRequest, id, property, assembler,
                 pageable);
@@ -261,18 +256,18 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
             links.add(linkBuilder.withRel(propertyMapping.getRel()));
         }
 
-        return ControllerUtils.toResponseEntity(HttpStatus.OK, null, new Resource<Object>(EMPTY_RESOURCE_LIST, links));
+        return ControllerUtils.toResponseEntity(HttpStatus.OK, HttpHeaders.EMPTY, new Resource<Object>(EMPTY_RESOURCE_LIST, links));
     }
 
-    @RequestMapping(value = BASE_MAPPING, method = { PATCH, PUT, POST }, //
-            consumes = { MediaType.APPLICATION_JSON_VALUE, SPRING_DATA_COMPACT_JSON_VALUE, TEXT_URI_LIST_VALUE })
+    @RequestMapping(value = BASE_MAPPING, method = {PATCH, PUT, POST}, //
+            consumes = {MediaType.APPLICATION_JSON_VALUE, SPRING_DATA_COMPACT_JSON_VALUE, TEXT_URI_LIST_VALUE})
     public ResponseEntity<? extends ResourceSupport> createPropertyReference(
             final RootResourceInformation resourceInformation, final HttpMethod requestMethod,
             final @RequestBody(required = false) Resources<Object> incoming, @BackendId Serializable id,
             @PathVariable String property) throws Exception {
 
         final Resources<Object> source = incoming == null ? new Resources<>(Collections.emptyList()) : incoming;
-        // final RepositoryInvoker invoker = resourceInformation.getInvoker();
+
         AclJpaRepository<Object, Object> aclRepository = getAclRepository(resourceInformation.getDomainType());
 
         Function<ReferencedProperty, ResourceSupport> handler = prop -> {
@@ -283,7 +278,6 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
             Class<?> propertyType = prop.property.getType();
 
             if (prop.property.isCollectionLike()) {
-
                 Collection<Object> collection = AUGMENTING_METHODS.contains(requestMethod)
                         ? (Collection<Object>) propertyValue
                         : CollectionFactory.createCollection(propertyType, 0);
@@ -302,7 +296,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
                 Map<String, Object> map = AUGMENTING_METHODS.contains(requestMethod)
                         ? (Map<String, Object>) propertyValue
-                        : CollectionFactory.<String, Object> createMap(propertyType, 0);
+                        : CollectionFactory.<String, Object>createMap(propertyType, 0);
 
                 // Add to the existing collection
                 for (Link l : source.getLinks()) {
@@ -333,7 +327,6 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
             }
 
             publisher.publishEvent(new BeforeLinkSaveEvent(prop.accessor.getBean(), propertyValue));
-            // Object result = invoker.invokeSave(prop.accessor.getBean());
             Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
             publisher.publishEvent(new AfterLinkSaveEvent(result, propertyValue));
 
@@ -348,7 +341,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     @RequestMapping(value = BASE_MAPPING + "/{propertyId}", method = DELETE)
     public ResponseEntity<ResourceSupport> deletePropertyReferenceId(final RootResourceInformation repoRequest,
-            @BackendId Serializable backendId, @PathVariable String property, final @PathVariable String propertyId)
+                                                                     @BackendId Serializable backendId, @PathVariable String property, final @PathVariable String propertyId)
             throws Exception {
 
         // final RepositoryInvoker invoker = repoRequest.getInvoker();
@@ -363,17 +356,15 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
                 Collection<Object> coll = (Collection<Object>) propertyValue;
                 Iterator<Object> itr = coll.iterator();
                 while (itr.hasNext()) {
-
                     Object obj = itr.next();
 
                     Optional.ofNullable(prop.entity.getIdentifierAccessor(obj).getIdentifier())//
                             .map(Object::toString)//
-                            .filter(id -> propertyId.equals(id))//
+                            .filter(propertyId::equals)//
                             .ifPresent(__ -> itr.remove());
                 }
 
             } else if (prop.property.isMap()) {
-
                 Map<Object, Object> m = (Map<Object, Object>) propertyValue;
                 Iterator<Entry<Object, Object>> itr = m.entrySet().iterator();
 
@@ -383,16 +374,14 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
                     Optional.ofNullable(prop.entity.getIdentifierAccessor(m.get(key)).getIdentifier())//
                             .map(Object::toString)//
-                            .filter(id -> propertyId.equals(id))//
+                            .filter(propertyId::equals)//
                             .ifPresent(__ -> itr.remove());
                 }
-
             } else {
                 prop.wipeValue();
             }
 
             publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
-            // Object result = invoker.invokeSave(prop.accessor.getBean());
             Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
             publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
 
@@ -416,8 +405,8 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     }
 
     private Optional<ResourceSupport> doWithReferencedProperty(RootResourceInformation resourceInformation,
-            Serializable id, String propertyPath, Function<ReferencedProperty, ResourceSupport> handler,
-            HttpMethod method, DefaultedPageable pageable, String propertyId) throws Exception {
+                                                               Serializable id, String propertyPath, Function<ReferencedProperty, ResourceSupport> handler,
+                                                               HttpMethod method, DefaultedPageable pageable, String propertyId) throws Exception {
 
         ResourceMetadata metadata = resourceInformation.getResourceMetadata();
         PropertyAwareResourceMapping mapping = metadata.getProperty(propertyPath);
@@ -445,7 +434,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         // Then we load the property itself
         Object propertyValue = findProperty(pageable, property, accessor, propertyId, propertyRepository);
 
-        return Optional.ofNullable(handler.apply(new ReferencedProperty(property, propertyValue, accessor)));
+        return Optional.ofNullable(handler.apply(new ReferencedProperty(property, propertyValue, accessor, repositories)));
     }
 
     protected AclJpaRepository<Object, Object> getAclRepository(Class<?> type) {
@@ -457,8 +446,8 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     }
 
     protected Object findProperty(DefaultedPageable pageable, PersistentProperty<?> property,
-            PersistentPropertyAccessor accessor, String propertyId,
-            AclJpaRepository<Object, Object> propertyRepository) {
+                                  PersistentPropertyAccessor accessor, String propertyId,
+                                  AclJpaRepository<Object, Object> propertyRepository) {
 
         Object ownerId = accessor.getProperty(property.getOwner().getIdProperty());
         if (propertyId != null) {
@@ -470,7 +459,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         return propertyRepository.findProperty(ownerId, property, page);
     }
 
-    private class ReferencedProperty {
+    private static class ReferencedProperty {
 
         final PersistentEntity<?, ?> entity;
         final PersistentProperty<?> property;
@@ -478,8 +467,10 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         final Object propertyValue;
         final PersistentPropertyAccessor accessor;
 
-        private ReferencedProperty(PersistentProperty<?> property, Object propertyValue,
-                PersistentPropertyAccessor wrapper) {
+        private ReferencedProperty(PersistentProperty<?> property,
+                                   Object propertyValue,
+                                   PersistentPropertyAccessor wrapper,
+                                   Repositories repositories) {
 
             this.property = property;
             this.propertyValue = propertyValue;
@@ -511,7 +502,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         private final String message;
 
         private HttpRequestMethodNotSupportedException(HttpMethod rejectedMethod, HttpMethod[] allowedMethods,
-                String message) {
+                                                       String message) {
             this.rejectedMethod = rejectedMethod;
             this.allowedMethods = allowedMethods;
             this.message = message;
@@ -532,7 +523,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see java.lang.Throwable#getMessage()
          */
         @Override

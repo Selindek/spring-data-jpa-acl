@@ -15,14 +15,13 @@
  */
 package org.springframework.data.jpa.repository.query;
 
-import java.lang.reflect.Method;
-
-import javax.persistence.EntityManager;
-
+import com.berrycloud.acl.AclSpecification;
+import com.berrycloud.acl.repository.NoAcl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.provider.PersistenceProvider;
 import org.springframework.data.jpa.provider.QueryExtractor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryMetadata;
@@ -32,8 +31,8 @@ import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.util.Assert;
 
-import com.berrycloud.acl.AclSpecification;
-import com.berrycloud.acl.repository.NoAcl;
+import javax.persistence.EntityManager;
+import java.lang.reflect.Method;
 
 /**
  * This class is an extension of the {@link JpaQueryLookupStrategy} class with some addition for the Acl. Unfortunately
@@ -70,10 +69,8 @@ public final class AclJpaQueryLookupStrategy {
          *
          * @param em
          * @param extractor
-         * @param evaluationContextProvider
          */
-        public AbstractQueryLookupStrategy(EntityManager em, QueryExtractor extractor) {
-
+        protected AbstractQueryLookupStrategy(EntityManager em, QueryExtractor extractor) {
             this.em = em;
             this.provider = extractor;
         }
@@ -87,7 +84,7 @@ public final class AclJpaQueryLookupStrategy {
          */
         @Override
         public final RepositoryQuery resolveQuery(Method method, RepositoryMetadata metadata, ProjectionFactory factory,
-                NamedQueries namedQueries) {
+                                                  NamedQueries namedQueries) {
             NoAcl noAclRepo = metadata.getRepositoryInterface().getDeclaredAnnotation(NoAcl.class);
             NoAcl noAclMethod = method.getDeclaredAnnotation(NoAcl.class);
             boolean needAcl = noAclRepo == null && noAclMethod == null;
@@ -104,7 +101,7 @@ public final class AclJpaQueryLookupStrategy {
         }
 
         protected abstract RepositoryQuery resolveQuery(JpaQueryMethod method, EntityManager em,
-                NamedQueries namedQueries, boolean needAcl);
+                                                        NamedQueries namedQueries, boolean needAcl);
     }
 
     /**
@@ -118,8 +115,7 @@ public final class AclJpaQueryLookupStrategy {
         private final PersistenceProvider persistenceProvider;
         private final AclSpecification aclSpecification;
 
-        public CreateQueryLookupStrategy(EntityManager em, QueryExtractor extractor,
-                AclSpecification aclSpecification) {
+        CreateQueryLookupStrategy(EntityManager em, QueryExtractor extractor, AclSpecification aclSpecification) {
 
             super(em, extractor);
             this.persistenceProvider = PersistenceProvider.fromEntityManager(em);
@@ -128,7 +124,7 @@ public final class AclJpaQueryLookupStrategy {
 
         @Override
         protected RepositoryQuery resolveQuery(JpaQueryMethod method, EntityManager em, NamedQueries namedQueries,
-                boolean needAcl) {
+                                               boolean needAcl) {
 
             try {
                 if (needAcl) {
@@ -141,7 +137,6 @@ public final class AclJpaQueryLookupStrategy {
                         String.format("Could not create query metamodel for method %s!", method.toString()), e);
             }
         }
-
     }
 
     /**
@@ -162,8 +157,8 @@ public final class AclJpaQueryLookupStrategy {
          * @param extractor
          * @param evaluationContextProvider
          */
-        public DeclaredQueryLookupStrategy(EntityManager em, QueryExtractor extractor,
-                EvaluationContextProvider evaluationContextProvider) {
+        DeclaredQueryLookupStrategy(EntityManager em, QueryExtractor extractor,
+                                    EvaluationContextProvider evaluationContextProvider) {
 
             super(em, extractor);
             this.evaluationContextProvider = evaluationContextProvider;
@@ -179,7 +174,7 @@ public final class AclJpaQueryLookupStrategy {
          */
         @Override
         protected RepositoryQuery resolveQuery(JpaQueryMethod method, EntityManager em, NamedQueries namedQueries,
-                boolean needAcl) {
+                                               boolean needAcl) {
 
             RepositoryQuery query = JpaQueryFactory.INSTANCE.fromQueryAnnotation(method, em, evaluationContextProvider);
 
@@ -230,10 +225,11 @@ public final class AclJpaQueryLookupStrategy {
          * @param extractor
          * @param createStrategy
          * @param lookupStrategy
-         * @param evaluationContextProvider
          */
-        public CreateIfNotFoundQueryLookupStrategy(EntityManager em, QueryExtractor extractor,
-                CreateQueryLookupStrategy createStrategy, DeclaredQueryLookupStrategy lookupStrategy) {
+        CreateIfNotFoundQueryLookupStrategy(EntityManager em,
+                                            QueryExtractor extractor,
+                                            CreateQueryLookupStrategy createStrategy,
+                                            DeclaredQueryLookupStrategy lookupStrategy) {
 
             super(em, extractor);
 
@@ -251,7 +247,7 @@ public final class AclJpaQueryLookupStrategy {
          */
         @Override
         protected RepositoryQuery resolveQuery(JpaQueryMethod method, EntityManager em, NamedQueries namedQueries,
-                boolean needAcl) {
+                                               boolean needAcl) {
 
             try {
                 return lookupStrategy.resolveQuery(method, em, namedQueries, needAcl);
@@ -264,34 +260,33 @@ public final class AclJpaQueryLookupStrategy {
     /**
      * Creates a {@link QueryLookupStrategy} for the given {@link EntityManager} and {@link Key}.
      *
-     * @param em
-     *            must not be {@literal null}.
-     * @param key
-     *            may be {@literal null}.
-     * @param extractor
-     *            must not be {@literal null}.
-     * @param evaluationContextProvider
-     *            must not be {@literal null}.
+     * @param em                        must not be {@literal null}.
+     * @param key                       may be {@literal null}.
+     * @param extractor                 must not be {@literal null}.
+     * @param evaluationContextProvider must not be {@literal null}.
      * @return
      */
-    public static QueryLookupStrategy create(EntityManager em, Key key, QueryExtractor extractor,
-            EvaluationContextProvider evaluationContextProvider, AclSpecification aclSpecification) {
+    public static QueryLookupStrategy create(EntityManager em,
+                                             Key key,
+                                             QueryExtractor extractor,
+                                             EvaluationContextProvider evaluationContextProvider,
+                                             AclSpecification aclSpecification) {
 
         Assert.notNull(em, "EntityManager must not be null!");
         Assert.notNull(extractor, "QueryExtractor must not be null!");
         Assert.notNull(evaluationContextProvider, "EvaluationContextProvider must not be null!");
 
         switch (key != null ? key : Key.CREATE_IF_NOT_FOUND) {
-        case CREATE:
-            return new CreateQueryLookupStrategy(em, extractor, aclSpecification);
-        case USE_DECLARED_QUERY:
-            return new DeclaredQueryLookupStrategy(em, extractor, evaluationContextProvider);
-        case CREATE_IF_NOT_FOUND:
-            return new CreateIfNotFoundQueryLookupStrategy(em, extractor,
-                    new CreateQueryLookupStrategy(em, extractor, aclSpecification),
-                    new DeclaredQueryLookupStrategy(em, extractor, evaluationContextProvider));
-        default:
-            throw new IllegalArgumentException(String.format("Unsupported query lookup strategy %s!", key));
+            case CREATE:
+                return new CreateQueryLookupStrategy(em, extractor, aclSpecification);
+            case USE_DECLARED_QUERY:
+                return new DeclaredQueryLookupStrategy(em, extractor, evaluationContextProvider);
+            case CREATE_IF_NOT_FOUND:
+                return new CreateIfNotFoundQueryLookupStrategy(em, extractor,
+                        new CreateQueryLookupStrategy(em, extractor, aclSpecification),
+                        new DeclaredQueryLookupStrategy(em, extractor, evaluationContextProvider));
+            default:
+                throw new IllegalArgumentException(String.format("Unsupported query lookup strategy %s!", key));
         }
     }
 }

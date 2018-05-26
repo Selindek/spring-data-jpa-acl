@@ -22,11 +22,12 @@ import javax.persistence.EntityNotFoundException;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
- * Repository interface extension for loading entities by non-default permission. Most ethods are used by
- * PermissionEvaluators.
+ * Repository interface extension for loading entities by non-default permission. Most methods are used by
+ * {@link PermissionEvaluator}s.
  *
  * @author István Rátkai (Selindek)
  */
@@ -83,10 +84,7 @@ public interface AclJpaRepository<T, ID> extends PropertyRepository<T, ID>, JpaR
      *
      * @param id
      *            the id of the entity
-     * @param permission
-     *            the permission we check against
      * @return the entity with the given id or null if it's not exist or the current user has no proper permission to it
      */
     Optional<T> findByIdWithoutPermissionCheck(ID id);
-
 }
