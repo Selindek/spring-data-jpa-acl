@@ -73,7 +73,5 @@ public class AclMinimalIntegrationTest {
         // assertEquals(aclLogic.getUserId(user), 2);
 
         assertThat(user.getAclRoles(), contains(hasProperty("roleName", is("ROLE_USER"))));
-
     }
-
 }

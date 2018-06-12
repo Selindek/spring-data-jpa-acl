@@ -195,7 +195,6 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
 
     @Override
     public List<T> findAllById(Iterable<ID> ids, String permission) {
-
         if (ids == null || !ids.iterator().hasNext()) {
             return Collections.emptyList();
         }
@@ -537,18 +536,18 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     @Transactional
     public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable) {
         if (property.isCollectionLike() || property.isMap()) {
-            return findAll(new PropertySpecification<T>(id, property), pageable);
+            return findAll(new PropertySpecification<>(id, property), pageable);
         }
-        return findOne(new PropertySpecification<T>(id, property)).orElse(null);
+        return findOne(new PropertySpecification<>(id, property)).orElse(null);
     }
 
     @Override
     @Transactional
     public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Object propertyId) {
         if (property.isCollectionLike() || property.isMap()) {
-            return findOne(new PropertySpecification<T>(id, property, propertyId)).orElse(null);
+            return findOne(new PropertySpecification<>(id, property, propertyId)).orElse(null);
         }
-        return findOne(new PropertySpecification<T>(id, property)).orElse(null);
+        return findOne(new PropertySpecification<>(id, property)).orElse(null);
     }
 
     private class PropertySpecification<S> implements Specification<S> {
@@ -592,7 +591,7 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
 
     /**
      * Specification that gives access to the {@link Parameter} instance used to bind the ids for
-     * {@link SimpleJpaRepository#findAll(Iterable)}. Workaround for OpenJPA not binding collections to in-clauses
+     * {@link SimpleJpaRepository#findAllById(Iterable)}. Workaround for OpenJPA not binding collections to in-clauses
      * correctly when using by-name binding.
      * 
      * @see <a href="https://issues.apache.org/jira/browse/OPENJPA-2018?focusedCommentId=13924055">OPENJPA-2018</a>

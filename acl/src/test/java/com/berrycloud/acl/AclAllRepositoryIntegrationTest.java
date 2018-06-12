@@ -8,8 +8,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -103,14 +105,16 @@ public class AclAllRepositoryIntegrationTest {
     @Autowired
     private PersonService personService;
 
-    SimpleAclRole adminRole, userRole, editorRole, manipulatorRole;
+    private SimpleAclRole adminRole;
+    private SimpleAclRole editorRole;
+    private SimpleAclRole manipulatorRole;
 
-    Person admin, user, user2, user3;
+    private Person admin, user, user2, user3;
 
     @Before
     public void initTests() {
         adminRole = new SimpleAclRole(AclConstants.ROLE_ADMIN);
-        userRole = new SimpleAclRole(AclConstants.ROLE_USER);
+        SimpleAclRole userRole = new SimpleAclRole(AclConstants.ROLE_USER);
         editorRole = new SimpleAclRole("ROLE_EDITOR");
         manipulatorRole = new SimpleAclRole("ROLE_MANIPULATOR");
         roleRepository.saveWithoutPermissionCheck(adminRole);
@@ -220,19 +224,19 @@ public class AclAllRepositoryIntegrationTest {
     @Test
     public void testGivenNoAuthenticationWhenCallCountThenReturnZero() {
         setAuthentication(null);
-        assertThat(personRepository.count(), is(0l));
+        assertThat(personRepository.count(), is(0L));
     }
 
     @Test
     public void testGivenNoAuthenticationWhenCallCountNoAclThenReturnNonZero() {
         setAuthentication(null);
-        assertThat(personRepositoryNoAcl.count(), greaterThan(0l));
+        assertThat(personRepositoryNoAcl.count(), greaterThan(0L));
     }
 
     @Test
     public void testGivenAdminAuthenticationWhenCallCountThenReturnNonZero() {
         setAuthentication("admin");
-        assertThat(personRepository.count(), greaterThan(0l));
+        assertThat(personRepository.count(), greaterThan(0L));
     }
 
     @Test(expected = JpaObjectRetrievalFailureException.class)
@@ -300,7 +304,7 @@ public class AclAllRepositoryIntegrationTest {
         setAuthentication(null);
         Person deleteUser = new Person("delme", "d", "d");
         personRepository.saveWithoutPermissionCheck(deleteUser);
-        personRepositoryNoAcl.deleteInBatch(Arrays.asList(deleteUser));
+        personRepositoryNoAcl.deleteInBatch(Collections.singletonList(deleteUser));
         assertFalse(personRepositoryNoAcl.findById(deleteUser.getId()).isPresent());
     }
 
@@ -334,7 +338,7 @@ public class AclAllRepositoryIntegrationTest {
         deleteUser.setCreatedBy(user);
         personRepositoryNoAcl.save(deleteUser);
         personRepositoryNoAcl.deleteAllInBatch();
-        assertThat(personRepositoryNoAcl.count(), is(0l));
+        assertThat(personRepositoryNoAcl.count(), is(0L));
     }
 
     @Test
@@ -426,7 +430,7 @@ public class AclAllRepositoryIntegrationTest {
 
     @Test
     public void testGivenEmptyCollectionWhenCallfindAllThenReturnEmptyArray() {
-        assertThat(personRepositoryNoAcl.findAllById(Arrays.asList(), AclConstants.READ_PERMISSION).size(), is(0));
+        assertThat(personRepositoryNoAcl.findAllById(Collections.emptyList(), AclConstants.READ_PERMISSION).size(), is(0));
     }
 
     @Test
@@ -708,7 +712,9 @@ public class AclAllRepositoryIntegrationTest {
         attachment.setContent("new content");
         attachmentRepository.save(attachment);
 
-        assertThat(attachmentRepository.findById(attachment.getId()).get().getContent(), is("new content"));
+        final Optional<Attachment> optionalAttachment = attachmentRepository.findById(attachment.getId());
+        assertTrue(optionalAttachment.isPresent());
+        assertThat(optionalAttachment.get().getContent(), is("new content"));
     }
 
     @Test

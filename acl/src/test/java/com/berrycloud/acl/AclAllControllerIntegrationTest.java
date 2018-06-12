@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -22,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.charset.Charset;
 import java.util.Locale;
+import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -61,9 +63,7 @@ public class AclAllControllerIntegrationTest {
     @Autowired
     private RoleRepository roleRepository;
 
-    SimpleAclRole adminRole, userRole, editorRole, manipulatorRole;
-
-    Person admin, user, user2, user3, user4;
+    private Person admin, user, user2, user3, user4;
 
     @Autowired
     WebApplicationContext ctx;
@@ -77,10 +77,10 @@ public class AclAllControllerIntegrationTest {
     public void initTests() {
         mockMvc = MockMvcBuilders.webAppContextSetup(ctx).addFilters(springSecurityFilterChain).build();
 
-        adminRole = new SimpleAclRole(AclConstants.ROLE_ADMIN);
-        userRole = new SimpleAclRole(AclConstants.ROLE_USER);
-        editorRole = new SimpleAclRole("ROLE_EDITOR");
-        manipulatorRole = new SimpleAclRole("ROLE_MANIPULATOR");
+        SimpleAclRole adminRole = new SimpleAclRole(AclConstants.ROLE_ADMIN);
+        SimpleAclRole userRole = new SimpleAclRole(AclConstants.ROLE_USER);
+        SimpleAclRole editorRole = new SimpleAclRole("ROLE_EDITOR");
+        SimpleAclRole manipulatorRole = new SimpleAclRole("ROLE_MANIPULATOR");
         roleRepository.saveWithoutPermissionCheck(adminRole);
         roleRepository.saveWithoutPermissionCheck(userRole);
         roleRepository.saveWithoutPermissionCheck(editorRole);
@@ -139,9 +139,7 @@ public class AclAllControllerIntegrationTest {
                 .andExpect(status().isOk()).andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
 
-                .andExpect(jsonPath("$.username", is("user")))
-
-        ;
+                .andExpect(jsonPath("$.username", is("user")));
         // @formatter:on
     }
 
@@ -155,9 +153,7 @@ public class AclAllControllerIntegrationTest {
                 .andExpect(status().isOk()).andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
 
-                .andExpect(jsonPath("$.username", is("user")))
-
-        ;
+                .andExpect(jsonPath("$.username", is("user")));
         // @formatter:on
     }
 
@@ -168,9 +164,7 @@ public class AclAllControllerIntegrationTest {
                 get("/persons/" + user.getId() + "/createdBy").header("Authorization", "Basic dXNlcjpwYXNzd29yZA==")
                         .contentType(MediaType.APPLICATION_JSON).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
     }
 
@@ -186,9 +180,7 @@ public class AclAllControllerIntegrationTest {
                 .andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
 
                 .andExpect(jsonPath("$._embedded.persons", hasSize(1)))
-                .andExpect(jsonPath("$._embedded.persons[0].username", is("user")))
-
-        ;
+                .andExpect(jsonPath("$._embedded.persons[0].username", is("user")));
         // @formatter:on
     }
 
@@ -202,9 +194,7 @@ public class AclAllControllerIntegrationTest {
                 .andExpect(status().isOk()).andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
 
-                .andExpect(jsonPath("$._embedded.persons", hasSize(0)))
-
-        ;
+                .andExpect(jsonPath("$._embedded.persons", hasSize(0)));
         // @formatter:on
     }
 
@@ -215,9 +205,7 @@ public class AclAllControllerIntegrationTest {
                 get("/persons/" + user.getId() + "/supervisors").header("Authorization", "Basic dXNlcjI6cGFzc3dvcmQ=") // user2
                         .contentType(MediaType.APPLICATION_JSON).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
     }
 
@@ -231,9 +219,7 @@ public class AclAllControllerIntegrationTest {
                 .andExpect(status().isOk()).andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
 
-                .andExpect(jsonPath("$.username", is("user")))
-
-        ;
+                .andExpect(jsonPath("$.username", is("user")));
         // @formatter:on
     }
 
@@ -249,9 +235,7 @@ public class AclAllControllerIntegrationTest {
 
                 .andExpect(jsonPath("$._embedded.persons", hasSize(2)))
                 .andExpect(jsonPath("$._embedded.persons[0].username", is("admin")))
-                .andExpect(jsonPath("$._embedded.persons[1].username", is("user")))
-
-        ;
+                .andExpect(jsonPath("$._embedded.persons[1].username", is("user")));
         // @formatter:on
     }
 
@@ -267,9 +251,7 @@ public class AclAllControllerIntegrationTest {
                 .andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
 
                 .andExpect(jsonPath("$._embedded.persons", hasSize(1)))
-                .andExpect(jsonPath("$._embedded.persons[0].username", is("user")))
-
-        ;
+                .andExpect(jsonPath("$._embedded.persons[0].username", is("user")));
         // @formatter:on
     }
 
@@ -285,9 +267,7 @@ public class AclAllControllerIntegrationTest {
                 .andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
 
                 .andExpect(jsonPath("$._embedded.persons", hasSize(1)))
-                .andExpect(jsonPath("$._embedded.persons[0].username", is("admin")))
-
-        ;
+                .andExpect(jsonPath("$._embedded.persons[0].username", is("admin")));
         // @formatter:on
     }
 
@@ -298,12 +278,12 @@ public class AclAllControllerIntegrationTest {
                 delete("/persons/" + user2.getId() + "/createdBy").header("Authorization", "Basic dXNlcjpwYXNzd29yZA==")
                         .contentType(MediaType.APPLICATION_JSON).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getCreatedBy());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNull(optionalPerson.get().getCreatedBy());
     }
 
     @Test
@@ -313,12 +293,12 @@ public class AclAllControllerIntegrationTest {
                 .header("Authorization", "Basic dXNlcjpwYXNzd29yZA==").contentType(MediaType.APPLICATION_JSON)
                 .locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getCreatedBy());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNull(optionalPerson.get().getCreatedBy());
     }
 
     @Test
@@ -330,12 +310,12 @@ public class AclAllControllerIntegrationTest {
                 delete("/persons/" + user2.getId() + "/createdBy").header("Authorization", "Basic dXNlcjpwYXNzd29yZA==")
                         .contentType(MediaType.APPLICATION_JSON).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNotNull(personRepositoryNoAcl.findById(user2.getId()).get().getCreatedBy());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNotNull(optionalPerson.get().getCreatedBy());
     }
 
     @Test
@@ -345,11 +325,8 @@ public class AclAllControllerIntegrationTest {
                 .header("Authorization", "Basic dXNlcjpwYXNzd29yZA==").contentType(MediaType.APPLICATION_JSON)
                 .locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isMethodNotAllowed()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isMethodNotAllowed()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
-
     }
 
     @Test
@@ -359,12 +336,12 @@ public class AclAllControllerIntegrationTest {
                 .header("Authorization", "Basic dXNlcjpwYXNzd29yZA==").contentType(MediaType.APPLICATION_JSON)
                 .locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertThat(optionalPerson.get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("user")))));
     }
 
@@ -375,14 +352,12 @@ public class AclAllControllerIntegrationTest {
         mockMvc.perform(delete("/persons/" + user2.getId() + "/supervisors/" + admin.getId())
                 .header("Authorization", "Basic dXNlcjpwYXNzd29yZA==").contentType(MediaType.APPLICATION_JSON)
                 .locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
-
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
-                hasItem(hasProperty("username", is("admin"))));
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertThat(optionalPerson.get().getSupervisors(), hasItem(hasProperty("username", is("admin"))));
     }
 
     @Test
@@ -393,12 +368,12 @@ public class AclAllControllerIntegrationTest {
                 delete("/persons/" + user.getId() + "/controlled").header("Authorization", "Basic dXNlcjpwYXNzd29yZA==") // user
                         .contentType(MediaType.APPLICATION_JSON).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNotNull(personRepositoryNoAcl.findById(user.getId()).get().getControlled());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNotNull(optionalPerson.get().getControlled());
     }
 
     @Test
@@ -409,13 +384,13 @@ public class AclAllControllerIntegrationTest {
                         .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK).content("/persons/" + user.getId())
                         .accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNotNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
-        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getControlled().getUsername(), is("user"));
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNotNull(optionalPerson.get().getControlled());
+        assertThat(optionalPerson.get().getControlled().getUsername(), is("user"));
     }
 
     @Test
@@ -426,12 +401,12 @@ public class AclAllControllerIntegrationTest {
                         .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
                 .andExpect(status().isInternalServerError()).andExpect(redirectedUrl(null))
-                .andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNull(optionalPerson.get().getControlled());
     }
 
     @Test
@@ -443,12 +418,12 @@ public class AclAllControllerIntegrationTest {
                 .content("/persons/" + user.getId() + "\n/persons/" + user.getId()).accept(MediaType.APPLICATION_JSON))
 
                 .andExpect(status().isInternalServerError()).andExpect(redirectedUrl(null))
-                .andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNull(optionalPerson.get().getControlled());
     }
 
     @Test
@@ -459,12 +434,12 @@ public class AclAllControllerIntegrationTest {
                         .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK).content("/persons/" + user.getId())
                         .accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isMethodNotAllowed()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isMethodNotAllowed()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNull(optionalPerson.get().getControlled());
     }
 
     @Test
@@ -476,12 +451,12 @@ public class AclAllControllerIntegrationTest {
                         .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK)
                         .content("/persons/" + admin.getId()).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertNull(personRepositoryNoAcl.findById(user2.getId()).get().getControlled());
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertNull(optionalPerson.get().getControlled());
     }
 
     @Test
@@ -493,16 +468,14 @@ public class AclAllControllerIntegrationTest {
                 .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK)
                 .content("/persons/" + admin.getId() + "\n/persons/" + user.getId()).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
-                hasItem(hasProperty("username", is("user"))));
-        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user3.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertThat(optionalPerson.get().getSupervisors(), hasItem(hasProperty("username", is("user"))));
+        assertThat(optionalPerson.get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("admin")))));
-
     }
 
     @Test
@@ -514,16 +487,14 @@ public class AclAllControllerIntegrationTest {
                 .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK)
                 .content("/persons/" + admin.getId() + "\n/persons/" + user.getId()).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
-                hasItem(hasProperty("username", is("user"))));
-        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(),
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user3.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertThat(optionalPerson.get().getSupervisors(), hasItem(hasProperty("username", is("user"))));
+        assertThat(optionalPerson.get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("admin")))));
-
     }
 
     @Test
@@ -533,13 +504,12 @@ public class AclAllControllerIntegrationTest {
                 post("/persons/" + user3.getId() + "/supervisors").header("Authorization", "Basic dXNlcjpwYXNzd29yZA==") // user
                         .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findById(user3.getId()).get().getSupervisors(), empty());
-
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user3.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertThat(optionalPerson.get().getSupervisors(), empty());
     }
 
     @Test
@@ -552,20 +522,18 @@ public class AclAllControllerIntegrationTest {
                         .content("/persons/" + user4.getId() + "\n/persons/" + user3.getId())
                         .accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null))
-
-        ;
+                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
-        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
+        final Optional<Person> optionalPerson = personRepositoryNoAcl.findById(user2.getId());
+        assertTrue(optionalPerson.isPresent());
+        assertThat(optionalPerson.get().getSupervisors(),
                 hasItem(hasProperty("username", is("user"))));
-        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
+        assertThat(optionalPerson.get().getSupervisors(),
                 hasItem(hasProperty("username", is("admin"))));
-        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
+        assertThat(optionalPerson.get().getSupervisors(),
                 hasItem(hasProperty("username", is("user3"))));
-        assertThat(personRepositoryNoAcl.findById(user2.getId()).get().getSupervisors(),
+        assertThat(optionalPerson.get().getSupervisors(),
                 not(hasItem(hasProperty("username", is("user4")))));
-
     }
-
 }
