@@ -35,6 +35,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.NativeWebRequest;
 
+import com.berrycloud.acl.search.Search;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -100,6 +101,10 @@ public class JacksonMappingAwarePropertySortTranslator {
         Assert.notNull(parameter, "MethodParameter must not be null!");
         Assert.notNull(webRequest, "NativeWebRequest must not be null!");
 
+        if (input instanceof Search) {
+          return input;
+        }
+        
         Class<?> domainClass = domainClassResolver.resolve(parameter.getMethod(), webRequest);
 
         if (domainClass == null) {

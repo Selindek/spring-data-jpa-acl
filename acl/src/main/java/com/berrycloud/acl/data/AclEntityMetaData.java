@@ -29,6 +29,7 @@ import javax.persistence.metamodel.SingularAttribute;
 public class AclEntityMetaData {
 
     private SingularAttribute<? super Object, ?> idAttribute;
+    private List<String> searchableAttributes = new ArrayList<>();
     private List<OwnerData> ownerDataList = new ArrayList<>();
     private List<OwnerData> ownerGroupDataList = new ArrayList<>();
     private List<ParentData> parentDataList = new ArrayList<>();
@@ -37,6 +38,10 @@ public class AclEntityMetaData {
     private List<RolePermissionData> roleConditionList = new ArrayList<>();
     private List<CreatePermissionData> createPermissionList = new ArrayList<>();
 
+    public List<String> getSearchableAttributes() {
+        return searchableAttributes;
+    }
+    
     public List<OwnerData> getOwnerDataList() {
         return ownerDataList;
     }

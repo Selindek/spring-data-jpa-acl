@@ -17,22 +17,27 @@ package com.berrycloud.acl;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.From;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
 import org.springframework.data.jpa.domain.Specification;
 
+import com.berrycloud.acl.search.Search;
+
 public interface AclSpecification extends Specification<Object> {
 
-    Predicate toPredicate(Root<?> root, CriteriaQuery<?> query, CriteriaBuilder cb, String permission);
+  Predicate toPredicate(Root<?> root, CriteriaQuery<?> query, CriteriaBuilder cb, String permission);
 
-    /**
-     * Checks whether this new entity can be created based on the Acl rules. (Does the current user have create
-     * permission on this entity type or not.)
-     * 
-     * @param newEntity
-     * @return
-     */
-    boolean canBeCreated(Object newEntity);
+  /**
+   * Checks whether this new entity can be created based on the Acl rules. (Does the current user have create permission
+   * on this entity type or not.)
+   * 
+   * @param newEntity
+   * @return
+   */
+  boolean canBeCreated(Object newEntity);
+
+  void applySearch(CriteriaQuery<?> criteriaQuery, CriteriaBuilder criteriaBuilder, From<?, ?> next, Search sort);
 
 }

@@ -52,16 +52,20 @@ import javax.persistence.criteria.Selection;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.mapping.PersistentProperty;
+import org.springframework.data.repository.support.PageableExecutionUtils;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import com.berrycloud.acl.AclSpecification;
 import com.berrycloud.acl.repository.AclJpaRepository;
+import com.berrycloud.acl.search.Search;
 
 /**
  * Default implementation of the {@link AclJpaRepository} interface. This class uses the default SimpleJpaRepository
@@ -433,14 +437,20 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
         Root<S> root = applySpecificationToCriteria(spec, domainClass, query, permission);
         if (query.getSelection() == null) {
             query.select(root);
-        }
-        if (sort.isSorted() && query.getSelection() instanceof From) {
-            query.orderBy(toOrders(sort, (From<?, ?>) query.getSelection(), builder));
+        } 
+        if(query.getSelection() instanceof From) {
+            From<?,?> from = (From<?, ?>) query.getSelection();
+            if (sort instanceof Search) {
+                aclSpecification.applySearch(query, builder, from, (Search)sort);
+            } else if (sort.isSorted() ) {
+                query.orderBy(toOrders(sort, from, builder));
+            }
         }
 
         return applyRepositoryMethodMetadata(em.createQuery(query));
     }
 
+    
     /**
      * Creates a new count query for the given {@link Specification}.
      *
@@ -452,12 +462,26 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
      */
     @Override
     protected <S extends T> TypedQuery<Long> getCountQuery(Specification<S> spec, Class<S> domainClass) {
-
+      return getCountQuery(spec, domainClass, null);
+    }
+    
+    protected <S extends T> TypedQuery<Long> getCountQuery(Specification<S> spec, Class<S> domainClass, Sort sort) {
+      
         CriteriaBuilder builder = em.getCriteriaBuilder();
         CriteriaQuery<Long> query = builder.createQuery(Long.class);
 
         Root<S> root = applySpecificationToCriteria(spec, domainClass, query, READ_PERMISSION);
-
+        
+        // Search can reduce the count 
+        if (sort instanceof Search) {
+            // PropertySpecifications can alter the selection of the query
+            From<?, ?> from = (From<?, ?>)query.getSelection();
+            if (from == null) {
+                from =root;
+            }
+            aclSpecification.applySearch(query, builder, from, (Search)sort);
+        }
+        
         if (query.isDistinct()) {
             query.select(builder.countDistinct(root));
         } else {
@@ -466,10 +490,43 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
 
         // Remove all Orders the Specifications might have applied
         query.orderBy(Collections.<Order> emptyList());
-
+        
         return em.createQuery(query);
     }
 
+
+    protected <S extends T> Page<S> readPage(TypedQuery<S> query, final Class<S> domainClass, Pageable pageable,
+        @Nullable Specification<S> spec) {
+
+      if (pageable.isPaged()) {
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+      }
+
+      return PageableExecutionUtils.getPage(query.getResultList(), pageable,
+          () -> executeCountQuery(getCountQuery(spec, domainClass, pageable.getSort())));
+    }
+    
+    /**
+     * Executes a count query and transparently sums up all values returned.
+     *
+     * @param query must not be {@literal null}.
+     * @return
+     */
+    private static Long executeCountQuery(TypedQuery<Long> query) {
+
+      Assert.notNull(query, "TypedQuery must not be null!");
+
+      List<Long> totals = query.getResultList();
+      Long total = 0L;
+
+      for (Long element : totals) {
+        total += element == null ? 0 : element;
+      }
+
+      return total;
+    }
+    
     /**
      * Applies the given {@link Specification} to the given {@link CriteriaQuery}.
      *

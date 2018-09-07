@@ -49,6 +49,7 @@ import com.berrycloud.acl.data.ParentData;
 import com.berrycloud.acl.data.PermissionLinkData;
 import com.berrycloud.acl.data.RolePermissionData;
 import com.berrycloud.acl.domain.AclUser;
+import com.berrycloud.acl.search.Search;
 import com.berrycloud.acl.security.AclUserDetails;
 
 /**
@@ -74,6 +75,60 @@ public class AclUserPermissionSpecification implements AclSpecification {
      */
     @Value("${spring.data.jpa.acl.max-depth:2}")
     private int maxDepth = 2;
+
+    /**
+     * Maximum number of words which are processed in a pattern
+     */
+    @Value("${spring.data.jpa.acl.max-search-words:3}")
+    private int maxWords = 3;
+
+    public void applySearch(CriteriaQuery<?> criteriaQuery, CriteriaBuilder cb, From<?, ?> from, Search search) {
+
+      final List<String> properties = aclMetaData.getAclEntityMetaData(from.getJavaType()).getSearchableAttributes();
+      if (properties.isEmpty()) {
+        return;
+      }
+
+      float patternNum = 1f;
+      Expression<Number> order = null;
+
+      for (final String pattern : search.getPatterns()) {
+
+        final Float weight = pattern.length() / patternNum;
+        Expression<Number> patternOrder = null;
+
+        for (final String p : properties) {
+          final Expression<Number> value = cb
+              .coalesce(cb.quot(weight, cb.nullif(cb.locate(cb.lower(from.get(p)), pattern, 1), 0)), 0f);
+          patternOrder = patternOrder == null ? value : cb.sum(patternOrder, value);
+        }
+
+        // If a pattern cannot be found at all then invalidate the whole order by setting the current order to null
+        patternOrder = cb.nullif(patternOrder, 0f);
+        // Sum the order value of all patterns
+        order = order == null ? patternOrder : cb.sum(order, patternOrder);
+
+        if (++patternNum > maxWords) {
+          break;
+        }
+      }
+
+      if (order == null) {
+        return;
+      }
+
+      // override possible previous ordering with the search order
+      // also add the id as a secondary order to make sure we get the same
+      // ordering each time. (mandatory for pagination)
+      criteriaQuery.orderBy(cb.desc(order), cb.asc(from.get(aclMetaData.getAclEntityMetaData(from.getJavaType())
+          .getIdAttribute())));
+
+      // add the search predicate to the query
+      Predicate predicate = cb.gt(order, 0f);
+      Predicate original = criteriaQuery.getRestriction();
+
+      criteriaQuery.where(original == null ? predicate : cb.and(original, predicate));
+    }
 
     @Override
     public Predicate toPredicate(Root<Object> root, CriteriaQuery<?> query, CriteriaBuilder cb) {

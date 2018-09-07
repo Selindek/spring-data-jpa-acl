@@ -21,7 +21,6 @@ import static com.berrycloud.acl.AclConstants.ROLE_ADMIN;
 import static com.berrycloud.acl.AclConstants.ROLE_USER;
 
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,13 +29,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 import javax.persistence.OneToMany;
 import javax.persistence.PersistenceContext;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
+import javax.persistence.metamodel.Attribute;
+import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.ManagedType;
 import javax.persistence.metamodel.SingularAttribute;
@@ -52,6 +52,7 @@ import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.JpaEntityInformationSupport;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ClassUtils;
 
 import com.berrycloud.acl.annotation.AclCreatePermission;
 import com.berrycloud.acl.annotation.AclCreatePermissions;
@@ -77,6 +78,7 @@ import com.berrycloud.acl.domain.PermissionLink;
 import com.berrycloud.acl.domain.SimpleAclRole;
 import com.berrycloud.acl.domain.SimpleAclUser;
 import com.berrycloud.acl.repository.NoAcl;
+import com.berrycloud.acl.search.AclSearchable;
 
 /**
  * Default implementation of the {@link AclLogic}
@@ -118,7 +120,7 @@ public class AclLogicImpl implements AclLogic {
         javaTypes = new HashSet<>();
         for (ManagedType<?> mt : em.getMetamodel().getManagedTypes()) {
             Class<?> type = mt.getJavaType();
-            if (type.isAnnotationPresent(Entity.class) && !Modifier.isAbstract(type.getModifiers())) {
+            if (mt instanceof EntityType) {
                 javaTypes.add(type);
             }
         }
@@ -178,9 +180,10 @@ public class AclLogicImpl implements AclLogic {
             for (final PropertyDescriptor propertyDescriptor : beanWrapper.getPropertyDescriptors()) {
                 final String propertyName = propertyDescriptor.getName();
                 final TypeDescriptor typeDescriptor = beanWrapper.getPropertyTypeDescriptor(propertyName);
-                checkAclOwner(metaData, javaType, propertyName, typeDescriptor);
-                checkAclParent(metaData, javaType, propertyName, typeDescriptor);
-                checkAclPermissionLinks(metaData, javaType, propertyName, typeDescriptor);
+                checkAclSearchable(metaData, identifiableType, propertyName, typeDescriptor);
+                checkAclOwner(metaData, identifiableType, propertyName, typeDescriptor);
+                checkAclParent(metaData, identifiableType, propertyName, typeDescriptor);
+                checkAclPermissionLinks(metaData, identifiableType, propertyName, typeDescriptor);
             }
         } catch (InstantiationException | IllegalAccessException e) {
             LOG.error("Cannot instantiate {} ", javaType);
@@ -256,7 +259,7 @@ public class AclLogicImpl implements AclLogic {
         }
     }
 
-    private void checkAclPermissionLinks(AclEntityMetaData metaData, Class<?> javaType, String propertyName,
+    private void checkAclPermissionLinks(AclEntityMetaData metaData, IdentifiableType<?> type, String propertyName,
             TypeDescriptor typeDescriptor) {
         final OneToMany oneToMany = typeDescriptor.getAnnotation(OneToMany.class);
         if (oneToMany != null && (typeDescriptor.isCollection() || typeDescriptor.isArray())
@@ -268,7 +271,23 @@ public class AclLogicImpl implements AclLogic {
         }
     }
 
-    private void checkAclOwner(AclEntityMetaData metaData, Class<?> javaType, final String propertyName,
+    private void checkAclSearchable(AclEntityMetaData metaData, IdentifiableType<?> type, final String propertyName,
+            final TypeDescriptor typeDescriptor) {
+      
+        final AclSearchable aclSearchable = typeDescriptor.getAnnotation(AclSearchable.class);
+        if(aclSearchable!=null) {
+            Attribute<?,?> attribute = type.getAttribute(propertyName);
+            if(!attribute.isAssociation() && !attribute.isCollection() 
+                    && !ClassUtils.isPrimitiveOrWrapper(attribute.getJavaType())) {
+                metaData.getSearchableAttributes().add(propertyName);
+            } else {
+                LOG.warn("Non-searchable entity property '{}.{} is annotated with @AclSearchable ... ignored", 
+                        type.getJavaType(), propertyName);
+            }
+        }
+    }
+    
+    private void checkAclOwner(AclEntityMetaData metaData, IdentifiableType<?> type, final String propertyName,
             final TypeDescriptor typeDescriptor) {
         final AclOwner aclOwner = typeDescriptor.getAnnotation(AclOwner.class);
         if (aclOwner != null) {
@@ -295,13 +314,13 @@ public class AclLogicImpl implements AclLogic {
                 metaData.getOwnerGroupDataList().add(new OwnerData(propertyName,
                         typeDescriptor.getElementTypeDescriptor().getObjectType(), true, aclOwner.value()));
             } else {
-                LOG.warn("Non-managed entity property '{}.{} is annotated with @AclOwner ... ignored", javaType,
+                LOG.warn("Non-managed entity property '{}.{} is annotated with @AclOwner ... ignored", type.getJavaType(),
                         propertyName);
             }
         }
     }
 
-    private void checkAclParent(AclEntityMetaData metaData, Class<?> javaType, final String propertyName,
+    private void checkAclParent(AclEntityMetaData metaData, IdentifiableType<?> type, final String propertyName,
             final TypeDescriptor typeDescriptor) {
         final AclParent aclParent = typeDescriptor.getAnnotation(AclParent.class);
         if (aclParent != null) {
@@ -310,15 +329,15 @@ public class AclLogicImpl implements AclLogic {
                             && typeDescriptor.getElementTypeDescriptor() != null
                             && isManagedType(typeDescriptor.getElementTypeDescriptor().getObjectType()))) {
                 if (aclParent.prefix().indexOf(PERMISSION_PREFIX_DELIMITER) != -1) {
-                    LOG.warn("@AclParent's prefix property contains illegal character at '{}.{}' ... ignored", javaType,
-                            propertyName);
+                    LOG.warn("@AclParent's prefix property contains illegal character at '{}.{}' ... ignored",
+                            type.getJavaType(), propertyName);
                 } else {
                     metaData.getParentDataList()
                             .add(new ParentData(propertyName, aclParent.prefix(), aclParent.value()));
                 }
             } else {
-                LOG.warn("Non-managed entity property '{}.{}' is annotated by @AclParent ... ignored", javaType,
-                        propertyName);
+                LOG.warn("Non-managed entity property '{}.{}' is annotated by @AclParent ... ignored",
+                        type.getJavaType(), propertyName);
             }
         }
     }
