@@ -516,7 +516,7 @@ There are some limitations if you want to use the ACL:
 
 - All domain entities must have a singular id attribute. If you really need compound primary key then a possible workaround is using @EmbeddedId annotation. Theoretically it can be resolved, but I rather spend my resources to add other functionalities and improvements.
 - All queries are forced to be distinct. At the moment I have no idea how can I resolve this issue. 
-
+- Search functionality doesn't work with unique queries (defined by `@Query` annotation).
 
 ## Conclusion
 

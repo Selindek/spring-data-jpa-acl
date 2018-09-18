@@ -58,6 +58,13 @@ public class Search extends Sort {
     return true;
   }
 
+  // Mega-hack. This method is only called when the actual sort-orders are processed. But we don't need it in Search, so
+  // we can sign it as unsorted.
+  @Override
+  public boolean isUnsorted() {
+    return true;
+  }
+
   /**
    * Returns a {@link Search} instances representing no search setup at all.
    * 
