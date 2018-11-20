@@ -424,16 +424,21 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         Object domainObj = propertyRepository.findById(id, HttpMethod.GET.equals(method) ? "read" : "update")
                 .orElseThrow(() -> new ResourceNotFoundException());
 
-        // Must clear the JPA cache otherwise lazily-loaded properties of the domainObject may
-        // appear in the property as proxy-classes and totally mess up the content
-        if (HttpMethod.GET.equals(method)) {
-            propertyRepository.clear();
-        }
-
         PersistentPropertyAccessor accessor = property.getOwner().getPropertyAccessor(domainObj);
-        // Then we load the property itself
-        Object propertyValue = findProperty(pageable, property, accessor, propertyId, propertyRepository);
-
+        Object propertyValue;
+        
+        if (property.isMap()) {
+            // If the property is a Map load it directly without pagination and ACL.
+            propertyValue = accessor.getProperty(property);
+        } else {
+            // Must clear the JPA cache otherwise lazily-loaded properties of the domainObject may
+            // appear in the property as proxy-classes and totally mess up the content
+            if (HttpMethod.GET.equals(method)) {
+                propertyRepository.clear();
+            }
+            // Then we load the property itself using ACl specification
+            propertyValue = findProperty(pageable, property, accessor, propertyId, propertyRepository);
+        }
         return Optional.ofNullable(handler.apply(new ReferencedProperty(property, propertyValue, accessor, repositories)));
     }
 

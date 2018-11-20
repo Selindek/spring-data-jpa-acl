@@ -593,7 +593,7 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     @Override
     @Transactional
     public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Pageable pageable) {
-        if (property.isCollectionLike() || property.isMap()) {
+        if (property.isCollectionLike() ) {
             return findAll(new PropertySpecification<>(id, property), pageable);
         }
         return findOne(new PropertySpecification<>(id, property)).orElse(null);
@@ -602,7 +602,7 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
     @Override
     @Transactional
     public Object findProperty(ID id, PersistentProperty<? extends PersistentProperty<?>> property, Object propertyId) {
-        if (property.isCollectionLike() || property.isMap()) {
+        if (property.isCollectionLike() ) {
             return findOne(new PropertySpecification<>(id, property, propertyId)).orElse(null);
         }
         return findOne(new PropertySpecification<>(id, property)).orElse(null);
