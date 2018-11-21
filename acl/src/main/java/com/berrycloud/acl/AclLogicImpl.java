@@ -21,6 +21,7 @@ import static com.berrycloud.acl.AclConstants.ROLE_ADMIN;
 import static com.berrycloud.acl.AclConstants.ROLE_USER;
 
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -150,8 +151,10 @@ public class AclLogicImpl implements AclLogic {
     private Map<Class<?>, AclEntityMetaData> createMetaDataMap() {
         Map<Class<?>, AclEntityMetaData> metaDataMap = new HashMap<>();
         for (Class<?> javaType : javaTypes) {
-            LOG.debug("Create metadata for {}", javaType);
-            metaDataMap.put(javaType, createAclEntityMetaData(javaType));
+            if(!Modifier.isAbstract(javaType.getModifiers())) {
+                LOG.debug("Create metadata for {}", javaType);
+                metaDataMap.put(javaType, createAclEntityMetaData(javaType));
+            }
         }
 
         return metaDataMap;
@@ -186,7 +189,7 @@ public class AclLogicImpl implements AclLogic {
                 checkAclPermissionLinks(metaData, identifiableType, propertyName, typeDescriptor);
             }
         } catch (InstantiationException | IllegalAccessException e) {
-            LOG.error("Cannot instantiate {} ", javaType);
+            LOG.warn("Cannot instantiate {} ", javaType,e);
         }
         checkSelfPermissions(javaType);
         checkAclCreatePermission(metaData, javaType);

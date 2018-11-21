@@ -440,7 +440,7 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
         } 
         if(query.getSelection() instanceof From) {
             From<?,?> from = (From<?, ?>) query.getSelection();
-            if (sort instanceof Search) {
+            if (aclSpecification != null && sort instanceof Search) {
                 aclSpecification.applySearch(query, builder, from, (Search)sort);
             } else if (sort.isSorted() ) {
                 query.orderBy(toOrders(sort, from, builder));
@@ -478,7 +478,7 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
         }
         
         // Search can reduce the count 
-        if (sort instanceof Search) {
+        if (aclSpecification != null && sort instanceof Search) {
             // PropertySpecifications can alter the selection of the query
             aclSpecification.applySearch(query, builder, from, (Search)sort);
         }
