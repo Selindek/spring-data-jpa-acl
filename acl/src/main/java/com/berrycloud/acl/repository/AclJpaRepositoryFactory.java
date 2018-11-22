@@ -23,12 +23,12 @@ import org.springframework.data.jpa.provider.PersistenceProvider;
 import org.springframework.data.jpa.provider.QueryExtractor;
 import org.springframework.data.jpa.repository.query.AclJpaQueryLookupStrategy;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
+import org.springframework.data.jpa.repository.support.JpaRepositoryImplementation;
 import org.springframework.data.jpa.repository.support.SimpleAclJpaRepository;
-import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.RepositoryMetadata;
-import org.springframework.data.repository.query.EvaluationContextProvider;
 import org.springframework.data.repository.query.QueryLookupStrategy;
+import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 
 import com.berrycloud.acl.AclSpecification;
@@ -63,9 +63,9 @@ public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
     }
 
     @Override
-    protected SimpleJpaRepository<?, ?> getTargetRepository(RepositoryInformation information,
+    protected JpaRepositoryImplementation<?, ?> getTargetRepository(RepositoryInformation information,
             EntityManager entityManager) {
-        SimpleJpaRepository<?, ?> repository = super.getTargetRepository(information, entityManager);
+      JpaRepositoryImplementation<?, ?> repository = super.getTargetRepository(information, entityManager);
         ((SimpleAclJpaRepository<?, ?>) repository)
                 .setAclSpecification(isAclRepository(information) ? aclSpecification : null);
         return repository;
@@ -73,7 +73,7 @@ public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
 
     @Override
     protected Optional<QueryLookupStrategy> getQueryLookupStrategy(Key key,
-            EvaluationContextProvider evaluationContextProvider) {
+        QueryMethodEvaluationContextProvider evaluationContextProvider) {
         return Optional.of(AclJpaQueryLookupStrategy.create(entityManager, key, extractor, evaluationContextProvider,
                 aclSpecification));
     }

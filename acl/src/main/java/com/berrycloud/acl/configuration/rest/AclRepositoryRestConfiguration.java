@@ -28,8 +28,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.data.repository.support.Repositories;
 import org.springframework.data.rest.webmvc.BasePathAwareHandlerMapping;
 import org.springframework.data.rest.webmvc.DomainPropertyClassResolver;
+import org.springframework.data.rest.webmvc.ExportAwareRepositories;
 import org.springframework.data.rest.webmvc.RepositoryRestHandlerMapping;
 import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
 import org.springframework.data.rest.webmvc.json.JacksonMappingAwarePropertySortTranslator;
@@ -144,5 +146,16 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
   @Bean
   public Associations associationLinks() {
     return new PageableAssociations(resourceMappings(), repositoryRestConfiguration(), pageableResolver());
+  }
+  
+  /**
+   * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces,
+   * so data-rest-API will use the repository with the @Primary annotation. We create the bean here in the main
+   * configuration class because we use it in the PermissionEvaluator too.
+   */
+  @Override
+  @Bean
+  public Repositories repositories() {
+    return new ExportAwareRepositories(applicationContext);
   }
 }

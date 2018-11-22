@@ -424,7 +424,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         Object domainObj = propertyRepository.findById(id, HttpMethod.GET.equals(method) ? "read" : "update")
                 .orElseThrow(() -> new ResourceNotFoundException());
 
-        PersistentPropertyAccessor accessor = property.getOwner().getPropertyAccessor(domainObj);
+        PersistentPropertyAccessor<Object> accessor = property.getOwner().getPropertyAccessor(domainObj);
         Object propertyValue;
         
         if (property.isMap()) {
@@ -451,7 +451,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     }
 
     protected Object findProperty(DefaultedPageable pageable, PersistentProperty<?> property,
-                                  PersistentPropertyAccessor accessor, String propertyId,
+                                  PersistentPropertyAccessor<Object> accessor, String propertyId,
                                   AclJpaRepository<Object, Object> propertyRepository) {
 
         Object ownerId = accessor.getProperty(property.getOwner().getIdProperty());
@@ -470,11 +470,11 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         final PersistentProperty<?> property;
         final Class<?> propertyType;
         final Object propertyValue;
-        final PersistentPropertyAccessor accessor;
+        final PersistentPropertyAccessor<Object> accessor;
 
         private ReferencedProperty(PersistentProperty<?> property,
                                    Object propertyValue,
-                                   PersistentPropertyAccessor wrapper,
+                                   PersistentPropertyAccessor<Object> wrapper,
                                    Repositories repositories) {
 
             this.property = property;

@@ -251,7 +251,7 @@ public class JacksonMappingAwarePropertySortTranslator {
             this.objectMapper = objectMapper;
             this.currentType = persistentEntity;
             this.currentProperties = persistentEntity//
-                    .map(it -> MappedProperties.fromJacksonProperties(it, objectMapper))//
+                    .map(it -> MappedProperties.forSerialization(it, objectMapper))//
                     .orElseGet(() -> MappedProperties.none());
             this.currentWrappedProperties = persistentEntity//
                     .map(it -> WrappedProperties.fromJacksonProperties(persistentEntities, it, objectMapper))//

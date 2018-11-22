@@ -25,8 +25,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryMetadata;
-import org.springframework.data.repository.query.EvaluationContextProvider;
 import org.springframework.data.repository.query.QueryLookupStrategy;
+import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.util.Assert;
@@ -148,7 +148,7 @@ public final class AclJpaQueryLookupStrategy {
      */
     private static class DeclaredQueryLookupStrategy extends AbstractQueryLookupStrategy {
 
-        private final EvaluationContextProvider evaluationContextProvider;
+        private final QueryMethodEvaluationContextProvider evaluationContextProvider;
 
         /**
          * Creates a new {@link DeclaredQueryLookupStrategy}.
@@ -158,7 +158,7 @@ public final class AclJpaQueryLookupStrategy {
          * @param evaluationContextProvider
          */
         DeclaredQueryLookupStrategy(EntityManager em, QueryExtractor extractor,
-                                    EvaluationContextProvider evaluationContextProvider) {
+            QueryMethodEvaluationContextProvider evaluationContextProvider) {
 
             super(em, extractor);
             this.evaluationContextProvider = evaluationContextProvider;
@@ -269,7 +269,7 @@ public final class AclJpaQueryLookupStrategy {
     public static QueryLookupStrategy create(EntityManager em,
                                              Key key,
                                              QueryExtractor extractor,
-                                             EvaluationContextProvider evaluationContextProvider,
+                                             QueryMethodEvaluationContextProvider evaluationContextProvider,
                                              AclSpecification aclSpecification) {
 
         Assert.notNull(em, "EntityManager must not be null!");
