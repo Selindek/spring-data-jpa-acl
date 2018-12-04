@@ -117,17 +117,23 @@ public class AclUserPermissionSpecification implements AclSpecification {
         return;
       }
 
-      // override possible previous ordering with the search order
-      // also add the id as a secondary order to make sure we get the same
-      // ordering each time. (mandatory for pagination)
-      criteriaQuery.orderBy(cb.desc(order), cb.asc(from.get(aclMetaData.getAclEntityMetaData(from.getJavaType())
-          .getIdAttribute())));
-
       // add the search predicate to the query
       Predicate predicate = cb.gt(order, 0f);
       Predicate original = criteriaQuery.getRestriction();
 
       criteriaQuery.where(original == null ? predicate : cb.and(original, predicate));
+      
+      if(criteriaQuery.isDistinct()) {
+        criteriaQuery.distinct(false);
+        criteriaQuery.groupBy((Expression<?>)criteriaQuery.getSelection());
+        order = cb.max(order);
+      }
+      
+      // override possible previous ordering with the search order
+      // also add the id as a secondary order to make sure we get the same
+      // ordering each time. (mandatory for pagination)
+      criteriaQuery.orderBy(cb.desc(order), cb.asc(from.get(aclMetaData.getAclEntityMetaData(from.getJavaType())
+          .getIdAttribute())));
     }
 
     @Override

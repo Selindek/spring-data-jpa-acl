@@ -470,6 +470,8 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
         if (from == null) {
           from = root;
         }
+        // Search could switch from 'distinct' to 'group by'
+        boolean isDistinct = query.isDistinct();
         
         // Search can reduce the count 
         if (aclSpecification != null && sort instanceof Search) {
@@ -477,7 +479,7 @@ public class SimpleAclJpaRepository<T, ID> extends SimpleJpaRepository<T, ID> im
             aclSpecification.applySearch(query, builder, from, (Search)sort);
         }
         
-        if (query.isDistinct()) {
+        if (isDistinct) {
             query.select(builder.countDistinct(from));
         } else {
             query.select(builder.count(from));

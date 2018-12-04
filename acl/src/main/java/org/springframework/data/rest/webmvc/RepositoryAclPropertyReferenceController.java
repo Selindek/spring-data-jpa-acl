@@ -18,8 +18,6 @@ package org.springframework.data.rest.webmvc;
 import static org.springframework.data.rest.webmvc.ControllerUtils.EMPTY_RESOURCE_LIST;
 import static org.springframework.data.rest.webmvc.RestMediaTypes.SPRING_DATA_COMPACT_JSON_VALUE;
 import static org.springframework.data.rest.webmvc.RestMediaTypes.TEXT_URI_LIST_VALUE;
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.PATCH;
@@ -56,16 +54,15 @@ import org.springframework.data.rest.core.event.AfterLinkSaveEvent;
 import org.springframework.data.rest.core.event.BeforeLinkDeleteEvent;
 import org.springframework.data.rest.core.event.BeforeLinkSaveEvent;
 import org.springframework.data.rest.core.mapping.PropertyAwareResourceMapping;
-import org.springframework.data.rest.core.mapping.ResourceMapping;
 import org.springframework.data.rest.core.mapping.ResourceMetadata;
 import org.springframework.data.rest.webmvc.support.BackendId;
 import org.springframework.data.rest.webmvc.support.DefaultedPageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.PagedResources;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.ResourceSupport;
 import org.springframework.hateoas.Resources;
-import org.springframework.hateoas.mvc.ControllerLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -233,35 +230,32 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       @BackendId Serializable id, @PathVariable String property, PersistentEntityResourceAssembler assembler,
       DefaultedPageable pageable) throws Exception {
 
-    ResponseEntity<ResourceSupport> response = followPropertyReference(repoRequest, id, property, assembler, pageable);
+    return createCompactResponse(followPropertyReference(repoRequest, id, property, assembler, pageable));
+  }
+
+  private ResponseEntity<ResourceSupport> createCompactResponse(ResponseEntity<ResourceSupport> response) {
 
     if (response.getStatusCode() != HttpStatus.OK) {
       return response;
     }
 
-    ResourceMetadata repoMapping = repoRequest.getResourceMetadata();
-    PersistentProperty<?> persistentProp = repoRequest.getPersistentEntity().getPersistentProperty(property);
-    ResourceMapping propertyMapping = repoMapping.getMappingFor(persistentProp);
-
     ResourceSupport resource = response.getBody();
 
     List<Link> links = new ArrayList<>();
 
-    ControllerLinkBuilder linkBuilder = linkTo(methodOn(RepositoryAclPropertyReferenceController.class)
-        .followPropertyReference(repoRequest, id, property, assembler, pageable));
-
-    if (resource instanceof Resource) {
+    if (resource instanceof Resources) {
+      ((Resources<?>) resource).getContent();
+      for (Resource<?> res : ((Resources<Resource<?>>) resource).getContent()) {
+        links.add(res.getLink("self"));
+      }
+      if (resource instanceof PagedResources) {
+        return ControllerUtils.toResponseEntity(HttpStatus.OK, HttpHeaders.EMPTY,
+            new PagedResources<>(Collections.emptyList(), ((PagedResources<?>) resource).getMetadata(), links));
+      }
+    } else {
 
       Object content = ((Resource<?>) resource).getContent();
-      if (content instanceof Iterable) {
-
-        for (Resource<?> res : (Iterable<Resource<?>>) content) {
-          Link l = new Link(res.getLink("self").getHref(), res.getId().toString());
-          links.add(l);
-          // links.add(linkBuilder.withRel(propertyMapping.getRel()));
-        }
-
-      } else if (content instanceof Map) {
+      if (content instanceof Map) {
 
         Map<Object, Resource<?>> map = (Map<Object, Resource<?>>) content;
 
@@ -269,14 +263,12 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
           Link l = new Link(entry.getValue().getLink("self").getHref(), entry.getKey().toString());
           links.add(l);
         }
+      } else {
+        links.add(resource.getLink("self"));
       }
-
-    } else {
-      links.add(linkBuilder.withRel(propertyMapping.getRel()));
     }
-
     return ControllerUtils.toResponseEntity(HttpStatus.OK, HttpHeaders.EMPTY,
-        new Resource<Object>(EMPTY_RESOURCE_LIST, links));
+        new Resources<>(EMPTY_RESOURCE_LIST, links));
   }
 
   @RequestMapping(value = BASE_MAPPING + COMPLEMENT, method = GET, produces = { SPRING_DATA_COMPACT_JSON_VALUE,
@@ -285,41 +277,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       @BackendId Serializable id, @PathVariable String property, PersistentEntityResourceAssembler assembler,
       DefaultedPageable pageable) throws Exception {
 
-    ResponseEntity<ResourceSupport> response = followPropertyComplementReference(repoRequest, id, property, assembler,
-        pageable);
-
-    if (response.getStatusCode() != HttpStatus.OK) {
-      return response;
-    }
-
-    ResourceMetadata repoMapping = repoRequest.getResourceMetadata();
-    PersistentProperty<?> persistentProp = repoRequest.getPersistentEntity().getPersistentProperty(property);
-    ResourceMapping propertyMapping = repoMapping.getMappingFor(persistentProp);
-
-    ResourceSupport resource = response.getBody();
-
-    List<Link> links = new ArrayList<>();
-
-    ControllerLinkBuilder linkBuilder = linkTo(methodOn(RepositoryAclPropertyReferenceController.class)
-        .followPropertyComplementReference(repoRequest, id, property, assembler, pageable));
-
-    if (resource instanceof Resource) {
-
-      Object content = ((Resource<?>) resource).getContent();
-      if (content instanceof Iterable) {
-
-        for (Resource<?> res : (Iterable<Resource<?>>) content) {
-          Link l = new Link(res.getLink("self").getHref(), res.getId().toString());
-          links.add(l);
-        }
-
-      }
-    } else {
-      links.add(linkBuilder.withRel(propertyMapping.getRel()));
-    }
-
-    return ControllerUtils.toResponseEntity(HttpStatus.OK, HttpHeaders.EMPTY,
-        new Resource<Object>(EMPTY_RESOURCE_LIST, links));
+    return createCompactResponse(followPropertyComplementReference(repoRequest, id, property, assembler, pageable));
   }
 
   @RequestMapping(value = BASE_MAPPING, method = { PATCH, PUT, POST }, //
