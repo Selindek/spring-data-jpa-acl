@@ -8,7 +8,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -50,7 +49,6 @@ import com.berrycloud.acl.sample.all.repository.DocumentRepository;
 import com.berrycloud.acl.sample.all.repository.GroupRepository;
 import com.berrycloud.acl.sample.all.repository.PersonHasPersonRepository;
 import com.berrycloud.acl.sample.all.repository.PersonRepository;
-import com.berrycloud.acl.sample.all.repository.PersonRepositoryNoAcl;
 import com.berrycloud.acl.sample.all.repository.ProjectRepository;
 import com.berrycloud.acl.sample.all.repository.RoleRepository;
 import com.berrycloud.acl.sample.all.repository.ThemeRepository;
@@ -80,9 +78,6 @@ public class AclAllRepositoryIntegrationTest {
 
     @Autowired
     PersonHasPersonRepository personHasPersonRepository;
-
-    @Autowired
-    private PersonRepositoryNoAcl personRepositoryNoAcl;
 
     @Autowired
     private DocumentRepository documentRepository;
@@ -228,12 +223,6 @@ public class AclAllRepositoryIntegrationTest {
     }
 
     @Test
-    public void testGivenNoAuthenticationWhenCallCountNoAclThenReturnNonZero() {
-        setAuthentication(null);
-        assertThat(personRepositoryNoAcl.count(), greaterThan(0L));
-    }
-
-    @Test
     public void testGivenAdminAuthenticationWhenCallCountThenReturnNonZero() {
         setAuthentication("admin");
         assertThat(personRepository.count(), greaterThan(0L));
@@ -295,17 +284,10 @@ public class AclAllRepositoryIntegrationTest {
         deleteUser.setCreatedBy(user);
         personRepository.saveWithoutPermissionCheck(deleteUser);
         personRepository.deleteInBatch(Arrays.asList(admin, deleteUser));
-        assertFalse(personRepositoryNoAcl.findById(deleteUser.getId()).isPresent());
-        assertTrue(personRepositoryNoAcl.findById(admin.getId()).isPresent());
-    }
-
-    @Test
-    public void testGivenNoAuthenticationWhenCallDeleteUserNoAclThenUserIsDeleted() {
-        setAuthentication(null);
-        Person deleteUser = new Person("delme", "d", "d");
-        personRepository.saveWithoutPermissionCheck(deleteUser);
-        personRepositoryNoAcl.deleteInBatch(Collections.singletonList(deleteUser));
-        assertFalse(personRepositoryNoAcl.findById(deleteUser.getId()).isPresent());
+        personRepository.flush();
+        personRepository.clear();
+        assertFalse(personRepository.findByIdWithoutPermissionCheck(deleteUser.getId()).isPresent());
+        assertTrue(personRepository.findByIdWithoutPermissionCheck(admin.getId()).isPresent());
     }
 
     @Test
@@ -315,8 +297,10 @@ public class AclAllRepositoryIntegrationTest {
         deleteUser.setCreatedBy(user);
         personRepository.saveWithoutPermissionCheck(deleteUser);
         personRepository.deleteAll();
-        assertFalse(personRepositoryNoAcl.findById(deleteUser.getId()).isPresent());
-        assertTrue(personRepositoryNoAcl.findById(admin.getId()).isPresent());
+        personRepository.flush();
+        personRepository.clear();
+        assertFalse(personRepository.findByIdWithoutPermissionCheck(deleteUser.getId()).isPresent());
+        assertTrue(personRepository.findByIdWithoutPermissionCheck(admin.getId()).isPresent());
 
     }
 
@@ -327,18 +311,10 @@ public class AclAllRepositoryIntegrationTest {
         deleteUser.setCreatedBy(user);
         personRepository.saveWithoutPermissionCheck(deleteUser);
         personRepository.deleteAllInBatch();
-        assertFalse(personRepositoryNoAcl.findById(deleteUser.getId()).isPresent());
-        assertTrue(personRepositoryNoAcl.findById(admin.getId()).isPresent());
-    }
-
-    @Test
-    public void testGivenNoAuthenticationWhenCallDeleteAllInBatchThenOnlyAllUsersAreDeleted() {
-        setAuthentication(null);
-        Person deleteUser = new Person("delme", "d", "d");
-        deleteUser.setCreatedBy(user);
-        personRepositoryNoAcl.save(deleteUser);
-        personRepositoryNoAcl.deleteAllInBatch();
-        assertThat(personRepositoryNoAcl.count(), is(0L));
+        personRepository.flush();
+        personRepository.clear();
+        assertFalse(personRepository.findByIdWithoutPermissionCheck(deleteUser.getId()).isPresent());
+        assertTrue(personRepository.findByIdWithoutPermissionCheck(admin.getId()).isPresent());
     }
 
     @Test
@@ -390,16 +366,6 @@ public class AclAllRepositoryIntegrationTest {
     }
 
     @Test
-    public void testGivenValidIdWhenCallExistThenReturnTrue() {
-        assertTrue(personRepositoryNoAcl.existsById(user.getId()));
-    }
-
-    @Test
-    public void testGivenInvalidIdWhenCallExistThenReturnFalse() {
-        assertFalse(personRepositoryNoAcl.existsById(-1));
-    }
-
-    @Test
     public void testGivenUserAuthenticationWhenCallExistWithNotPermittedUserIdThenReturnFalse() {
         setAuthentication("user");
         assertFalse(personRepository.existsById(admin.getId()));
@@ -414,7 +380,7 @@ public class AclAllRepositoryIntegrationTest {
     @Test
     public void testGivenUserAuthenticationWhenCallFindAllNoAclTheReturnNumberOfAllUsers() {
         setAuthentication("user");
-        assertThat(personRepositoryNoAcl.findAll().size(), is(4));
+        assertThat(personRepository.findNoAclAllByIdNotNull().size(), is(4));
     }
 
     @Test
@@ -423,15 +389,6 @@ public class AclAllRepositoryIntegrationTest {
         assertThat(personRepository.findAll().size(), is(4));
     }
 
-    @Test
-    public void testGivenNullCollectionWhenCallfindAllThenReturnEmptyArray() {
-        assertThat(personRepositoryNoAcl.findAllById(null, AclConstants.READ_PERMISSION).size(), is(0));
-    }
-
-    @Test
-    public void testGivenEmptyCollectionWhenCallfindAllThenReturnEmptyArray() {
-        assertThat(personRepositoryNoAcl.findAllById(Collections.emptyList(), AclConstants.READ_PERMISSION).size(), is(0));
-    }
 
     @Test
     public void testGivenAdminAuthenticationWhenCallfindByIdWithSpecificationTheReturnObject() {
@@ -573,7 +530,7 @@ public class AclAllRepositoryIntegrationTest {
         editorGroup.setRole(editorRole);
         groupRepository.saveWithoutPermissionCheck(editorGroup);
         user.getGroups().add(editorGroup);
-        personRepositoryNoAcl.save(user);
+        personRepository.saveWithoutPermissionCheck(user);
         setAuthentication("user");
         assertTrue(aclUtils.hasAuthority("ROLE_EDITOR"));
     }
@@ -585,7 +542,7 @@ public class AclAllRepositoryIntegrationTest {
         editorGroup.setRole(editorRole);
         groupRepository.saveWithoutPermissionCheck(editorGroup);
         user.getGroups().add(editorGroup);
-        personRepositoryNoAcl.save(user);
+        personRepository.saveWithoutPermissionCheck(user);
         setAuthentication("admin");
         assertFalse(aclUtils.hasAuthority("ROLE_EDITOR"));
     }
@@ -601,7 +558,7 @@ public class AclAllRepositoryIntegrationTest {
         editorGroup.getMembers().add(member);
         groupRepository.saveWithoutPermissionCheck(editorGroup);
         member.getGroups().add(editorGroup);
-        personRepositoryNoAcl.save(member);
+        personRepository.saveWithoutPermissionCheck(member);
 
         assertTrue(personRepository.findById(member.getId()).isPresent());
     }
@@ -616,7 +573,7 @@ public class AclAllRepositoryIntegrationTest {
         projectGroup.getMembers().add(member);
         groupRepository.saveWithoutPermissionCheck(projectGroup);
         member.getGroups().add(projectGroup);
-        personRepositoryNoAcl.save(member);
+        personRepository.saveWithoutPermissionCheck(member);
 
         Project project = new Project();
         project.getGroups().add(projectGroup);
@@ -641,8 +598,8 @@ public class AclAllRepositoryIntegrationTest {
         groupRepository.saveWithoutPermissionCheck(projectGroup);
         member.getGroups().add(projectGroup);
         member2.getGroups().add(projectGroup);
-        personRepositoryNoAcl.save(member);
-        personRepositoryNoAcl.save(member2);
+        personRepository.saveWithoutPermissionCheck(member);
+        personRepository.saveWithoutPermissionCheck(member2);
 
         Project project = new Project();
         project.getGroups().add(projectGroup);
@@ -687,7 +644,7 @@ public class AclAllRepositoryIntegrationTest {
         Attachment attachment = new Attachment("name", "content", null, null);
         attachmentRepository.saveWithoutPermissionCheck(attachment);
         user.getAclRoles().add(manipulatorRole);
-        personRepositoryNoAcl.save(user);
+        personRepository.saveWithoutPermissionCheck(user);
         setAuthentication("user");
         assertTrue(attachmentRepository.findById(attachment.getId()).isPresent());
     }
@@ -697,7 +654,7 @@ public class AclAllRepositoryIntegrationTest {
         Attachment attachment = new Attachment("name", "content", null, null);
         attachmentRepository.save(attachment);
         user.getAclRoles().add(manipulatorRole);
-        personRepositoryNoAcl.save(user);
+        personRepository.saveWithoutPermissionCheck(user);
         setAuthentication("user");
         attachmentRepository.delete(attachment);
     }
@@ -707,7 +664,7 @@ public class AclAllRepositoryIntegrationTest {
         Attachment attachment = new Attachment("name", "content", null, null);
         attachmentRepository.saveWithoutPermissionCheck(attachment);
         user.getAclRoles().add(manipulatorRole);
-        personRepositoryNoAcl.save(user);
+        personRepository.saveWithoutPermissionCheck(user);
         setAuthentication("user");
         attachment.setContent("new content");
         attachmentRepository.save(attachment);

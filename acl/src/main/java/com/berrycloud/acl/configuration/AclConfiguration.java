@@ -16,15 +16,11 @@
 package com.berrycloud.acl.configuration;
 
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.repository.support.Repositories;
-import org.springframework.data.rest.webmvc.ExportAwareRepositories;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -51,20 +47,6 @@ import com.berrycloud.acl.security.access.AclPermissionEvaluator;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @Import(AclRepositoryRestConfiguration.class)
 public class AclConfiguration {
-
-  @Autowired
-  ApplicationContext context;
-
-  /**
-   * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces,
-   * so data-rest-API will use the repository with the @Primary annotation. We create the bean here in the main
-   * configuration class because we use it in the PermissionEvaluator too.
-   */
-  @Bean
-  @ConditionalOnMissingBean
-  public Repositories repositories() {
-    return new ExportAwareRepositories(context);
-  }
 
   @Bean
   public BeanPostProcessor localContainerEntityManagerFactoryBeanPostProcessor() {

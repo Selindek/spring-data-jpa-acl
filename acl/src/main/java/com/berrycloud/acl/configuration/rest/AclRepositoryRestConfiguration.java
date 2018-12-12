@@ -28,10 +28,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.data.repository.support.Repositories;
 import org.springframework.data.rest.webmvc.BasePathAwareHandlerMapping;
 import org.springframework.data.rest.webmvc.DomainPropertyClassResolver;
-import org.springframework.data.rest.webmvc.ExportAwareRepositories;
 import org.springframework.data.rest.webmvc.RepositoryRestHandlerMapping;
 import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
 import org.springframework.data.rest.webmvc.json.JacksonMappingAwarePropertySortTranslator;
@@ -52,7 +50,6 @@ import com.berrycloud.acl.search.SearchHandlerMethodArgumentResolver;
  * This configuration class is activated only if spring-data-rest-webmvc is in the classpath. It overrides some of the
  * original beans of the the data-rest module to make it compatible with the ACL package.
  *
- * @author Will Faithfull
  * @author István Rátkai (Selindek)
  */
 @Configuration
@@ -147,15 +144,5 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
   public Associations associationLinks() {
     return new PageableAssociations(resourceMappings(), repositoryRestConfiguration(), pageableResolver());
   }
-  
-  /**
-   * We replace the stock repostiories with our modified subclass. It correctly prioritises the repository interfaces,
-   * so data-rest-API will use the repository with the @Primary annotation. We create the bean here in the main
-   * configuration class because we use it in the PermissionEvaluator too.
-   */
-  @Override
-  @Bean
-  public Repositories repositories() {
-    return new ExportAwareRepositories(applicationContext);
-  }
+
 }
