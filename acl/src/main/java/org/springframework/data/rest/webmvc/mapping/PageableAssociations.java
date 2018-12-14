@@ -17,6 +17,7 @@ package org.springframework.data.rest.webmvc.mapping;
 
 import static org.springframework.hateoas.TemplateVariable.VariableType.REQUEST_PARAM;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -47,6 +48,8 @@ import org.springframework.web.util.UriComponentsBuilder;
  * @since 2.1
  */
 public class PageableAssociations extends Associations {
+
+  private static final String COMPLEMENT = "Complement";
 
   private final ResourceMappings mappings;
   private final RepositoryRestConfiguration config;
@@ -92,8 +95,15 @@ public class PageableAssociations extends Associations {
           .concat(getProjectionVariable(property));
 
       UriTemplate template = new UriTemplate(href, variables);
+      Link link = new Link(template, propertyMapping.getRel());
 
-      return Collections.singletonList(new Link(template, propertyMapping.getRel()));
+      if (association.getInverse().isCollectionLike()) {
+        // Add link to the complement-collection too
+        return Arrays.asList(link,
+            new Link(new UriTemplate(href + COMPLEMENT, variables), propertyMapping.getRel() + COMPLEMENT));
+      } else {
+        return Collections.singletonList(link);
+      }
     }
 
     return Collections.emptyList();
