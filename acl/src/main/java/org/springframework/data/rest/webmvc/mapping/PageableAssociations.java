@@ -97,13 +97,14 @@ public class PageableAssociations extends Associations {
       UriTemplate template = new UriTemplate(href, variables);
       Link link = new Link(template, propertyMapping.getRel());
 
-      if (association.getInverse().isCollectionLike()) {
+      if (association.getInverse().isCollectionLike()
+          && association.getInverse().findPropertyOrOwnerAnnotation(HideComplementEndpoint.class) == null) {
         // Add link to the complement-collection too
         return Arrays.asList(link,
             new Link(new UriTemplate(href + COMPLEMENT, variables), propertyMapping.getRel() + COMPLEMENT));
-      } else {
-        return Collections.singletonList(link);
       }
+      return Collections.singletonList(link);
+
     }
 
     return Collections.emptyList();

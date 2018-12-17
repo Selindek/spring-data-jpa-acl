@@ -525,7 +525,9 @@ This request could be also paginated and searchable, so all the extra parameters
 And the result set also will be filtered by the ACl - just like any other endpoints -, so it will contain only objects which the current user has permission to.
 
 This feature can be used on any collection-like property of any ACL-managed entity without any additional settings.
- 
+
+The links for these complement-endpoints are also added to the hateoas links of the objects. However in certain cases some (or all) of these complement-endpoints are not needed (either because they meaningless or useless for a given collection). In this case the given association can be annotated with the `@HideComplementEndpoint` annotation. This annotation can be used on class level too. In this case no any complement-endpoint links will be added to this entity.
+
 ## Missing features
 
 Unfortunately the `@DataJpaTest` annotation which can be used for testing the JpaRepositories cannot be used together with this extension.
