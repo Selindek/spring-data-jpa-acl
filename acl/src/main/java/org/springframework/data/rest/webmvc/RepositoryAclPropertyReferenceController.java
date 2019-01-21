@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,7 +42,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.CollectionFactory;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
 import org.springframework.data.repository.support.Repositories;
@@ -341,8 +339,12 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
               "Must send only 1 link to update a property reference that isn't a List or a Map.");
         }
 
-        Object propVal = loadPropertyValue(prop.propertyType, source.getLinks().get(0));
-        prop.accessor.setProperty(prop.property, propVal);
+        propertyValue = loadPropertyValue(prop.propertyType, source.getLinks().get(0));
+        if (propertyValue == null) {
+          return null;
+        }
+        prop.accessor.setProperty(prop.property, propertyValue);
+
       }
 
       publisher.publishEvent(new BeforeLinkSaveEvent(prop.accessor.getBean(), propertyValue));
@@ -372,32 +374,14 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       Object propertyValue = prop.accessor.getProperty(prop.property);
 
       if (prop.property.isCollectionLike()) {
-        Collection<Object> coll = (Collection<Object>) propertyValue;
-        Iterator<Object> itr = coll.iterator();
-        while (itr.hasNext()) {
-          Object obj = itr.next();
-
-          Optional.ofNullable(prop.entity.getIdentifierAccessor(obj).getIdentifier())//
-              .map(Object::toString)//
-              .filter(propertyId::equals)//
-              .ifPresent(__ -> itr.remove());
-        }
+        ((Collection<Object>) propertyValue).remove(prop.propertyValue);
 
       } else if (prop.property.isMap()) {
-        Map<Object, Object> m = (Map<Object, Object>) propertyValue;
-        Iterator<Entry<Object, Object>> itr = m.entrySet().iterator();
+        ((Map<String, Object>) propertyValue).remove(propertyId);
 
-        while (itr.hasNext()) {
-
-          Object key = itr.next().getKey();
-
-          Optional.ofNullable(prop.entity.getIdentifierAccessor(m.get(key)).getIdentifier())//
-              .map(Object::toString)//
-              .filter(propertyId::equals)//
-              .ifPresent(__ -> itr.remove());
-        }
       } else {
         prop.wipeValue();
+        propertyValue = null;
       }
 
       publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
@@ -445,6 +429,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     PersistentPropertyAccessor<Object> accessor = property.getOwner().getPropertyAccessor(domainObj);
     Object propertyValue;
+
     if (propertyId == COMPLEMENT) {
       if (property.isCollectionLike()) {
         propertyRepository.clear();
@@ -453,9 +438,17 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       } else {
         throw new ResourceNotFoundException();
       }
+    } else if ((property.isCollectionLike() || property.isMap()) && propertyId == null
+        && HttpMethod.DELETE.equals(method)) {
+      throw HttpRequestMethodNotSupportedException.forRejectedMethod(HttpMethod.DELETE)
+          .withAllowedMethods(HttpMethod.GET, HttpMethod.HEAD);
     } else if (property.isMap()) {
-      // If the property is a Map load it directly without pagination and ACL.
+      // If the property is a Map, then the value is the map itself
       propertyValue = accessor.getProperty(property);
+      if (propertyId != null) {
+        // If there is a key, the value is the appropriate object from the map
+        propertyValue = ((Map<String, Object>) propertyValue).get(propertyId);
+      }
     } else {
       // Must clear the JPA cache otherwise lazily-loaded properties of the domainObject may
       // appear in the property as proxy-classes and totally mess up the content
@@ -465,7 +458,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       // Then we load the property itself using ACl specification
       propertyValue = findProperty(pageable, property, accessor, propertyId, propertyRepository);
     }
-    return Optional.ofNullable(handler.apply(new ReferencedProperty(property, propertyValue, accessor, repositories)));
+    return Optional.ofNullable(handler.apply(new ReferencedProperty(property, propertyValue, accessor)));
   }
 
   protected AclJpaRepository<Object, Object> getAclRepository(Class<?> type) {
@@ -502,20 +495,18 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
   private static class ReferencedProperty {
 
-    final PersistentEntity<?, ?> entity;
     final PersistentProperty<?> property;
     final Class<?> propertyType;
     final Object propertyValue;
     final PersistentPropertyAccessor<Object> accessor;
 
     private ReferencedProperty(PersistentProperty<?> property, Object propertyValue,
-        PersistentPropertyAccessor<Object> wrapper, Repositories repositories) {
+        PersistentPropertyAccessor<Object> wrapper) {
 
       this.property = property;
       this.propertyValue = propertyValue;
       this.accessor = wrapper;
       this.propertyType = property.getActualType();
-      this.entity = repositories.getPersistentEntity(propertyType);
     }
 
     public void wipeValue() {

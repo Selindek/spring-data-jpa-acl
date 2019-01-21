@@ -542,7 +542,28 @@ There are some limitations if you want to use the ACL:
 - Search functionality doesn't work with unique queries (defined by `@Query` annotation).
 - ACL and pagination is not working on maps (They are treated as common properties, not as collections).
 
-## Conclusion
+# Changed features
+
+Spring Data REST is quite a well-designed package but I believe that a few - rarely used - features in it was not planned or implemented properly.
+So, I've changed the original functionality at a few places.
+ 
+## Accessing Map Properties
+
+In the original implementation of Spring Data REST you can access the map-like properties using the entity id.
+So, assuming the type of the reports property is a `Map<String, Report>`, the following request returns the Report object which id field is "qqq":
+
+`GET /user/1/reports/qqq`
+
+However in this extension package it will return the report object under the key "qqq". Although getting properties by their id is the default approach of REST, I believe it's not true for maps. Actually we use the object id simply because we need some kind of identifier, and we simply don't have any other than the object id. (Because we are talking about property _collections_, not lists, so we cannot assume there are some kind of order in it.) However when the collection is a Map, then we have a natural id, the key of the Map.Entry.
+
+That's especially true when we have the _same_ object several times in the collection under different keys! Although getting the object by id is still could work, but what happens when we try to DELETE an object from a map which contains multiple ones?
+
+`DELETE /user/1/reports/qqq`
+
+If the last part of the URL "qqq" means the id of the report then which report object should be removed from the collection? One? All of it? The original implementation removes all of them which is - I believe - the best option. However how can delete only one of them? The only solution is if we list the whole collection, remember all the keys which are used for the given object, then delete the link, and then we put back the object under all of the other keys.
+Using my implementation the above task is much more easy. The last part of the URL means the key, so the objects can be removed from the map one-by-one.    
+
+# Conclusion
 
 Maybe this document is quite long and complex but creating a safe permission-system for your application what covers all of the use cases is still much more difficult than understanding the proper usage of these annotations. And your final code will be much more clear if you can handle everything by including an extra dependency and adding a few annotations here or there.
 

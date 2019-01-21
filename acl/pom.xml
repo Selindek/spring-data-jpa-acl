@@ -10,9 +10,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>com.berrycloud.acl</groupId>
   <artifactId>spring-data-jpa-acl</artifactId>
-  <version>0.0.3-SNAPSHOT</version>
 
   <name>acl</name>
   <description>Access Control Logic extension for Spring Data JPA</description>
