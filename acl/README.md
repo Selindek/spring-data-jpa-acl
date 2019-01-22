@@ -85,7 +85,7 @@ Unfortunately the query methods where you manually define the native or JPA quer
 	    @Query("select p from SimpleAclUser p")
 	    List<SimpleAclUser> mySelect();
 
-#_These methods WON'T BE secured by the ACL at all even if you don't add the @NoAcl annotation!_
+***These methods WON'T BE secured by the ACL at all even if you don't add the @NoAcl annotation!***
 
 You can annotate such methods with the @NoAcl annotation to prevent these warnings.
 
@@ -550,18 +550,83 @@ So, I've changed the original functionality at a few places.
 ## Accessing Map Properties
 
 In the original implementation of Spring Data REST you can access the map-like properties using the entity id.
-So, assuming the type of the reports property is a `Map<String, Report>`, the following request returns the Report object which id field is "qqq":
+So, assuming the type of the reports property is a `Map<String, Report>`, the following request returns the Report object where the id field is "qqq":
 
 `GET /user/1/reports/qqq`
 
-However in this extension package it will return the report object under the key "qqq". Although getting properties by their id is the default approach of REST, I believe it's not true for maps. Actually we use the object id simply because we need some kind of identifier, and we simply don't have any other than the object id. (Because we are talking about property _collections_, not lists, so we cannot assume there are some kind of order in it.) However when the collection is a Map, then we have a natural id, the key of the Map.Entry.
+However in this extension package it will return the report object under the key "qqq". Although getting properties by their id is the default approach of REST, I believe it's not true for maps. Actually we use the object id simply because we need some kind of identifier, and we simply don't have any other than the object id. (Because we are talking about property _collections_, not lists or arrays, so we cannot assume there are some kind of order in it.) However when the collection is a Map, then we have a natural id, the key of the Map.Entry.
 
-That's especially true when we have the _same_ object several times in the collection under different keys! Although getting the object by id is still could work, but what happens when we try to DELETE an object from a map which contains multiple ones?
+That's especially true when we have the _same_ object several times in a map under different keys! Although getting the object by id is still could work, but what happens when we try to DELETE an object from a map which contains multiple ones?
 
 `DELETE /user/1/reports/qqq`
 
-If the last part of the URL "qqq" means the id of the report then which report object should be removed from the collection? One? All of it? The original implementation removes all of them which is - I believe - the best option. However how can delete only one of them? The only solution is if we list the whole collection, remember all the keys which are used for the given object, then delete the link, and then we put back the object under all of the other keys.
+If the last part of the URL "qqq" means the id of the report then which report object should be removed from the collection? One? All of it? The original implementation removes all of them which is sounds good... However how can we delete only one of them? The only solution is if we list the whole collection, save all the keys which are used for the given object, then we delete the link, and then we put back the object under all of the other keys.
 Using my implementation the above task is much more easy. The last part of the URL means the key, so the objects can be removed from the map one-by-one.    
+
+## `BeforeLinkDeleteEvent`, `BeforeLinkSaveEvent`, `AfterLinkDeleteEvent` and `AfterLinkSaveEvent` were changed
+
+In the original version these events are mostly useless. When any of these events is fired and the appropriate event-handler is called, there are two parameters: The parent object and the altered property/property-collection.
+If there are multiple referenced-properties in the parent with the same type, then it cannot be defined which property was altered. Also, because the parent object also contains the altered property, it cannot be defined which elements were added or removed from the collection.
+
+In order to fix these issues, the 2nd parameter is not the changed property or property-collection any more, but a newly introduced object: a `PropertyReference`. This bean has two properties:
+
+- `name`: it is the name of the altered property.
+- `value`: this field contains the added or removed properties, based on which kind of event was fired.
+
+Also, the ACL keeps track of the exact list of all the changed references, so it could happen that during a PUT not only `LinkSave` but also `LinkDelete` events are also be fired. (A PUT request could also remove elements form a collection!)
+
+Let's see all the possible cases one by one:
+
+### DELETE a single-property reference
+
+The property will be deleted only if the current user has READ permission to the referenced property and `BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` will be fired only if the property was changed. So if the original value was `null` or the user has no permission to the property, then there will be no events. (Because there will be no any change in the DB neither)
+
+### POST/PUT/PATCH a single-property reference
+
+If the current user has no permission to the new property or the provided property doesn't exists (invalid id) then there will be no events, nor any changes in the DB.  
+Otherwise if the original value was not `null` then `BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` will be fired with the original value, and `BeforeLinkSaveEvent`and `AfterLinkSaveEvent` with the new value.
+
+### DELETE an element form a collection
+
+`BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` will be fired only if the id is valid and the current user has permission to the deleted element. The deleted element is wrapped into a collection.
+
+### POST/PATCH elements to a collection
+
+- Elements with invalid id are ignored.
+- Elements without READ permission will be ignored.
+- Elements which are already in the collection are ignored.
+
+If there are still elements which are actually added to the collection then `BeforeLinkSaveEvent`and `AfterLinkSaveEvent` will be fired with a collection value which contains only the actually added elements.
+
+### PUT elements to a collection
+
+Same rules than above, but before the `Save` events there will be also `BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` fired with all of the elements which were in the collection before the PUT request but not afterward. (During a PUT request the original content is completely overridden with the new content). If there are no such elements then the event won't be fired.
+
+### DELETE entries form a map
+
+`BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` will be fired only if the keySet of the collection contains the provided key. The `value` property of the `PropertyReference` object will be a map containing the removed entry. (whole key-value pair).
+
+### POST/PATCH entries to a map
+
+- all the provided entries where the id is invalid will be ignored.
+- all the provided entries where the map already contains the same value under the same key will be ignored.
+
+`BeforeLinkSaveEvent`and `AfterLinkSaveEvent` will be fired with a map which contains the following entries:
+
+- entries with new key
+- entries with existing key but new value 
+
+`BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` will be also fired (before the appropriate `Save` event) with a map which contains the following entries:
+
+- original key-value pairs for entries where the value was overridden.
+
+### PUT entries to a map
+
+On top of the above the `Delete` events will also contain the entries which were completely removed from the map. (Because the PUT request override the original content)
+
+**Any of the above events will be fired only if there is at least one entry in their map.**
+
+
 
 # Conclusion
 

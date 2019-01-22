@@ -29,10 +29,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,7 +45,6 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.core.CollectionFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mapping.PersistentProperty;
@@ -194,10 +198,11 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       if (propertyValue != null) {
         prop.wipeValue();
 
-        // TODO improve events
-        publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
+        PropertyReference pr = new PropertyReference(prop.property.getName(), propertyValue);
+
+        publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), pr));
         Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
-        publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
+        publisher.publishEvent(new AfterLinkDeleteEvent(result, pr));
       }
 
       return null;
@@ -316,37 +321,106 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
       Object propertyValue = prop.accessor.getProperty(prop.property);
 
-      Class<?> propertyType = prop.property.getType();
+      Object deletedObjects = null;
+      Object addedObjects = null;
 
       if (prop.property.isCollectionLike()) {
-        Collection<Object> collection = AUGMENTING_METHODS.contains(requestMethod) ? (Collection<Object>) propertyValue
-            : CollectionFactory.createCollection(propertyType, 0);
+        // original set
+        Collection<Object> collection = (Collection<Object>) propertyValue;
+        // helper set
+        Set<Object> set = new HashSet<>(collection);
+        // objects to add
+        Set<Object> addedSet = source.getLinks().stream().map(l -> loadPropertyValue(prop.propertyType, l))
+            .filter(Objects::nonNull).collect(Collectors.toSet());
 
-        // Add to the existing collection
-        for (Link l : source.getLinks()) {
-          Object value = loadPropertyValue(prop.propertyType, l);
-          if (value != null) {
-            collection.add(value);
+        Iterator<Object> iterator = addedSet.iterator();
+
+        if (AUGMENTING_METHODS.contains(requestMethod)) { // POST and PATCH
+          while (iterator.hasNext()) {
+            Object value = iterator.next();
+            if (set.contains(value)) {
+              iterator.remove();
+            } else {
+              collection.add(value);
+            }
+          }
+        } else { // PUT
+          collection.clear();
+          collection.addAll(addedSet);
+
+          while (iterator.hasNext()) {
+            Object value = iterator.next();
+            if (set.remove(value)) {
+              iterator.remove();
+            }
+          }
+          if (!set.isEmpty()) {
+            deletedObjects = set;
           }
         }
-        propertyValue = collection;
+
+        if (!addedSet.isEmpty()) {
+          addedObjects = addedSet;
+        }
 
       } else if (prop.property.isMap()) {
-
-        Map<String, Object> map = AUGMENTING_METHODS.contains(requestMethod) ? (Map<String, Object>) propertyValue
-            : CollectionFactory.<String, Object> createMap(propertyType, 0);
-
-        // Add to the existing collection
-        for (Link l : source.getLinks()) {
+        // original map
+        Map<String, Object> map = (Map<String, Object>) propertyValue;
+        // entries to remove
+        Map<String, Object> removedMap = new HashMap<>();
+        // entries to add
+        Map<String, Object> addedMap = new HashMap<>();
+        source.getLinks().stream().forEach(l -> {
           Object value = loadPropertyValue(prop.propertyType, l);
           if (value != null) {
-            map.put(l.getRel(), value);
+            addedMap.put(l.getRel(), value);
+          }
+        });
+
+        Iterator<Entry<String, Object>> iterator = addedMap.entrySet().iterator();
+
+        if (AUGMENTING_METHODS.contains(requestMethod)) { // POST and PATCH
+          while (iterator.hasNext()) {
+            Entry<String, Object> entry = iterator.next();
+            Object oldValue = map.put(entry.getKey(), entry.getValue());
+            if (oldValue != null) {
+              // has value with a same key
+              if (oldValue == entry.getValue()) {
+                // same value -> no need to add
+                iterator.remove();
+              } else {
+                // different value -> remove old
+                removedMap.put(entry.getKey(), oldValue);
+              }
+            }
+          }
+        } else { // PUT
+          // remove all original entries, except if...
+          removedMap.putAll(map);
+          map.clear();
+          map.putAll(addedMap);
+          while (iterator.hasNext()) {
+            Entry<String, Object> entry = iterator.next();
+            Object oldValue = removedMap.get(entry.getKey());
+            // ...has entry with a same value...
+            if (oldValue == entry.getValue()) {
+              // ...then no need to remove
+              removedMap.remove(entry.getKey());
+              // ... and no need to add
+              iterator.remove();
+            }
           }
         }
-        propertyValue = map;
+
+        if (!addedMap.isEmpty()) {
+          addedObjects = addedMap;
+        }
+        if (!removedMap.isEmpty()) {
+          deletedObjects = removedMap;
+        }
 
       } else {
-
+        // Single-value property
         if (HttpMethod.PATCH.equals(requestMethod)) {
           throw HttpRequestMethodNotSupportedException.forRejectedMethod(HttpMethod.PATCH)//
               .withAllowedMethods(HttpMethod.PATCH)//
@@ -359,18 +433,29 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
               "Must send only 1 link to update a property reference that isn't a List or a Map.");
         }
 
+        // Old property (could be null)
+        deletedObjects = propertyValue;
         propertyValue = loadPropertyValue(prop.propertyType, source.getLinks().get(0));
         if (propertyValue == null) {
           return null;
         }
+        // New property
+        addedObjects = propertyValue;
       }
 
       prop.accessor.setProperty(prop.property, propertyValue);
 
-      // TODO improve events
-      publisher.publishEvent(new BeforeLinkSaveEvent(prop.accessor.getBean(), propertyValue));
+      Optional<PropertyReference> prd = Optional.ofNullable(deletedObjects)
+          .map(o -> new PropertyReference(prop.property.getName(), o));
+      Optional<PropertyReference> prs = Optional.ofNullable(addedObjects)
+          .map(o -> new PropertyReference(prop.property.getName(), o));
+      Object parent = prop.accessor.getBean();
+
+      prd.ifPresent(o -> publisher.publishEvent(new BeforeLinkDeleteEvent(parent, o)));
+      prs.ifPresent(o -> publisher.publishEvent(new BeforeLinkSaveEvent(parent, o)));
       Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
-      publisher.publishEvent(new AfterLinkSaveEvent(result, propertyValue));
+      prd.ifPresent(o -> publisher.publishEvent(new AfterLinkDeleteEvent(result, o)));
+      prs.ifPresent(o -> publisher.publishEvent(new AfterLinkSaveEvent(result, o)));
 
       return null;
 
@@ -389,29 +474,35 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     Function<ReferencedProperty, ResourceSupport> handler = prop -> {
 
       Object propertyValue = prop.accessor.getProperty(prop.property);
-      if (propertyValue == null) {
-        return null;
-      }
-      if (prop.property.isCollectionLike()) {
-        Object value = findProperty(prop, propertyId);
-        if (value == null) {
-          return null;
+      if (propertyValue != null) {
+        Object deletedObject = null;
+
+        if (prop.property.isCollectionLike()) {
+          Object value = findProperty(prop, propertyId);
+          if (value != null && ((Collection<Object>) propertyValue).remove(value)) {
+            deletedObject = Collections.singleton(value);
+          }
+
+        } else if (prop.property.isMap()) {
+          Object removed = ((Map<String, Object>) propertyValue).remove(propertyId);
+          if (removed != null) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put(propertyId, removed);
+            deletedObject = map;
+          }
+        } else {
+          prop.wipeValue();
+          deletedObject = propertyValue;
         }
-        ((Collection<Object>) propertyValue).remove(value);
 
-      } else if (prop.property.isMap()) {
-        ((Map<String, Object>) propertyValue).remove(propertyId);
+        if (deletedObject != null) {
+          PropertyReference pr = new PropertyReference(prop.property.getName(), deletedObject);
 
-      } else {
-        prop.wipeValue();
-        propertyValue = null;
+          publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), pr));
+          Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
+          publisher.publishEvent(new AfterLinkDeleteEvent(result, pr));
+        }
       }
-
-      // TODO improve events
-      publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
-      Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
-      publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
-
       return null;
 
     };
