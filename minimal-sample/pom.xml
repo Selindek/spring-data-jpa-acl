@@ -10,9 +10,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.berrycloud.acl</groupId>
     <artifactId>acl-minimal-sample</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
 
     <name>acl-minimal-sample</name>
     <description>Demo project for Spring Data Jpa Acl</description>

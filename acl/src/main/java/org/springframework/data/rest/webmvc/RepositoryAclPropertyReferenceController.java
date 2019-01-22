@@ -29,18 +29,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.CollectionFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
@@ -122,27 +123,35 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     final HttpHeaders headers = new HttpHeaders();
 
-    Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
-      if (prop.property.isCollectionLike()) {
-        return toResources((Iterable<?>) it, assembler, prop.propertyType, Optional.empty());
+    Function<ReferencedProperty, ResourceSupport> handler = prop -> {
 
-      } else if (prop.property.isMap()) {
+      if (prop.property.isMap()) {
+        // No ACL for maps -> load map property directly
+        Object propertyValue = prop.accessor.getProperty(prop.property);
 
-        Map<Object, Resource<?>> resources = new HashMap<>();
-
-        for (Map.Entry<Object, Object> entry : ((Map<Object, Object>) it).entrySet()) {
-          resources.put(entry.getKey(), assembler.toResource(entry.getValue()));
-        }
-
+        Map<Object, Resource<?>> resources = ((Map<Object, Object>) propertyValue).entrySet().stream()
+            .collect(Collectors.toMap(Entry::getKey, e -> assembler.toResource(e.getValue())));
         return new Resource<Object>(resources);
+      }
 
-      } else {
+      // Load via ACL
+      Object propertyValue = findProperty(prop, pageable);
 
-        PersistentEntityResource resource = assembler.toResource(it);
+      if (prop.property.isCollectionLike()) {
+
+        return toResources((Iterable<?>) propertyValue, assembler, prop.propertyType, Optional.empty());
+
+      } else if (propertyValue != null) {
+
+        PersistentEntityResource resource = assembler.toResource(propertyValue);
         headers.set("Content-Location", resource.getId().getHref());
         return resource;
+
       }
-    }).orElseThrow(() -> new ResourceNotFoundException());
+
+      throw new ResourceNotFoundException();
+
+    };
 
     Optional<ResourceSupport> responseResource = doWithReferencedProperty(repoRequest, id, property, handler,
         HttpMethod.GET, pageable, null);
@@ -157,9 +166,12 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     final HttpHeaders headers = new HttpHeaders();
 
-    Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
-      return toResources((Iterable<?>) it, assembler, prop.propertyType, Optional.empty());
-    }).orElseThrow(() -> new ResourceNotFoundException());
+    Function<ReferencedProperty, ResourceSupport> handler = prop -> {
+      if (prop.property.isCollectionLike()) {
+        return toResources(findPropertyComplement(prop, pageable), assembler, prop.propertyType, Optional.empty());
+      }
+      throw new ResourceNotFoundException();
+    };
 
     Optional<ResourceSupport> responseResource = doWithReferencedProperty(repoRequest, id, property, handler,
         HttpMethod.GET, pageable, COMPLEMENT);
@@ -171,24 +183,26 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
   public ResponseEntity<? extends ResourceSupport> deletePropertyReference(final RootResourceInformation repoRequest,
       @BackendId Serializable id, @PathVariable String property) throws Exception {
 
-    AclJpaRepository<Object, Object> aclRepository = getAclRepository(repoRequest.getDomainType());
-    // final RepositoryInvoker repoMethodInvoker = repoRequest.getInvoker();
-
-    Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
+    Function<ReferencedProperty, ResourceSupport> handler = prop -> {
       if (prop.property.isCollectionLike() || prop.property.isMap()) {
         throw HttpRequestMethodNotSupportedException.forRejectedMethod(HttpMethod.DELETE)
             .withAllowedMethods(HttpMethod.GET, HttpMethod.HEAD);
-      } else {
-        prop.wipeValue();
       }
 
-      publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), prop.propertyValue));
-      Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
-      publisher.publishEvent(new AfterLinkDeleteEvent(result, prop.propertyValue));
+      Object propertyValue = findProperty(prop, (DefaultedPageable) null);
 
-      return (ResourceSupport) null;
+      if (propertyValue != null) {
+        prop.wipeValue();
 
-    }).orElse(null);
+        // TODO improve events
+        publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
+        Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
+        publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
+      }
+
+      return null;
+
+    };
 
     doWithReferencedProperty(repoRequest, id, property, handler, HttpMethod.DELETE, null, null);
 
@@ -202,20 +216,31 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     final HttpHeaders headers = new HttpHeaders();
 
-    Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
-      if (prop.property.isCollectionLike()) {
-        PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
+    Function<ReferencedProperty, ResourceSupport> handler = prop -> {
+
+      if (prop.property.isMap()) {
+        Object propertyValue = prop.accessor.getProperty(prop.property);
+        propertyValue = ((Map<String, Object>) propertyValue).get(propertyId);
+        if (propertyValue == null) {
+          throw new ResourceNotFoundException();
+        }
+        PersistentEntityResource resource = assembler.toResource(propertyValue);
         headers.set("Content-Location", resource.getId().getHref());
         return resource;
-      } else if (prop.property.isMap()) {
-        PersistentEntityResource resource = assembler.toResource(prop.propertyValue);
-        headers.set("Content-Location", resource.getId().getHref());
-        return resource;
-      } else {
-        return new Resource<>(prop.propertyValue);
       }
 
-    }).orElseThrow(() -> new ResourceNotFoundException());
+      Object propertyValue = findProperty(prop, propertyId);
+      if (propertyValue != null) {
+        PersistentEntityResource resource = assembler.toResource(propertyValue);
+        String href = resource.getId().getHref();
+        headers.set("Content-Location", href);
+
+        if (prop.property.isCollectionLike() || href.substring(href.lastIndexOf('/') + 1).equals(propertyId)) {
+          return resource;
+        }
+      }
+      throw new ResourceNotFoundException();
+    };
 
     Optional<ResourceSupport> responseResource = doWithReferencedProperty(repoRequest, id, property, handler,
         HttpMethod.GET, null, propertyId);
@@ -242,7 +267,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     List<Link> links = new ArrayList<>();
 
     if (resource instanceof Resources) {
-      ((Resources<?>) resource).getContent();
+
       for (Resource<?> res : ((Resources<Resource<?>>) resource).getContent()) {
         links.add(res.getLink("self"));
       }
@@ -287,11 +312,8 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     final Resources<Object> source = incoming == null ? new Resources<>(Collections.emptyList()) : incoming;
 
-    AclJpaRepository<Object, Object> aclRepository = getAclRepository(resourceInformation.getDomainType());
-
     Function<ReferencedProperty, ResourceSupport> handler = prop -> {
 
-      // Reload propertyValue - We need the original collection for modification
       Object propertyValue = prop.accessor.getProperty(prop.property);
 
       Class<?> propertyType = prop.property.getType();
@@ -307,8 +329,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
             collection.add(value);
           }
         }
-
-        prop.accessor.setProperty(prop.property, collection);
+        propertyValue = collection;
 
       } else if (prop.property.isMap()) {
 
@@ -322,8 +343,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
             map.put(l.getRel(), value);
           }
         }
-
-        prop.accessor.setProperty(prop.property, map);
+        propertyValue = map;
 
       } else {
 
@@ -343,12 +363,13 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         if (propertyValue == null) {
           return null;
         }
-        prop.accessor.setProperty(prop.property, propertyValue);
-
       }
 
+      prop.accessor.setProperty(prop.property, propertyValue);
+
+      // TODO improve events
       publisher.publishEvent(new BeforeLinkSaveEvent(prop.accessor.getBean(), propertyValue));
-      Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
+      Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
       publisher.publishEvent(new AfterLinkSaveEvent(result, propertyValue));
 
       return null;
@@ -365,16 +386,18 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       @BackendId Serializable backendId, @PathVariable String property, final @PathVariable String propertyId)
       throws Exception {
 
-    // final RepositoryInvoker invoker = repoRequest.getInvoker();
-    AclJpaRepository<Object, Object> aclRepository = getAclRepository(repoRequest.getDomainType());
+    Function<ReferencedProperty, ResourceSupport> handler = prop -> {
 
-    Function<ReferencedProperty, ResourceSupport> handler = prop -> prop.mapValue(it -> {
-
-      // Reload propertyValue - We need the collection for deletion
       Object propertyValue = prop.accessor.getProperty(prop.property);
-
+      if (propertyValue == null) {
+        return null;
+      }
       if (prop.property.isCollectionLike()) {
-        ((Collection<Object>) propertyValue).remove(prop.propertyValue);
+        Object value = findProperty(prop, propertyId);
+        if (value == null) {
+          return null;
+        }
+        ((Collection<Object>) propertyValue).remove(value);
 
       } else if (prop.property.isMap()) {
         ((Map<String, Object>) propertyValue).remove(propertyId);
@@ -384,13 +407,14 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         propertyValue = null;
       }
 
+      // TODO improve events
       publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), propertyValue));
-      Object result = aclRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
+      Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
       publisher.publishEvent(new AfterLinkDeleteEvent(result, propertyValue));
 
-      return (ResourceSupport) null;
+      return null;
 
-    }).orElse(null);
+    };
 
     doWithReferencedProperty(repoRequest, backendId, property, handler, HttpMethod.DELETE, null, propertyId);
 
@@ -421,44 +445,14 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     PersistentProperty<?> property = mapping.getProperty();
     resourceInformation.verifySupportedMethod(method, property);
 
+    // We first load the parent domainObject and check its accessibility
     AclJpaRepository<Object, Object> propertyRepository = getAclRepository(property.getOwner().getType());
-
-    // We first load the domainObject and check its accessibility
     Object domainObj = propertyRepository.findById(id, HttpMethod.GET.equals(method) ? "read" : "update")
         .orElseThrow(() -> new ResourceNotFoundException());
 
     PersistentPropertyAccessor<Object> accessor = property.getOwner().getPropertyAccessor(domainObj);
-    Object propertyValue;
 
-    if (propertyId == COMPLEMENT) {
-      if (property.isCollectionLike()) {
-        propertyRepository.clear();
-        // Load the complement-collection
-        propertyValue = findPropertyComplement(pageable, property, accessor, propertyRepository);
-      } else {
-        throw new ResourceNotFoundException();
-      }
-    } else if ((property.isCollectionLike() || property.isMap()) && propertyId == null
-        && HttpMethod.DELETE.equals(method)) {
-      throw HttpRequestMethodNotSupportedException.forRejectedMethod(HttpMethod.DELETE)
-          .withAllowedMethods(HttpMethod.GET, HttpMethod.HEAD);
-    } else if (property.isMap()) {
-      // If the property is a Map, then the value is the map itself
-      propertyValue = accessor.getProperty(property);
-      if (propertyId != null) {
-        // If there is a key, the value is the appropriate object from the map
-        propertyValue = ((Map<String, Object>) propertyValue).get(propertyId);
-      }
-    } else {
-      // Must clear the JPA cache otherwise lazily-loaded properties of the domainObject may
-      // appear in the property as proxy-classes and totally mess up the content
-      if (HttpMethod.GET.equals(method)) {
-        propertyRepository.clear();
-      }
-      // Then we load the property itself using ACl specification
-      propertyValue = findProperty(pageable, property, accessor, propertyId, propertyRepository);
-    }
-    return Optional.ofNullable(handler.apply(new ReferencedProperty(property, propertyValue, accessor)));
+    return Optional.ofNullable(handler.apply(new ReferencedProperty(propertyRepository, property, accessor)));
   }
 
   protected AclJpaRepository<Object, Object> getAclRepository(Class<?> type) {
@@ -469,42 +463,43 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     return (AclJpaRepository<Object, Object>) repository;
   }
 
-  protected Object findProperty(DefaultedPageable pageable, PersistentProperty<?> property,
-      PersistentPropertyAccessor<Object> accessor, String propertyId,
-      AclJpaRepository<Object, Object> propertyRepository) {
+  protected Object findProperty(ReferencedProperty prop, String propertyId) {
 
-    Object ownerId = accessor.getProperty(property.getOwner().getIdProperty());
-    if (propertyId != null) {
-      // find the property as an object
-      return propertyRepository.findProperty(ownerId, property, propertyId);
-    }
-    // find the property as a collection
-    Pageable page = pageable == null ? Pageable.unpaged() : pageable.getPageable();
-    return propertyRepository.findProperty(ownerId, property, page);
+    Object ownerId = prop.accessor.getProperty(prop.property.getOwner().getIdProperty());
+    // find the property as an object
+    return prop.propertyRepository.findProperty(ownerId, prop.property, propertyId);
   }
 
-  protected Object findPropertyComplement(DefaultedPageable pageable, PersistentProperty<?> property,
-      PersistentPropertyAccessor<Object> accessor, AclJpaRepository<Object, Object> propertyRepository) {
+  protected Object findProperty(ReferencedProperty prop, DefaultedPageable pageable) {
 
-    Object ownerId = accessor.getProperty(property.getOwner().getIdProperty());
+    Object ownerId = prop.accessor.getProperty(prop.property.getOwner().getIdProperty());
+
+    // find the property as a collection
+    Pageable page = pageable == null ? Pageable.unpaged() : pageable.getPageable();
+    return prop.propertyRepository.findProperty(ownerId, prop.property, page);
+  }
+
+  protected Page<Object> findPropertyComplement(ReferencedProperty prop, DefaultedPageable pageable) {
+
+    Object ownerId = prop.accessor.getProperty(prop.property.getOwner().getIdProperty());
 
     // find the property as a collection-complement
     Pageable page = pageable == null ? Pageable.unpaged() : pageable.getPageable();
-    return propertyRepository.findPropertyComplement(ownerId, property, page);
+    return (Page<Object>) prop.propertyRepository.findPropertyComplement(ownerId, prop.property, page);
   }
 
   private static class ReferencedProperty {
 
+    final AclJpaRepository<Object, Object> propertyRepository;
     final PersistentProperty<?> property;
     final Class<?> propertyType;
-    final Object propertyValue;
     final PersistentPropertyAccessor<Object> accessor;
 
-    private ReferencedProperty(PersistentProperty<?> property, Object propertyValue,
+    private ReferencedProperty(AclJpaRepository<Object, Object> propertyRepository, PersistentProperty<?> property,
         PersistentPropertyAccessor<Object> wrapper) {
 
+      this.propertyRepository = propertyRepository;
       this.property = property;
-      this.propertyValue = propertyValue;
       this.accessor = wrapper;
       this.propertyType = property.getActualType();
     }
@@ -513,9 +508,6 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       accessor.setProperty(property, null);
     }
 
-    public <T> Optional<T> mapValue(Function<Object, T> function) {
-      return Optional.ofNullable(propertyValue).map(function);
-    }
   }
 
   @ExceptionHandler
