@@ -112,6 +112,8 @@ public class AclAllControllerIntegrationTest {
     user3.setCreatedBy(user);
     personRepository.saveWithoutPermissionCheck(user3);
 
+    user2.getSupervisors().add(user3);
+
     user4 = new Person("user4", "u4", "u4");
     user4.getAclRoles().add(userRole);
     personRepository.saveWithoutPermissionCheck(user4);
@@ -331,7 +333,7 @@ public class AclAllControllerIntegrationTest {
   @Test
   public void testGivenProperPermissionWhenDeletePropertyCollectionElementThenElementIsDeleted() throws Exception {
     // @formatter:off
-        mockMvc.perform(delete("/persons/" + user2.getId() + "/supervisors/" + user.getId())
+        mockMvc.perform(delete("/persons/" + user2.getId() + "/supervisors/" + user3.getId())
                 .header("Authorization", "Basic dXNlcjpwYXNzd29yZA==").contentType(MediaType.APPLICATION_JSON)
                 .locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
@@ -340,7 +342,7 @@ public class AclAllControllerIntegrationTest {
 
     final Optional<Person> optionalPerson = personRepository.findByIdWithoutPermissionCheck(user2.getId());
     assertTrue(optionalPerson.isPresent());
-    assertThat(optionalPerson.get().getSupervisors(), not(hasItem(hasProperty("username", is("user")))));
+    assertThat(optionalPerson.get().getSupervisors(), not(hasItem(hasProperty("username", is("user3")))));
   }
 
   @Test
@@ -449,7 +451,7 @@ public class AclAllControllerIntegrationTest {
                         .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK)
                         .content("/persons/" + admin.getId()).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
+                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
     final Optional<Person> optionalPerson = personRepository.findByIdWithoutPermissionCheck(user2.getId());
@@ -464,14 +466,15 @@ public class AclAllControllerIntegrationTest {
         mockMvc.perform(put("/persons/" + user3.getId() + "/supervisors")
                 .header("Authorization", "Basic dXNlcjpwYXNzd29yZA==") // user
                 .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK)
-                .content("/persons/" + admin.getId() + "\n/persons/" + user.getId()).accept(MediaType.APPLICATION_JSON))
+                .content("/persons/" + admin.getId() + "\n/persons/" + user.getId()+ "\n/persons/" + user3.getId()).accept(MediaType.APPLICATION_JSON))
 
                 .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
     final Optional<Person> optionalPerson = personRepository.findByIdWithoutPermissionCheck(user3.getId());
     assertTrue(optionalPerson.isPresent());
-    assertThat(optionalPerson.get().getSupervisors(), hasItem(hasProperty("username", is("user"))));
+    assertThat(optionalPerson.get().getSupervisors(), not(hasItem(hasProperty("username", is("user")))));
+    assertThat(optionalPerson.get().getSupervisors(), hasItem(hasProperty("username", is("user3"))));
     assertThat(optionalPerson.get().getSupervisors(), not(hasItem(hasProperty("username", is("admin")))));
   }
 
@@ -482,14 +485,15 @@ public class AclAllControllerIntegrationTest {
         mockMvc.perform(post("/persons/" + user3.getId() + "/supervisors")
                 .header("Authorization", "Basic dXNlcjpwYXNzd29yZA==") // user
                 .contentType(RestMediaTypes.TEXT_URI_LIST).locale(Locale.UK)
-                .content("/persons/" + admin.getId() + "\n/persons/" + user.getId()).accept(MediaType.APPLICATION_JSON))
+                .content("/persons/" + admin.getId() + "\n/persons/" + user.getId()+ "\n/persons/" + user3.getId()).accept(MediaType.APPLICATION_JSON))
 
                 .andExpect(status().isNoContent()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
     final Optional<Person> optionalPerson = personRepository.findByIdWithoutPermissionCheck(user3.getId());
     assertTrue(optionalPerson.isPresent());
-    assertThat(optionalPerson.get().getSupervisors(), hasItem(hasProperty("username", is("user"))));
+    assertThat(optionalPerson.get().getSupervisors(), not(hasItem(hasProperty("username", is("user")))));
+    assertThat(optionalPerson.get().getSupervisors(), hasItem(hasProperty("username", is("user3"))));
     assertThat(optionalPerson.get().getSupervisors(), not(hasItem(hasProperty("username", is("admin")))));
   }
 

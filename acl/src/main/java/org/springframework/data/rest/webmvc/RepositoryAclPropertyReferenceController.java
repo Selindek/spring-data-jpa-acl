@@ -35,23 +35,25 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
+import org.springframework.data.repository.core.EntityInformation;
 import org.springframework.data.repository.support.Repositories;
-import org.springframework.data.repository.support.RepositoryInvoker;
-import org.springframework.data.repository.support.RepositoryInvokerFactory;
 import org.springframework.data.rest.core.event.AfterLinkDeleteEvent;
 import org.springframework.data.rest.core.event.AfterLinkSaveEvent;
 import org.springframework.data.rest.core.event.BeforeLinkDeleteEvent;
@@ -76,6 +78,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.berrycloud.acl.AclConstants;
 import com.berrycloud.acl.repository.AclJpaRepository;
 
 /**
@@ -95,18 +98,18 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
   private static final Collection<HttpMethod> AUGMENTING_METHODS = Arrays.asList(HttpMethod.PATCH, HttpMethod.POST);
 
   private final Repositories repositories;
-  private final RepositoryInvokerFactory repositoryInvokerFactory;
+  private final ConversionService conversionService;
 
   private ApplicationEventPublisher publisher;
 
   @Autowired
-  public RepositoryAclPropertyReferenceController(Repositories repositories,
-      RepositoryInvokerFactory repositoryInvokerFactory, PagedResourcesAssembler<Object> assembler) {
+  public RepositoryAclPropertyReferenceController(Repositories repositories, PagedResourcesAssembler<Object> assembler,
+      ConversionService defaultConversionService) {
 
     super(assembler);
 
     this.repositories = repositories;
-    this.repositoryInvokerFactory = repositoryInvokerFactory;
+    this.conversionService = defaultConversionService;
   }
 
   /*
@@ -196,12 +199,20 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       Object propertyValue = findProperty(prop, (DefaultedPageable) null);
 
       if (propertyValue != null) {
+        if (AclConstants.UPDATE_PERMISSION == prop.requiredPermission) {
+          // OneToOne property without UPDATE permission on this side -> reload with UPDATE permission
+          propertyValue = prop.propertyRepository
+              .findById(repositories.getEntityInformationFor(prop.propertyType).getId(propertyValue),
+                  AclConstants.UPDATE_PERMISSION)
+              .orElseThrow(ResourceNotFoundException::new);
+
+        }
         prop.wipeValue();
 
         PropertyReference pr = new PropertyReference(prop.property.getName(), propertyValue);
 
         publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), pr));
-        Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
+        Object result = prop.parentRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
         publisher.publishEvent(new AfterLinkDeleteEvent(result, pr));
       }
 
@@ -327,15 +338,14 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       if (prop.property.isCollectionLike()) {
         // original set
         Collection<Object> collection = (Collection<Object>) propertyValue;
-        // helper set
-        Set<Object> set = new HashSet<>(collection);
-        // objects to add
-        Set<Object> addedSet = source.getLinks().stream().map(l -> loadPropertyValue(prop.propertyType, l))
-            .filter(Objects::nonNull).collect(Collectors.toSet());
+        // objects to add (load only objects with proper permission)
+        List<Object> addedSet = loadPropertyValues(prop, source.getLinks());
 
         Iterator<Object> iterator = addedSet.iterator();
 
         if (AUGMENTING_METHODS.contains(requestMethod)) { // POST and PATCH
+          // helper set
+          Set<Object> set = new HashSet<>(collection);
           while (iterator.hasNext()) {
             Object value = iterator.next();
             if (set.contains(value)) {
@@ -345,8 +355,9 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
             }
           }
         } else { // PUT
-          collection.clear();
-          collection.addAll(addedSet);
+          // Reload existing elements with permission-check
+          // helper set will contain only elements which the current user can delete
+          Set<Object> set = new HashSet<>(reloadPropertyValues(prop, collection));
 
           while (iterator.hasNext()) {
             Object value = iterator.next();
@@ -356,7 +367,9 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
           }
           if (!set.isEmpty()) {
             deletedObjects = set;
+            collection.removeAll(set);
           }
+          collection.addAll(addedSet);
         }
 
         if (!addedSet.isEmpty()) {
@@ -371,7 +384,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         // entries to add
         Map<String, Object> addedMap = new HashMap<>();
         source.getLinks().stream().forEach(l -> {
-          Object value = loadPropertyValue(prop.propertyType, l);
+          Object value = loadPropertyValue(prop, l);
           if (value != null) {
             addedMap.put(l.getRel(), value);
           }
@@ -435,9 +448,10 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
         // Old property (could be null)
         deletedObjects = propertyValue;
-        propertyValue = loadPropertyValue(prop.propertyType, source.getLinks().get(0));
+        propertyValue = loadPropertyValue(prop, source.getLinks().get(0));
         if (propertyValue == null) {
-          return null;
+          // if new property cannot be loaded (either doesn't exist or no permission)
+          throw new ResourceNotFoundException();
         }
         // New property
         addedObjects = propertyValue;
@@ -453,7 +467,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
       prd.ifPresent(o -> publisher.publishEvent(new BeforeLinkDeleteEvent(parent, o)));
       prs.ifPresent(o -> publisher.publishEvent(new BeforeLinkSaveEvent(parent, o)));
-      Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
+      Object result = prop.parentRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
       prd.ifPresent(o -> publisher.publishEvent(new AfterLinkDeleteEvent(result, o)));
       prs.ifPresent(o -> publisher.publishEvent(new AfterLinkSaveEvent(result, o)));
 
@@ -473,35 +487,39 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     Function<ReferencedProperty, ResourceSupport> handler = prop -> {
 
-      Object propertyValue = prop.accessor.getProperty(prop.property);
-      if (propertyValue != null) {
-        Object deletedObject = null;
+      Object deletedObject = null;
 
-        if (prop.property.isCollectionLike()) {
-          Object value = findProperty(prop, propertyId);
-          if (value != null && ((Collection<Object>) propertyValue).remove(value)) {
-            deletedObject = Collections.singleton(value);
-          }
+      if (prop.property.isCollectionLike()) {
+        Object propertyValue = prop.accessor.getProperty(prop.property);
+        // Object value = findProperty(prop, propertyId);
+        Object value = loadPropertyValue(prop, propertyId);
+        if (value != null && ((Collection<Object>) propertyValue).remove(value)) {
+          deletedObject = Collections.singleton(value);
+        }
 
-        } else if (prop.property.isMap()) {
-          Object removed = ((Map<String, Object>) propertyValue).remove(propertyId);
-          if (removed != null) {
-            HashMap<String, Object> map = new HashMap<>();
-            map.put(propertyId, removed);
-            deletedObject = map;
-          }
-        } else {
+      } else if (prop.property.isMap()) {
+        Object propertyValue = prop.accessor.getProperty(prop.property);
+        Object removed = ((Map<String, Object>) propertyValue).remove(propertyId);
+        if (removed != null) {
+          HashMap<String, Object> map = new HashMap<>();
+          map.put(propertyId, removed);
+          deletedObject = map;
+        }
+      } else {
+        // load value with required permission
+        Object propertyValue = loadPropertyValue(prop, propertyId);
+        if (propertyValue != null) {
           prop.wipeValue();
           deletedObject = propertyValue;
         }
+      }
 
-        if (deletedObject != null) {
-          PropertyReference pr = new PropertyReference(prop.property.getName(), deletedObject);
+      if (deletedObject != null) {
+        PropertyReference pr = new PropertyReference(prop.property.getName(), deletedObject);
 
-          publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), pr));
-          Object result = prop.propertyRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
-          publisher.publishEvent(new AfterLinkDeleteEvent(result, pr));
-        }
+        publisher.publishEvent(new BeforeLinkDeleteEvent(prop.accessor.getBean(), pr));
+        Object result = prop.parentRepository.saveWithoutPermissionCheck(prop.accessor.getBean());
+        publisher.publishEvent(new AfterLinkDeleteEvent(result, pr));
       }
       return null;
 
@@ -512,14 +530,36 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     return ControllerUtils.toEmptyResponse(HttpStatus.NO_CONTENT);
   }
 
-  private Object loadPropertyValue(Class<?> type, Link link) {
+  private Object loadPropertyValue(ReferencedProperty prop, Link link) {
+    return loadPropertyValue(prop, linkToString(link));
+  }
 
+  private String linkToString(Link link) {
     String href = link.expand().getHref();
-    String id = href.substring(href.lastIndexOf('/') + 1);
+    return href.substring(href.lastIndexOf('/') + 1);
+  }
 
-    RepositoryInvoker invoker = repositoryInvokerFactory.getInvokerFor(type);
+  private Object loadPropertyValue(ReferencedProperty prop, String id) {
+    Object typedId = conversionService.convert(id, prop.idType);
 
-    return invoker.invokeFindById(id).orElse(null);
+    return prop.propertyRepository.findById(typedId, prop.requiredPermission).orElse(null);
+  }
+
+  private List<Object> reloadPropertyValues(ReferencedProperty prop, Collection<Object> collection) {
+
+    EntityInformation<Object, Object> ei = repositories.getEntityInformationFor(prop.propertyType);
+
+    List<Object> ids = collection.stream().map(s -> ei.getId(s)).collect(Collectors.toList());
+
+    return prop.propertyRepository.findAllById(ids, prop.requiredPermission);
+  }
+
+  private List<Object> loadPropertyValues(ReferencedProperty prop, Collection<Link> links) {
+
+    List<Object> ids = links.stream().map(this::linkToString).map(s -> conversionService.convert(s, prop.idType))
+        .collect(Collectors.toList());
+
+    return prop.propertyRepository.findAllById(ids, prop.requiredPermission);
   }
 
   private Optional<ResourceSupport> doWithReferencedProperty(RootResourceInformation resourceInformation,
@@ -536,18 +576,51 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
     PersistentProperty<?> property = mapping.getProperty();
     resourceInformation.verifySupportedMethod(method, property);
 
-    // We first load the parent domainObject and check its accessibility
-    AclJpaRepository<Object, Object> propertyRepository = getAclRepository(property.getOwner().getType());
-    Object domainObj = propertyRepository.findById(id, HttpMethod.GET.equals(method) ? "read" : "update")
-        .orElseThrow(() -> new ResourceNotFoundException());
+    String propertyPermission = AclConstants.READ_PERMISSION;
+    Optional<Object> domainObj = Optional.empty();
 
-    PersistentPropertyAccessor<Object> accessor = property.getOwner().getPropertyAccessor(domainObj);
+    // We first load the parent domainObject and check the permissions needed
+    AclJpaRepository<Object, Object> parentRepository = getAclRepository(property.getOwner().getType());
 
-    return Optional.ofNullable(handler.apply(new ReferencedProperty(propertyRepository, property, accessor)));
+    if (!HttpMethod.GET.equals(method)) {
+      // POST/PATCH/PUT/DELETE -> UPDATE permission is needed
+      if (property.isAnnotationPresent(OneToMany.class)) {
+        // Other side is a singular property: need UPDATE permission only to the other side of the association
+        propertyPermission = AclConstants.UPDATE_PERMISSION;
+      } else {
+        domainObj = parentRepository.findById(id, AclConstants.UPDATE_PERMISSION);
+        if (!domainObj.isPresent()) {
+          if (property.isAnnotationPresent(ManyToOne.class)) {
+            // Singular property reference : UPDATE permission is mandatory on this side
+            throw new ResourceNotFoundException();
+          }
+          if (property.isMap()) {
+            // Map: UPDATE permission is mandatory on this side
+            throw new ResourceNotFoundException();
+          }
+          // No UPDATE permission on this side: need UPDATE on the other side
+          propertyPermission = AclConstants.UPDATE_PERMISSION;
+        }
+      }
+    }
+    if (!domainObj.isPresent()) {
+      domainObj = parentRepository.findById(id, AclConstants.READ_PERMISSION);
+    }
+    if (!domainObj.isPresent()) {
+      throw new ResourceNotFoundException();
+    }
+
+    PersistentPropertyAccessor<Object> accessor = property.getOwner().getPropertyAccessor(domainObj.get());
+    AclJpaRepository<Object, Object> propertyRepository = getAclRepository(property.getActualType());
+    Class<Object> idType = repositories.getEntityInformationFor(property.getActualType()).getIdType();
+
+    return Optional.ofNullable(handler.apply(
+        new ReferencedProperty(parentRepository, propertyRepository, property, accessor, propertyPermission, idType)));
   }
 
   protected AclJpaRepository<Object, Object> getAclRepository(Class<?> type) {
     Object repository = repositories.getRepositoryFor(type).orElseThrow(() -> new ResourceNotFoundException());
+
     if (!AclJpaRepository.class.isAssignableFrom(AopUtils.getTargetClass(repository))) {
       throw new ResourceNotFoundException();
     }
@@ -558,7 +631,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     Object ownerId = prop.accessor.getProperty(prop.property.getOwner().getIdProperty());
     // find the property as an object
-    return prop.propertyRepository.findProperty(ownerId, prop.property, propertyId);
+    return prop.parentRepository.findProperty(ownerId, prop.property, propertyId);
   }
 
   protected Object findProperty(ReferencedProperty prop, DefaultedPageable pageable) {
@@ -567,7 +640,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     // find the property as a collection
     Pageable page = pageable == null ? Pageable.unpaged() : pageable.getPageable();
-    return prop.propertyRepository.findProperty(ownerId, prop.property, page);
+    return prop.parentRepository.findProperty(ownerId, prop.property, page);
   }
 
   protected Page<Object> findPropertyComplement(ReferencedProperty prop, DefaultedPageable pageable) {
@@ -576,23 +649,30 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
     // find the property as a collection-complement
     Pageable page = pageable == null ? Pageable.unpaged() : pageable.getPageable();
-    return (Page<Object>) prop.propertyRepository.findPropertyComplement(ownerId, prop.property, page);
+    return (Page<Object>) prop.parentRepository.findPropertyComplement(ownerId, prop.property, page);
   }
 
   private static class ReferencedProperty {
 
     final AclJpaRepository<Object, Object> propertyRepository;
+    final AclJpaRepository<Object, Object> parentRepository;
     final PersistentProperty<?> property;
     final Class<?> propertyType;
     final PersistentPropertyAccessor<Object> accessor;
+    final String requiredPermission;
+    final Class<Object> idType;
 
-    private ReferencedProperty(AclJpaRepository<Object, Object> propertyRepository, PersistentProperty<?> property,
-        PersistentPropertyAccessor<Object> wrapper) {
+    private ReferencedProperty(AclJpaRepository<Object, Object> parentRepository,
+        AclJpaRepository<Object, Object> propertyRepository, PersistentProperty<?> property,
+        PersistentPropertyAccessor<Object> wrapper, String requiredPermission, Class<Object> idType) {
 
+      this.parentRepository = parentRepository;
       this.propertyRepository = propertyRepository;
       this.property = property;
       this.accessor = wrapper;
       this.propertyType = property.getActualType();
+      this.requiredPermission = requiredPermission;
+      this.idType = idType;
     }
 
     public void wipeValue() {
