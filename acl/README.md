@@ -421,9 +421,16 @@ The same rules apply to all properties. So even if you have "read" access to one
 	
 You will see only those of his documents what you have permission to via some way. (Eg. you can see the documents he shared with your WorkGroups, but you cannot see the documents he shared with other WorkGroups where you are not a member)
 
-## Failed permission checks
+## Failed permission-checks
 
-If a permission check fails during a 'get', 'save' or 'delete' method the result is a EntityNotFoundException. If it happens during accessing a Spring Data-Rest endpoint the result will be a 404 ('not found') status code. It's 404 and NOT 'forbidden' because we don't want to reveal even the existence of those objects which the current user has no access to.
+The ACL always checks the permission against of the current authentication. If there is no authentication object in the `SecurityContextHolder` then all permission-check will fail. So if you want to use repository methods without an authentication present (like asynchronous methods, scripts) then make sure you only call the methods with `withoutPermissionChek` postfix or methods annotated with `@NoAcl`.
+
+If the permission-check fails the repository methods either throw exception or ignore the object without proper permission. In general if a method affects multiple entities then it will ignore the ones without permission, if it affects only one entity then it throw an exception.
+All permission-exceptions extends the `InsufficientAclPermissionException` class. There are separate exceptions for each type of methods:
+`AclCreatePermissionException`
+`AclReadPermissionException`
+`AclUpdatePermissionException`
+`AclDeletePermissionException`
 
 If a permission check fails during a 'find' method the result is `null`.
 
@@ -469,6 +476,40 @@ If you send the message this way:
 		sendMessage(message, group.getMembers());
 	 	
 ... then all the members of that group will get the message not only your friends.
+
+
+## Failed permission checks in Data Rest endpoints
+
+If a permisison-check fails during accessing a Spring Data-Rest endpoint of an entity or entity-collection, then if it was a GET request then the result will be a 404 ('not found') status code. It's 404 and NOT 'forbidden' because we don't want to reveal even the existence of those objects which the current user has no access to. However if it was POST/PUT/PATCH or DELETE the response will be 404 if the target entity (or link) cannot be read, but 403 (Forbidden) if the current user has read permission to the object, but not the appropriate UPDATE/DELETE/CREATE permission.
+
+Requests to property-collections a little bit more complicated...
+
+If the current authenticated user has no at least READ permission to the parent entity, then the result will be `NOT FOUND` automatically. 
+
+- GET property reference: if it's null or has no READ permission then `NOT FOUND`
+- GET property collection: Only the elements with READ permission are listed.
+- GET map: All elements (as key-value pairs) are listed. (Values are NOT filtered by ACL. The actual property here is the map itself, so if the user has READ permission to the parent object, then he can genuinely see the content (and especially the keys) of the map - even if it contains otherwise not readable - values.
+
+- GET complement of property collection: Only the entities which are NOT in the collection AND can be READ by the current user are listed.
+
+- DELETE property reference: If the reference object cannot be READ or null then result is `OK`, but it's not deleted. If the user has only READ permission to the parent object and also only READ permission to the reference object then `FORBIDDEN`. If the user has UPDATE permission at least one of the two objects then the reference is deleted.
+
+- GET element of property collection by id: If the element is not exists, not element of the collection or cannot be READ then `NOT FOUND`
+- GET value of map by key: `NOT FOUND` only the key is not exists.
+- GET property reference by id: same as for without id, but the provided id must match the id of the referenced property, otherwise `NOT FOUND`
+
+- POST/PATCH elements into property collection: if the user has UPDATE permission to the parent object then all elements with READ permission will be added. If the user has only READ permission to the parent the only elements with UPDATE permission will be added. All the other elements will be silently ignored.
+- PUT elements into property collection: on top of the above all the existing elements will be removed where the user has at least UPDATE permission to element OR at least READ permission to the element if he also has UPDATE permission to the parent object.
+-POST/PATCH to map: The user MUST have UPDATE permission to the parent object. Only those entries will be added where the user has at least READ permission to the referenced object of the value field.
+- PUT to map: on top of the above the original content of the map will be removed. (regardless if the user has permission to the values or not)
+-PUT/POST to property reference: The reference will only be overridden if the user has at least READ permission to the referenced object and has at least UPDATE permission to one of the parent or the referenced object.
+
+- DELETE: same rules as for the POST/PATCH methods. IMPORTANT: The required permission is also UPDATE here! Because it doesn't delete the object(s), but instead only removes a reference between to object, so basically modifies existing objects.
+
+If a reference between two object is `@ManyToMany` or `@OneToOne` then in order to create or delete a reference, the user needs READ permission to both side of the reference, and UPDATE permission at least one side.
+If a reference is `@ManyToOne` or `@OneToMany` then the user needs UPDATE permission to the single-side, and at least READ permission to the other side.
+(Under single-side I mean the side where the foreign-key is actually stored.)
+  
 
 # Other features
 

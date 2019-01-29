@@ -368,7 +368,7 @@ public class AclAllControllerIntegrationTest {
                 delete("/persons/" + user.getId() + "/controlled").header("Authorization", "Basic dXNlcjpwYXNzd29yZA==") // user
                         .contentType(MediaType.APPLICATION_JSON).locale(Locale.UK).accept(MediaType.APPLICATION_JSON))
 
-                .andExpect(status().isNotFound()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
+                .andExpect(status().isForbidden()).andExpect(redirectedUrl(null)).andExpect(forwardedUrl(null));
         // @formatter:on
 
     final Optional<Person> optionalPerson = personRepository.findByIdWithoutPermissionCheck(user.getId());

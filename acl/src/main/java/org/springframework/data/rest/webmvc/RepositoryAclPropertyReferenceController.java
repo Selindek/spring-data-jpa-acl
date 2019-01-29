@@ -50,6 +50,8 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.AclReadPermissionException;
+import org.springframework.data.jpa.repository.support.AclUpdatePermissionException;
 import org.springframework.data.mapping.PersistentProperty;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
 import org.springframework.data.repository.core.EntityInformation;
@@ -89,7 +91,7 @@ import com.berrycloud.acl.repository.AclJpaRepository;
  */
 @RepositoryRestController
 @SuppressWarnings({ "unchecked" })
-class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestController
+public class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestController
     implements ApplicationEventPublisherAware {
 
   private static final String BASE_MAPPING = "/{repository}/{id}/{property}";
@@ -156,7 +158,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
 
       }
 
-      throw new ResourceNotFoundException();
+      throw new AclReadPermissionException();
 
     };
 
@@ -204,7 +206,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
           propertyValue = prop.propertyRepository
               .findById(repositories.getEntityInformationFor(prop.propertyType).getId(propertyValue),
                   AclConstants.UPDATE_PERMISSION)
-              .orElseThrow(ResourceNotFoundException::new);
+              .orElseThrow(AclUpdatePermissionException::new);
 
         }
         prop.wipeValue();
@@ -238,7 +240,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         Object propertyValue = prop.accessor.getProperty(prop.property);
         propertyValue = ((Map<String, Object>) propertyValue).get(propertyId);
         if (propertyValue == null) {
-          throw new ResourceNotFoundException();
+          throw new AclReadPermissionException();
         }
         PersistentEntityResource resource = assembler.toResource(propertyValue);
         headers.set("Content-Location", resource.getId().getHref());
@@ -255,7 +257,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
           return resource;
         }
       }
-      throw new ResourceNotFoundException();
+      throw new AclReadPermissionException();
     };
 
     Optional<ResourceSupport> responseResource = doWithReferencedProperty(repoRequest, id, property, handler,
@@ -451,7 +453,8 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
         propertyValue = loadPropertyValue(prop, source.getLinks().get(0));
         if (propertyValue == null) {
           // if new property cannot be loaded (either doesn't exist or no permission)
-          throw new ResourceNotFoundException();
+          throw AclConstants.READ_PERMISSION == prop.requiredPermission ? new AclReadPermissionException()
+              : new AclUpdatePermissionException();
         }
         // New property
         addedObjects = propertyValue;
@@ -590,14 +593,11 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       } else {
         domainObj = parentRepository.findById(id, AclConstants.UPDATE_PERMISSION);
         if (!domainObj.isPresent()) {
-          if (property.isAnnotationPresent(ManyToOne.class)) {
-            // Singular property reference : UPDATE permission is mandatory on this side
-            throw new ResourceNotFoundException();
+          if (property.isMap() || property.isAnnotationPresent(ManyToOne.class)) {
+            // Singular property reference or map: UPDATE permission is mandatory on this side
+            throw new AclUpdatePermissionException();
           }
-          if (property.isMap()) {
-            // Map: UPDATE permission is mandatory on this side
-            throw new ResourceNotFoundException();
-          }
+          // OneToOne or ManyToMany
           // No UPDATE permission on this side: need UPDATE on the other side
           propertyPermission = AclConstants.UPDATE_PERMISSION;
         }
@@ -607,7 +607,7 @@ class RepositoryAclPropertyReferenceController extends AbstractRepositoryRestCon
       domainObj = parentRepository.findById(id, AclConstants.READ_PERMISSION);
     }
     if (!domainObj.isPresent()) {
-      throw new ResourceNotFoundException();
+      throw new AclReadPermissionException();
     }
 
     PersistentPropertyAccessor<Object> accessor = property.getOwner().getPropertyAccessor(domainObj.get());

@@ -26,7 +26,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.orm.jpa.JpaObjectRetrievalFailureException;
+import org.springframework.data.jpa.repository.support.AclDeletePermissionException;
+import org.springframework.data.jpa.repository.support.AclReadPermissionException;
+import org.springframework.data.jpa.repository.support.AclUpdatePermissionException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -198,13 +200,13 @@ public class AclAllRepositoryIntegrationTest {
         assertTrue(roleRepository.existsById(adminRole.getId()));
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclUpdatePermissionException.class)
     public void testGivenNullAuthenticationWhenCallUpdateOnSimpleAclRoleThenThrowException() {
         setAuthentication(null);
         roleRepository.save(adminRole);
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclUpdatePermissionException.class)
     public void testGivenUserRoleWhenCallUpdateOnSimpleAclRoleThenThrowException() {
         setAuthentication("user");
         roleRepository.save(adminRole);
@@ -228,7 +230,7 @@ public class AclAllRepositoryIntegrationTest {
         assertThat(personRepository.count(), greaterThan(0L));
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclDeletePermissionException.class)
     public void testGivenNoAuthenticationWhenCallDeleteThenThrowException() {
         setAuthentication(null);
         personRepository.delete(admin);
@@ -243,7 +245,7 @@ public class AclAllRepositoryIntegrationTest {
         assertFalse(personRepository.existsById(deleteUser.getId()));
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclDeletePermissionException.class)
     public void testGivenNoAuthenticationWhenCallDeleteUserThenThrowException() {
         setAuthentication(null);
         personRepository.deleteById(admin.getId());
@@ -347,13 +349,13 @@ public class AclAllRepositoryIntegrationTest {
         assertTrue(personRepository.findById(user.getId()).isPresent());
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclReadPermissionException.class)
     public void testGivenUserAuthenticationWhenCallGetOneNotPermittedUserThenThrowException() {
         setAuthentication("user");
         personRepository.getOne(admin.getId());
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclReadPermissionException.class)
     public void testGivenUserAuthenticationWhenCallGetOneWithNotAllowedPermissionThenThrowException() {
         setAuthentication("user");
         personRepository.getOne(user.getId(), AclConstants.DELETE_PERMISSION);
@@ -428,14 +430,14 @@ public class AclAllRepositoryIntegrationTest {
         assertThat(personRepository.getOne(admin.getId()).getFirstName(), is("changed"));
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclUpdatePermissionException.class)
     public void testGivenUserAuthenticationWhenCallUpdateWithoutPermissionThenThrowException() {
         setAuthentication("user");
         admin.setFirstName("changed");
         personRepository.save(admin);
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclUpdatePermissionException.class)
     public void testGivenNoPermissionWhenCallUpdateWithModifiedPermissionPropertyThenThrowException() {
         setAuthentication("user");
         user3.setCreatedBy(user);
@@ -649,10 +651,10 @@ public class AclAllRepositoryIntegrationTest {
         assertTrue(attachmentRepository.findById(attachment.getId()).isPresent());
     }
 
-    @Test(expected = JpaObjectRetrievalFailureException.class)
+    @Test(expected = AclDeletePermissionException.class)
     public void testGivenRolePermissionsAndProperRoleWhenCallDeleteOnAttachmentThenThrowException() {
         Attachment attachment = new Attachment("name", "content", null, null);
-        attachmentRepository.save(attachment);
+        attachmentRepository.saveWithoutPermissionCheck(attachment);
         user.getAclRoles().add(manipulatorRole);
         personRepository.saveWithoutPermissionCheck(user);
         setAuthentication("user");

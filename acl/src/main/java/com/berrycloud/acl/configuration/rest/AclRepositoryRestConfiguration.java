@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.data.rest.webmvc.BasePathAwareHandlerMapping;
 import org.springframework.data.rest.webmvc.DomainPropertyClassResolver;
+import org.springframework.data.rest.webmvc.RepositoryAclRestExceptionHandler;
 import org.springframework.data.rest.webmvc.RepositoryRestHandlerMapping;
 import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
 import org.springframework.data.rest.webmvc.json.JacksonMappingAwarePropertySortTranslator;
@@ -111,8 +112,7 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
         repositoryRestConfiguration(), repositories()) {
       @Override
       protected boolean isHandler(Class<?> beanType) {
-        return super.isHandler(beanType) && !beanType.getSimpleName().equals("RepositoryPropertyReferenceController")
-            && !beanType.getSimpleName().equals("RepositoryEntityController");
+        return super.isHandler(beanType) && !beanType.getSimpleName().equals("RepositoryPropertyReferenceController");
       }
     };
     repositoryMapping.setJpaHelper(jpaHelper());
@@ -143,6 +143,11 @@ public class AclRepositoryRestConfiguration extends RepositoryRestMvcConfigurati
   @Bean
   public Associations associationLinks() {
     return new PageableAssociations(resourceMappings(), repositoryRestConfiguration(), pageableResolver());
+  }
+
+  @Bean
+  public RepositoryAclRestExceptionHandler repositoryAclRestExceptionHandler() {
+    return new RepositoryAclRestExceptionHandler();
   }
 
 }
