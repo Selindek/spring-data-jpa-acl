@@ -25,21 +25,20 @@ import java.util.Map;
  * @author István Rátkai (Selindek)
  */
 public class AclMetaData {
-    private PermissionData selfPermissions;
+  private PermissionData selfPermissions;
 
-    private Map<Class<?>, AclEntityMetaData> metaDataMap;
+  private Map<Class<?>, AclEntityMetaData> metaDataMap;
 
-    public AclMetaData(Map<Class<?>, AclEntityMetaData> metaDataMap, PermissionData selfPermissions) {
-        super();
-        this.metaDataMap = Collections.unmodifiableMap(metaDataMap);
-        this.selfPermissions = selfPermissions;
-    }
+  public AclMetaData(Map<Class<?>, AclEntityMetaData> metaDataMap, PermissionData selfPermissions) {
+    this.metaDataMap = Collections.unmodifiableMap(metaDataMap);
+    this.selfPermissions = selfPermissions;
+  }
 
-    public PermissionData getSelfPermissions() {
-        return selfPermissions;
-    }
+  public PermissionData getSelfPermissions() {
+    return selfPermissions;
+  }
 
-    public AclEntityMetaData getAclEntityMetaData(Class<?> entityClass) {
-        return metaDataMap.get(entityClass);
-    }
+  public AclEntityMetaData getAclEntityMetaData(Class<?> entityClass) {
+    return metaDataMap.get(entityClass);
+  }
 }

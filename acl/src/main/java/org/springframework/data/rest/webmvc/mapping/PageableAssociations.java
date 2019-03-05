@@ -38,6 +38,9 @@ import org.springframework.util.Assert;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.berrycloud.acl.annotation.AclLinkRole;
+import com.berrycloud.acl.security.AclUserDetailsService;
+
 /**
  * A value object to for {@link Link}s representing associations.
  *
@@ -81,7 +84,7 @@ public class PageableAssociations extends Associations {
     Assert.notNull(association, "Association must not be null!");
     Assert.notNull(path, "Base path must not be null!");
 
-    if (isLinkableAssociation(association)) {
+    if (isLinkableAssociation(association) && isAllowedByLinkRole(association)) {
 
       PersistentProperty<?> property = association.getInverse();
       ResourceMetadata metadata = mappings.getMetadataFor(property.getOwner().getType());
@@ -110,6 +113,11 @@ public class PageableAssociations extends Associations {
     return Collections.emptyList();
   }
 
+  private boolean isAllowedByLinkRole(Association<? extends PersistentProperty<?>> association) {
+    AclLinkRole annotation = association.getInverse().findAnnotation(AclLinkRole.class);
+    return annotation == null || AclUserDetailsService.hasAnyAuthorities(annotation.value());
+  }
+
   /*
    * We have to recreate this whole method because it is a private method in the superclass
    */
@@ -121,4 +129,5 @@ public class PageableAssociations extends Associations {
         ? new TemplateVariables(new TemplateVariable(projectionConfiguration.getParameterName(), REQUEST_PARAM)) //
         : TemplateVariables.NONE;
   }
+
 }

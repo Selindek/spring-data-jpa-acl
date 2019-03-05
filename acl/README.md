@@ -373,7 +373,19 @@ This annotation also works like all the other annotations: the empty roles prope
 When the Acl checks for 'create' permissions it also checks the `@AclRolePermission` annotations, so by default all users with ROLE_ADMIN role can create any kind of objects.
 You can add a 'create' permission to certain roles by a `@AclRolePermission` annotation too, but don't forget that in this case those roles also automatically gain 'read' permission too! 
 
+
+## @AclLinkRole
+
+Let's assume we have a chat server where users can register themselves into chat-rooms and can write messages and responses to other messages.
+We also want to grant some kind of moderator rights to a few user in these groups, who will gain special rights to that group: let's say they can edit or delete messages. But we don't want to allow other members of this chat-room to know who are the moderators. The moderators should be stored a collection-property in the chat-room entity, annotated with `@AclOwner` annotation in order to grant them special permission. But that also means that all of the members who can access the chat-room with a `READ` permission can also see this property and its content.
+We cannot filter the content of this property, because the member of the chat-room should can see each-others, so if a moderator is also a common member of the group, then he became visible via this association too.
+
+Here comes the `@AclLinkRole` annotation. If a _referenced_ property is annotated with this annotation then that property-reference endpoint is only visible for users who has any of the roles listed in the `value` field of the annotation. If a user tries to access the given endpoint, - like `.../api/chatrooms/23/moderators` in this case - then will get a 404 response. On top of that he cannot even see the `hateos` link to this endpoint in the parent entity. So when he access the `api/chatrooms/23` endpoint the `"moderators":".../api/chatroom/23/moderators` link wont't appear for him in the response.   
+
+This annotation is a very convenient tool for hiding certain properties from common users without creating - otherwise unnecessary - extra entities.	
 	
+Of course it work only for referenced properties. Properties of non-exposed types or primitive types are not affected by this annotation.
+  	
 ## @PreAuthorize
 
 The ACL module automatically defines a AclPermissionEvaluator bean, so you can use all its functionality without any further settings.
@@ -576,13 +588,14 @@ If you have test classes in an existing project where this annotation is in use,
 
 ## Limitations
 
-There are some limitations if you want to use the ACL:
+There are some limitations if you want to use the ACL, however I believe that these limitations only affect most of the Data Rest projects:
 
 - All domain entities must have a singular id attribute. If you really need composite primary key somewhere, then a possible workaround is using @EmbeddedId annotation. (Theoretically this issue could be resolved, but I rather spend my resources to add other functionalities and improvements.)
 - All ACl managed queries are forced to be distinct. At the moment I have no idea how can I resolve this issue. 
 - Search functionality doesn't work with unique queries (defined by `@Query` annotation).
 - ACL and pagination is not working on maps (They are treated as common properties, not as collections).
-
+- You cannot use unique EntityLookup services for ACL managed entities. The id fragment of the URL must be the actual id of the entity. (I believe that - although it's a nice and convenient feature - the resulting API won't be a real RESTful API. (Oh, and PUT requests won't work any more, so you shouldn't use it anyway.))
+ 
 # Changed features
 
 Spring Data REST is quite a well-designed package but I believe that a few - rarely used - features in it was not planned or implemented properly.

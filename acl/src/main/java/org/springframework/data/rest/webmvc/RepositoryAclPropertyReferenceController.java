@@ -81,7 +81,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.berrycloud.acl.AclConstants;
+import com.berrycloud.acl.annotation.AclLinkRole;
 import com.berrycloud.acl.repository.AclJpaRepository;
+import com.berrycloud.acl.security.AclUserDetailsService;
 
 /**
  * @author Jon Brisbin
@@ -578,6 +580,11 @@ public class RepositoryAclPropertyReferenceController extends AbstractRepository
 
     PersistentProperty<?> property = mapping.getProperty();
     resourceInformation.verifySupportedMethod(method, property);
+
+    AclLinkRole annotation = property.findAnnotation(AclLinkRole.class);
+    if (annotation != null && !AclUserDetailsService.hasAnyAuthorities(annotation.value())) {
+      throw new AclReadPermissionException();
+    }
 
     String propertyPermission = AclConstants.READ_PERMISSION;
     Optional<Object> domainObj = Optional.empty();
