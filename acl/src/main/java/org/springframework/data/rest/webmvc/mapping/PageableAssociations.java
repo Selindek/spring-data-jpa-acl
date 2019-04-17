@@ -92,6 +92,11 @@ public class PageableAssociations extends Associations {
 
       String href = path.slash(propertyMapping.getPath()).toString();
 
+      if (!association.getInverse().isCollectionLike()) {
+        UriTemplate template = new UriTemplate(href, getProjectionVariable(property));
+
+        return Collections.singletonList(new Link(template, propertyMapping.getRel()));
+      }
       UriComponents components = UriComponentsBuilder.fromUriString(href).build();
 
       TemplateVariables variables = pageableResolver.getPaginationTemplateVariables(null, components)
@@ -100,8 +105,7 @@ public class PageableAssociations extends Associations {
       UriTemplate template = new UriTemplate(href, variables);
       Link link = new Link(template, propertyMapping.getRel());
 
-      if (association.getInverse().isCollectionLike()
-          && association.getInverse().findPropertyOrOwnerAnnotation(HideComplementEndpoint.class) == null) {
+      if (association.getInverse().findPropertyOrOwnerAnnotation(HideComplementEndpoint.class) == null) {
         // Add link to the complement-collection too
         return Arrays.asList(link,
             new Link(new UriTemplate(href + COMPLEMENT, variables), propertyMapping.getRel() + COMPLEMENT));
