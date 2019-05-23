@@ -113,12 +113,14 @@ public final class AclJpaQueryLookupStrategy {
     private static class CreateQueryLookupStrategy extends AbstractQueryLookupStrategy {
 
         private final PersistenceProvider persistenceProvider;
+        private final EscapeCharacter escape;
         private final AclSpecification aclSpecification;
 
-        CreateQueryLookupStrategy(EntityManager em, QueryExtractor extractor, AclSpecification aclSpecification) {
+        CreateQueryLookupStrategy(EntityManager em, QueryExtractor extractor, EscapeCharacter escape, AclSpecification aclSpecification) {
 
             super(em, extractor);
             this.persistenceProvider = PersistenceProvider.fromEntityManager(em);
+            this.escape = escape;
             this.aclSpecification = aclSpecification;
         }
 
@@ -128,9 +130,9 @@ public final class AclJpaQueryLookupStrategy {
 
             try {
                 if (needAcl) {
-                    return new PartTreeAclJpaQuery(method, em, persistenceProvider, aclSpecification);
+                    return new PartTreeAclJpaQuery(method, em, persistenceProvider, escape, aclSpecification);
                 } else {
-                    return new PartTreeJpaQuery(method, em, persistenceProvider);
+                    return new PartTreeJpaQuery(method, em, persistenceProvider, escape);
                 }
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(
@@ -270,6 +272,7 @@ public final class AclJpaQueryLookupStrategy {
                                              Key key,
                                              QueryExtractor extractor,
                                              QueryMethodEvaluationContextProvider evaluationContextProvider,
+                                             EscapeCharacter escape,
                                              AclSpecification aclSpecification) {
 
         Assert.notNull(em, "EntityManager must not be null!");
@@ -278,12 +281,12 @@ public final class AclJpaQueryLookupStrategy {
 
         switch (key != null ? key : Key.CREATE_IF_NOT_FOUND) {
             case CREATE:
-                return new CreateQueryLookupStrategy(em, extractor, aclSpecification);
+                return new CreateQueryLookupStrategy(em, extractor, escape, aclSpecification);
             case USE_DECLARED_QUERY:
                 return new DeclaredQueryLookupStrategy(em, extractor, evaluationContextProvider);
             case CREATE_IF_NOT_FOUND:
                 return new CreateIfNotFoundQueryLookupStrategy(em, extractor,
-                        new CreateQueryLookupStrategy(em, extractor, aclSpecification),
+                        new CreateQueryLookupStrategy(em, extractor, escape, aclSpecification),
                         new DeclaredQueryLookupStrategy(em, extractor, evaluationContextProvider));
             default:
                 throw new IllegalArgumentException(String.format("Unsupported query lookup strategy %s!", key));

@@ -62,7 +62,8 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
   private final QueryPreparer query;
   private final QueryPreparer countQuery;
   private final EntityManager em;
-
+  private final EscapeCharacter escape;
+  
   private final AclSpecification aclSpecification;
 
   /**
@@ -75,12 +76,13 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
    * @param persistenceProvider
    *          must not be {@literal null}.
    */
-  PartTreeAclJpaQuery(JpaQueryMethod method, EntityManager em, PersistenceProvider persistenceProvider,
+  PartTreeAclJpaQuery(JpaQueryMethod method, EntityManager em, PersistenceProvider persistenceProvider, EscapeCharacter escape,
       AclSpecification aclSpecification) {
 
     super(method, em);
 
     this.em = em;
+    this.escape = escape;
     Class<?> domainClass = method.getEntityInformation().getJavaType();
     this.parameters = method.getParameters();
     this.aclSpecification = aclSpecification;
@@ -232,8 +234,8 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
       CriteriaBuilder builder = entityManager.getCriteriaBuilder();
 
       ParameterMetadataProvider provider = accessor
-          .map(it -> new ParameterMetadataProvider(builder, it, persistenceProvider))//
-          .orElseGet(() -> new ParameterMetadataProvider(builder, parameters, persistenceProvider));
+          .map(it -> new ParameterMetadataProvider(builder, it, persistenceProvider, escape))//
+          .orElseGet(() -> new ParameterMetadataProvider(builder, parameters, persistenceProvider, escape));
 
       ResultProcessor processor = getQueryMethod().getResultProcessor();
       ReturnedType returnedType = accessor.map(processor::withDynamicProjection)//
@@ -289,8 +291,8 @@ public class PartTreeAclJpaQuery extends AbstractJpaQuery {
       CriteriaBuilder builder = entityManager.getCriteriaBuilder();
 
       ParameterMetadataProvider provider = accessor
-          .map(it -> new ParameterMetadataProvider(builder, it, persistenceProvider))//
-          .orElseGet(() -> new ParameterMetadataProvider(builder, parameters, persistenceProvider));
+          .map(it -> new ParameterMetadataProvider(builder, it, persistenceProvider, escape))//
+          .orElseGet(() -> new ParameterMetadataProvider(builder, parameters, persistenceProvider, escape));
 
       return new JpaCountQueryCreator(tree, getQueryMethod().getResultProcessor().getReturnedType(), builder, provider);
     }

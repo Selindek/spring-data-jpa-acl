@@ -22,6 +22,7 @@ import javax.persistence.EntityManager;
 import org.springframework.data.jpa.provider.PersistenceProvider;
 import org.springframework.data.jpa.provider.QueryExtractor;
 import org.springframework.data.jpa.repository.query.AclJpaQueryLookupStrategy;
+import org.springframework.data.jpa.repository.query.EscapeCharacter;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
 import org.springframework.data.jpa.repository.support.JpaRepositoryImplementation;
 import org.springframework.data.jpa.repository.support.SimpleAclJpaRepository;
@@ -44,7 +45,8 @@ public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
     private AclSpecification aclSpecification;
     private EntityManager entityManager;
     private final QueryExtractor extractor;
-
+    private EscapeCharacter escapeCharacter = EscapeCharacter.of('\\');
+    
     public AclJpaRepositoryFactory(EntityManager entityManager, AclSpecification aclSpecification) {
         super(entityManager);
         this.aclSpecification = aclSpecification;
@@ -52,6 +54,17 @@ public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
         this.extractor = PersistenceProvider.fromEntityManager(entityManager);
     }
 
+
+    /**
+     * Configures the escape character to be used for like-expressions created for derived queries.
+     *
+     * @param escapeCharacter a character used for escaping in certain like expressions.
+     */
+    @Override
+    public void setEscapeCharacter(EscapeCharacter escapeCharacter) {
+      this.escapeCharacter = escapeCharacter;
+    }
+    
     @Override
     protected Class<?> getRepositoryBaseClass(RepositoryMetadata metadata) {
         return SimpleAclJpaRepository.class;
@@ -75,7 +88,7 @@ public class AclJpaRepositoryFactory extends JpaRepositoryFactory {
     protected Optional<QueryLookupStrategy> getQueryLookupStrategy(Key key,
         QueryMethodEvaluationContextProvider evaluationContextProvider) {
         return Optional.of(AclJpaQueryLookupStrategy.create(entityManager, key, extractor, evaluationContextProvider,
-                aclSpecification));
+              escapeCharacter, aclSpecification));
     }
 
 }
