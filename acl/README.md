@@ -588,13 +588,13 @@ If you have test classes in an existing project where this annotation is in use,
 
 ## Limitations
 
-There are some limitations if you want to use the ACL, however I believe that these limitations only affect most of the Data Rest projects:
+There are some limitations if you want to use the ACL, however I believe that these limitations hardly affect most of the Data Rest projects:
 
 - All domain entities must have a singular id attribute. If you really need composite primary key somewhere, then a possible workaround is using @EmbeddedId annotation. (Theoretically this issue could be resolved, but I rather spend my resources to add other functionalities and improvements.)
-- All ACl managed queries are forced to be distinct. At the moment I have no idea how can I resolve this issue. 
+- All ACL managed queries are forced to be distinct. At the moment I have no idea how can I resolve this issue. 
 - Search functionality doesn't work with unique queries (defined by `@Query` annotation).
-- ACL and pagination is not working on maps (They are treated as common properties, not as collections).
-- You cannot use unique EntityLookup services for ACL managed entities. The id fragment of the URL must be the actual id of the entity. (I believe that - although it's a nice and convenient feature - the resulting API won't be a real RESTful API. (Oh, and PUT requests won't work any more, so you shouldn't use it anyway.))
+- ACL and pagination is not working on maps (Maps are treated as common properties, not as collections).
+- You cannot use unique EntityLookup services for ACL managed entities. The id fragment of the URL must be the actual id of the entity. (I believe that - although it's a nice and convenient feature - the resulting API won't be a real RESTful API any more. Also, if you use EntityLookup, then PUT requests won't work any more, so you shouldn't use it anyway.)
  
 # Changed features
 
@@ -614,26 +614,28 @@ That's especially true when we have the _same_ object several times in a map und
 
 `DELETE /user/1/reports/qqq`
 
-If the last part of the URL "qqq" means the id of the report then which report object should be removed from the collection? One? All of it? The original implementation removes all of them which is sounds good... However how can we delete only one of them? The only solution is if we list the whole collection, save all the keys which are used for the given object, then we delete the link, and then we put back the object under all of the other keys.
+If the last part of the URL "qqq" means the id of the report then which report object should be removed from the collection? One? All of it? The original implementation removes all of them which sounds good at first glance... However how can we delete only one of them? The only solution is if we list the whole collection, save all the keys which are used for the given object, then we delete the link, and then we put back the object under all of the other keys.
 Using my implementation the above task is much more easy. The last part of the URL means the key, so the objects can be removed from the map one-by-one.    
 
 ## `BeforeLinkDeleteEvent`, `BeforeLinkSaveEvent`, `AfterLinkDeleteEvent` and `AfterLinkSaveEvent` were changed
 
 In the original version these events are mostly useless. When any of these events is fired and the appropriate event-handler is called, there are two parameters: The parent object and the altered property/property-collection.
-If there are multiple referenced-properties in the parent with the same type, then it cannot be defined which property was altered. Also, because the parent object also contains the altered property, it cannot be defined which elements were added or removed from the collection.
+If there are multiple referenced-properties in the parent with the same type, then it cannot be decided which property was altered. Also, because the parent object also contains the altered property, it cannot be decided which elements were added or removed from the collection.
+
+(There is an other issue in the original Spring Data Rest implementation: If the request was __POST__ or __PATCH__ then the 2nd parameter contains the modified collection. However if it was a __PUT__ request then the 2nd parameter contains the original collection (before modification).
 
 In order to fix these issues, the 2nd parameter is not the changed property or property-collection any more, but a newly introduced object: a `PropertyReference`. This bean has two properties:
 
 - `name`: it is the name of the altered property.
 - `value`: this field contains the added or removed properties, based on which kind of event was fired.
 
-Also, the ACL keeps track of the exact list of all the changed references, so it could happen that during a PUT not only `LinkSave` but also `LinkDelete` events are also be fired. (A PUT request could also remove elements form a collection!)
+Also, the ACL keeps track of the exact list of all the changed references, so it could happen that during a __PUT__ request not only `LinkSave` but also `LinkDelete` events are also be fired. (A __PUT__ request could also remove elements form a collection!)
 
 Let's see all the possible cases one by one:
 
 ### DELETE a single-property reference
 
-The property will be deleted only if the current user has READ permission to the referenced property and `BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` will be fired only if the property was changed. So if the original value was `null` or the user has no permission to the property, then there will be no events. (Because there will be no any change in the DB neither)
+The property will be deleted only if the current user has at least READ permission to the referenced property. (On addition of UPDATE permission to the main entity - of course.) `BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` will be fired only if the property was changed. So if the original value was `null` or the user has no permission to the property, then there will be no events. (Because there will be no any change in the DB neither.)
 
 ### POST/PUT/PATCH a single-property reference
 
@@ -650,11 +652,11 @@ Otherwise if the original value was not `null` then `BeforeLinkDeleteEvent` and 
 - Elements without READ permission will be ignored.
 - Elements which are already in the collection are ignored.
 
-If there are still elements which are actually added to the collection then `BeforeLinkSaveEvent`and `AfterLinkSaveEvent` will be fired with a collection value which contains only the actually added elements.
+If there are still elements which are actually added to the collection then `BeforeLinkSaveEvent`and `AfterLinkSaveEvent` will be fired with a collection value which contains the elements which were really added.
 
 ### PUT elements to a collection
 
-Same rules than above, but before the `Save` events there will be also `BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` fired with all of the elements which were in the collection before the PUT request but not afterward. (During a PUT request the original content is completely overridden with the new content). If there are no such elements then the event won't be fired.
+Same rules than above, but before the `Save` events there will be also `BeforeLinkDeleteEvent` and `AfterLinkDeleteEvent` fired with all of the elements which were in the collection before the PUT request but not afterward. (During a PUT request the original content is completely overridden with the new content). If there are no such elements then these events won't be fired.
 
 ### DELETE entries form a map
 
@@ -679,11 +681,12 @@ Same rules than above, but before the `Save` events there will be also `BeforeLi
 On top of the above the `Delete` events will also contain the entries which were completely removed from the map. (Because the PUT request override the original content)
 
 **Any of the above events will be fired only if there is at least one entry in their map.**
-
+**Please remember, map entries are __NOT__ secured by the ACL. Any user with UPDATE permission to an entity gains full control to all of the map-type properties of that entity!**
 
 
 # Conclusion
 
-Maybe this document is quite long and complex but creating a safe permission-system for your application what covers all of the use cases is still much more difficult than understanding the proper usage of these annotations. And your final code will be much more clear if you can handle everything by including an extra dependency and adding a few annotations here or there.
+Maybe this document is quite long and complex but creating a safe permission-system for your application which covers all of the use cases is still much more difficult than understanding the proper usage of these annotations. And your final code will be much more clear if you can handle everything by including an extra dependency and adding a few annotations here or there.
 
+Even if you don't plan to implement ACL, it would still worth to use this package because of its additional convenient features, like the out-of-the-box search feature and the paginated property-collections. (Not to mention the fixed/improved event-handling)
 
