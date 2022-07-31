@@ -1,4 +1,4 @@
-# Spring Boot Data JPA ACL (for Spring Boot 2 - See SB1 branch for Spring Boot 1)
+# Spring Boot 2 Data JPA ACL (Spring Boot 1 is not supported )
 
 This package is an extension for Spring Data JPA. It provides a fast an easily customizable access-control system for projects using Spring Repositories. (Plus some useful extra features)
 
@@ -18,6 +18,7 @@ On top of the above advantages, the ACL also has the following in-built features
 
 1. Search feature for searching objects by text patterns. The result will contain all objects where all of the words of the search-pattern appear in any of the searchable properties of the domain object. (It could be also a paginated result-set.) The search rules are also defined via annotations in the entity classes.
 2. Endpoints for complement-collections for collection-like properties. (Very handy feature for creating convenient UI for adding elements for collections.) Simply append the "Complement" at the end of any default Data Rest RepositoryProperty endpoint.
+3. Improved/fixed event-handling.
 
 ## Basics
 
@@ -28,7 +29,7 @@ Let's see some example:
 - A user has full control to his documents (probably there is an author field in the document table). 
 - Users in the same work-group can see (but cannot modify) each-others. (There must be a workgroup table with a ManyToMany relationship with users.)
 - Administrators have full access to all objects. (They must have a special role attached to them somehow. Either directly or they are members of an admin group)
-- If a user is a moderator in a topic he can edit all messages sent to that topic (Must be a relation between messages and topics) and also the replies to these messages (There must be a field in the message table what stores the id of the original message if the current one is a reply.)
+- If a user is a moderator in a topic he can edit all messages sent to that topic (Must be a relation between messages and topics) and also the replies to these messages (There must be a field in the message table which stores the id of the original message if the current one is a reply.)
 
 So instead of creating a new permission entry (or a bunch of entries) every time we are creating a new object, we simply use the existing relationships for access control.
 Sometimes it means that you have to add a few extra relations to your tables when you design your DB structure, but hey, that's why it's called 'relational DB'!
@@ -78,9 +79,9 @@ You can use all Spring Data Repository features exactly the same way as it's des
 	    Long countByIdGreaterThan(@Param("id") Integer id);
 	}
 
-The results of all query methods will be filtered by the ACL rules and all save and delete methods will be executed only on entities what the current user has permission to based on the ACL rules.
+The results of all query methods will be filtered by the ACL rules and all save and delete methods will be executed only on entities which the current user has permission to based on the ACL rules.
 
-Unfortunately the query methods where you manually define the native or JPA query cannot be processed by the ACL, so if any of your repositories contains such methods you will get a warning during startup:
+Unfortunately the query methods where you manually define the native or JPA query cannot be processed by the ACL, so if any of your repositories contains such methods you will get a warning message during startup:
 
 	    @Query("select p from SimpleAclUser p")
 	    List<SimpleAclUser> mySelect();
@@ -213,7 +214,7 @@ Let's allow the users to share their documents with any WorkGroups:
 	
 (Of course you have to define the other side of these associations, but there is no need to add any extra annotation to the other side, so ignore it now.)
 
-When you add an `@AclOwner` annotation to a field what is not an AclUser or collection of AclUsers the ACL assumes that you want to grant permission to the AclUsers who are owners of that object. (I.e. all AclUser or collection of AclUsers who are annotated with `@AclOwner` in that domain class.) In this case it means that the owner of the groups and all members of the groups which are connected with the given document will gain "update" permission to the document. Notice that the members also gain the "update" permission even though they got only "read" permission to the group itself. When they gain permission to the WorkGroup object they get it via the `@AclOwner` annotation in the WorkGroup.class, but when they gain the permission to the document they get it by the `@AclOwner` annotation in the Document class.
+When you add an `@AclOwner` annotation to a field which is not an AclUser or collection of AclUsers the ACL assumes that you want to grant permission to the AclUsers who are owners of that object. (I.e. all AclUser or collection of AclUsers who are annotated with `@AclOwner` in that domain class.) In this case it means that the owner of the groups and all members of the groups which are connected with the given document will gain "update" permission to the document. Notice that the members also gain the "update" permission even though they got only "read" permission to the group itself. When they gain permission to the WorkGroup object they get it via the `@AclOwner` annotation in the WorkGroup.class, but when they gain the permission to the document they get it by the `@AclOwner` annotation in the Document class.
 
 (The current ACl implementation has some limitation here. You cannot grant different permissions to the members and the owner in the example above. However I will probably solve this issue in a later revision)
 
@@ -252,15 +253,15 @@ In this case if a user has permission to the parent object only the permissions 
 
 `@AclParent` annotations are evaluated recursively. You can even stack the prefixes like "documents-attachments-read"
 
-The main purpose of `@AclParent` annotations is that you don't have to set permissions to all of the objects. You can easily build up a "permission tree". If a user has permission to the root she has permissions to all the leafs too. 
+The main purpose of `@AclParent` annotations is that you don't have to set permissions to all of the objects. You can easily build up a "permission tree". If a user has permission to the root she gets permissions to all the leafs too. 
 
-In a complex DB where you have to define dozens of inherited permissions there is a chance that you accidentally create a inheritance-loop. to avoid infinite-loops during permission evaluating you can set the maximum depth of permission inheritance via `@AclParent` annotations. Set the following property in your application.properties file (the default value is 2):
+In a complex DB where you have to define dozens of inherited permissions, there is a chance that you accidentally create a inheritance-loop. to avoid infinite-loops during permission evaluating you can set the maximum depth of permission inheritance via `@AclParent` annotations. Set the following property in your application.properties file (the default value is 2):
 
 	spring.data.jpa.acl.max-depth = 2
 
 ## @AclRolePermission
 	
-An other common permission control is the role-based permission system. With the `@AclRolePermission` annotation you can easily grant permissions to a given domain class by roles. Because it grants permissions by role and not by relations it should be used on the class itself, not on properties. The value field of the annotation is the same as in the other annotations: It contains an array of strings which represents the permissions. The other field of the annotation is 'roles()'. It is also an array of string where each string represents a role (i.e. a authority name for a GrantedAuthority object). An empty role array means that ANY user with ANY role will gain the listed permissions. So annotating a domain class with the following annotation means that everybody will gain "read" access to these domain objects (The default value of the roles field is an empty array):
+An other common permission control is the role-based permission system. With the `@AclRolePermission` annotation you can easily grant permissions to a given domain class by roles. Because it grants permissions by role and not by relations it must be used on the class itself, not on properties. The value field of the annotation is the same as in the other annotations: It contains an array of strings which represents the permissions. The other field of the annotation is 'roles()'. It is also an array of string where each string represents a role (i.e. an authority name for a GrantedAuthority object). An empty role array means that ANY user with ANY role will gain the listed permissions. So annotating a domain class with the following annotation means that everybody will gain "read" access to these domain objects (The default value of the roles field is an empty array):
 
 	@AclRolePermission("read")
 	@Entity
@@ -279,7 +280,7 @@ If a domain object is not annotated with `@AclRolePermission` the ACL treats it 
 So by default any user with "ROLE_ADMIN" role will gain all possible permissions to all domain objects. This default behavior grants the full access for administrators to all of the domain objects. So if you add this annotation to an entity class don't forget to manually add the appropriate admin permission too!
 
 
-`@AclRolePermission` is a `@Repeatable` annotation. You can set different permission-sets for different roles. If your java version is 1.7 or smaller, you can use the `@AclRolePermissions` container annotation for it.
+`@AclRolePermission` is a `@Repeatable` annotation. You can set different permission-sets for different roles. If your java version is 1.7 or earlier, you can use the `@AclRolePermissions` container annotation for it.
 
 
 ## @AclRoleCondition
@@ -321,7 +322,7 @@ Means: ANY user could gain all type of permissions via `@AclOwner` or `@AclParen
 
 ## PermissionLink
 
-Most of the cases a well-designed DB structure and the above annotations would be enough for handling any permission/restriction requirements.
+Most of the cases a well-designed DB structure and the above annotations are enough for handling any permission/restriction requirements.
 
 But sometimes you really have to assign permissions dynamically. (Like in a traditional Access-Control-List)
 
@@ -329,7 +330,7 @@ Traditional ACL allows you to create permissions to any object. However you prob
 
 In this case you can use the PermissionLink superclass for creating dynamic permission-links.
 
-Let's assume we need some extra feature for our shared-document system. There is a requirement that some 3rd party auditors or freelancers could have specific permissions to some of the documents or only to their attachments.
+Let's assume we need some extra feature for our shared-document system. Eg. there is a requirement that some 3rd party auditors or freelancers could have specific permissions to some of the documents or maybe only to their attachments.
 The provided permissions could be anything: "read", "update" or even some specific ones like "audit". Of course we don't want to add extra relationships for all of these permissions (Because `@AclOwner` annotation could have only predefined permissions). So we can create the following class:
 
 	@AclRoleCondition(value="all", roles="ROLE_ADMIN")
@@ -359,7 +360,7 @@ And that's all. using the above annotations and maybe a few PermissionLink objec
 
 ## @AclCreatePermission
 
-Granting permissions for object-creation is usually a weak-point of any ACL, because you cannot define permission to an object what is about to create, simply because it's not exist at the time when the permission should be checked. 
+Granting permissions for object-creation is usually a weak-point of any ACL, because you cannot define permission to an object which is about to be created, simply because it does not exist at the time when the permission is checked. 
 Using the `@AclCreatePermission` annotation we can control the object creation in a similar way as any other permissions.
 
 The following annotation grants 'create' permission for managers:
@@ -377,14 +378,14 @@ You can add a 'create' permission to certain roles by a `@AclRolePermission` ann
 ## @AclLinkRole
 
 Let's assume we have a chat server where users can register themselves into chat-rooms and can write messages and responses to other messages.
-We also want to grant some kind of moderator rights to a few user in these groups, who will gain special rights to that group: let's say they can edit or delete messages. But we don't want to allow other members of this chat-room to know who are the moderators. The moderators should be stored a collection-property in the chat-room entity, annotated with `@AclOwner` annotation in order to grant them special permission. But that also means that all of the members who can access the chat-room with a `READ` permission can also see this property and its content.
-We cannot filter the content of this property, because the member of the chat-room should can see each-others, so if a moderator is also a common member of the group, then he became visible via this association too.
+We also want to grant some kind of moderator rights to a few users in these groups, who will gain special rights to that group: let's say they can edit or delete messages. But we don't want to allow other members of this chat-room to know who are these moderators. The moderators should be stored a collection-property in the chat-room entity, annotated with `@AclOwner` annotation in order to grant them special permission. But that also means that all of the members who can access the chat-room with a `READ` permission can also see this property and its content.
+We cannot filter the content of this property, because the member of the chat-room should be allowed to see each-others, so if a moderator is also a common member of the group, then he became visible via this association too.
 
-Here comes the `@AclLinkRole` annotation. If a _referenced_ property is annotated with this annotation then that property-reference endpoint is only visible for users who has any of the roles listed in the `value` field of the annotation. If a user tries to access the given endpoint, - like `.../api/chatrooms/23/moderators` in this case - then will get a 404 response. On top of that he cannot even see the `hateos` link to this endpoint in the parent entity. So when he access the `api/chatrooms/23` endpoint the `"moderators":".../api/chatroom/23/moderators` link wont't appear for him in the response.   
+Here comes the `@AclLinkRole` annotation. If a _referenced_ property is annotated with this annotation then that property-reference endpoint is only visible for users who have any of the roles listed in the `value` field of the annotation. If a user tries to access the given endpoint, - like `.../api/chatrooms/23/moderators` in this case - then he will get a 404 response. On top of that he cannot even see the `hateos` link to this endpoint in the parent entity. So when he access the `api/chatrooms/23` endpoint the `"moderators":".../api/chatroom/23/moderators` link wont't appear for him in the response.   
 
 This annotation is a very convenient tool for hiding certain properties from common users without creating - otherwise unnecessary - extra entities.	
 	
-Of course it work only for referenced properties. Properties of non-exposed types or primitive types are not affected by this annotation.
+Of course it works only for referenced properties. Properties of non-exposed types or primitive types are not affected by this annotation.
   	
 ## @PreAuthorize
 
@@ -398,11 +399,11 @@ You can create a controller like this:
 	...
 	}
 	
-The AcPermissionEvaluator check whether the current authentication has 'execute' permission to the given script object. You can also use this new permission in any of the Acl annotations. If you use 'all' in any of the annotations that will automatically grant this new custom permission too. 
+The AcPermissionEvaluator checks whether the current authentication has 'execute' permission to the given script object. You can also use this new permission in any of the Acl annotations. If you use 'all' in any of the annotations that will automatically grant this new custom permission too. 
 
 ## Special methods
 
-AS it was mentioned above you have to extend the AclJpaRepository interface instead of the JpaRepository when you create your own repositories. This new interface defines a few extra methods:
+AS it was mentioned earlier, you have to extend the AclJpaRepository interface instead of the JpaRepository when you create your own repositories. This new interface defines a few extra methods:
 
 	<S extends T> S saveWithoutPermissionCheck(S entity);
 	void deleteWithoutPermissionCheck(T entity);
@@ -425,20 +426,20 @@ Unfortunately these kind of queries cannot be created automatically via the Spri
 ## Spring Data Rest Webmvc
 
 If you want to create a restful API using Spring's data-rest module all you have to do is include the proper spring package. All of the rest endpoints will be automatically secured by the ACL.
-Even when you try to create or modify an object with associations, only the links that points to object you have permission to will be created. So if somebody tries to manually create a http request for adding a link to a document then it will be added only if the given user has at least read permission to the given document, because each objects are loaded via the proper repository method and each of these methods are secured by the ACL.
+Even when you try to create or modify an object with associations, only the links that point to objects you have permission to will be created. So if somebody tries to manually create a http request for adding a link to a document then it will be added only if the given user has at least read permission to the given document, because each objects are loaded via the proper repository method and each of these methods are secured by the ACL.
 
 The same rules apply to all properties. So even if you have "read" access to one of your fellow group-members, if you try to access all of his documents using
 
 	GET /people/23/documents
 	
-You will see only those of his documents what you have permission to via some way. (Eg. you can see the documents he shared with your WorkGroups, but you cannot see the documents he shared with other WorkGroups where you are not a member)
+You will see only those of his documents which you have permission to via some way. (Eg. you can see the documents he shared with your WorkGroups, but you cannot see the documents he shared with other WorkGroups where you are not a member)
 
-## Failed permission-checks
+## Failed permission-checks and exceptions
 
-The ACL always checks the permission against of the current authentication. If there is no authentication object in the `SecurityContextHolder` then all permission-check will fail. So if you want to use repository methods without an authentication present (like asynchronous methods, scripts) then make sure you only call the methods with `withoutPermissionChek` postfix or methods annotated with `@NoAcl`.
+The ACL always checks the permission against of the current authentication. If there is no authentication object in the `SecurityContextHolder` then all permission-checks will fail. So if you want to use repository methods without an authentication present (like asynchronous methods, scripts) then make sure you only call the methods with `withoutPermissionChek` postfix or methods annotated with `@NoAcl`.
 
-If the permission-check fails the repository methods either throw exception or ignore the object without proper permission. In general if a method affects multiple entities then it will ignore the ones without permission, if it affects only one entity then it throw an exception.
-All permission-exceptions extends the `InsufficientAclPermissionException` class. There are separate exceptions for each type of methods:
+If a permission-check fails the repository methods either throw exception or ignore the object without proper permission. In general if a method affects multiple entities then it will ignore the ones without permission, if it affects only one entity then it throws an exception.
+All permission-exceptions extends the `InsufficientAclPermissionException` class. There are exceptions for each type of methods:
 `AclCreatePermissionException`
 `AclReadPermissionException`
 `AclUpdatePermissionException`
@@ -448,7 +449,7 @@ If a permission check fails during a 'find' method the result is `null`.
 
 If a permission check fails during a 'findAll' method only the elements with appropriate permissions will be returned. The elements without proper permissions will be silently skipped.  
 
-The same rules are true for properties and property-collections but only if you try to access them via Spring Data Rest endpoints.
+The same rules apply for properties and property-collections but only if you try to access them via Spring Data Rest endpoints.
 
 	/users
 	
@@ -460,7 +461,7 @@ The same rules are true for properties and property-collections but only if you 
 
 	/users/12/documents
 	
-... return all of the documents of user 12 you have permission to them IF you also have read permission to user 12.
+... return all of the documents of user 12 which you have permission to IF you also have read permission to user 12.
 
 	/users/12/documents/123
 	
@@ -504,14 +505,14 @@ If the current authenticated user has no at least READ permission to the parent 
 
 - GET complement of property collection: Only the entities which are NOT in the collection AND can be READ by the current user are listed.
 
-- DELETE property reference: If the reference object cannot be READ or null then result is `OK`, but it's not deleted. If the user has only READ permission to the parent object and also only READ permission to the reference object then `FORBIDDEN`. If the user has UPDATE permission at least one of the two objects then the reference is deleted.
+- DELETE property reference: If the reference object cannot be READ or null then result is `OK`, but it's not deleted. If the user has only READ permission to the parent object and also only READ permission to the reference object then `FORBIDDEN`. If the user has UPDATE permission at least one of the two objects then the reference is deleted. (by deleting a reference we do NOT delete any objects, we just update their reference-properties)
 
-- GET element of property collection by id: If the element is not exists, not element of the collection or cannot be READ then `NOT FOUND`
-- GET value of map by key: `NOT FOUND` only the key is not exists.
-- GET property reference by id: same as for without id, but the provided id must match the id of the referenced property, otherwise `NOT FOUND`
+- GET element of property collection by id: If the element does not exist, not the element of the collection or cannot be READ then `NOT FOUND`
+- GET value of map by key: `NOT FOUND` only if the key does not exist.
+- GET property reference by id: same as without id, but the provided id must match the id of the referenced property, otherwise `NOT FOUND`
 
-- POST/PATCH elements into property collection: if the user has UPDATE permission to the parent object then all elements with READ permission will be added. If the user has only READ permission to the parent the only elements with UPDATE permission will be added. All the other elements will be silently ignored.
-- PUT elements into property collection: on top of the above all the existing elements will be removed where the user has at least UPDATE permission to element OR at least READ permission to the element if he also has UPDATE permission to the parent object.
+- POST/PATCH elements into property collection: if the user has UPDATE permission to the parent object then all elements with READ permission will be added. If the user has only READ permission to the parent then only the elements with UPDATE permission will be added. All the other elements will be silently ignored.
+- PUT elements into property collection: on top of the above all the existing elements will be removed where the user has at least UPDATE permission to the element OR at least READ permission to the element AND UPDATE permission to the parent object.
 -POST/PATCH to map: The user MUST have UPDATE permission to the parent object. Only those entries will be added where the user has at least READ permission to the referenced object of the value field.
 - PUT to map: on top of the above the original content of the map will be removed. (regardless if the user has permission to the values or not)
 -PUT/POST to property reference: The reference will only be overridden if the user has at least READ permission to the referenced object and has at least UPDATE permission to one of the parent or the referenced object.
@@ -527,7 +528,7 @@ If a reference is `@ManyToOne` or `@OneToMany` then the user needs UPDATE permis
 
 ## @AclSearchable
 
-A flexible search system is a common requirement in modern clients. So if a user types in a text into the search user field he expects to find all the users which have that pattern in their first-name, last-name or email-address or even in their address.
+A flexible search system is a common requirement in modern clients. So if a user types in a text into the search user field he expects to find all the users who have that pattern in their first-name, last-name or email-address or even in their address.
 Such features are usually implemented by using external indexes like elasticsearch. It can be used together with the ACL too: When the actual objects are loaded from the DB by id, all the objects without proper permissions will be filtered out.
 
 However if you want to create a paginated search result using ACl - that's impossible.
@@ -552,9 +553,9 @@ The result will contain only the users where all the words in the search pattern
 
 On top of that the longer words and the words in the front of the list also get some extra priority.
 
-Even if those rules sound confusing just test it: It has a surprisingly good result.
+Although those rules look confusing at first, just test it: It has surprisingly good results.
 
-If there are both `search` and `sort` parameters in the URL then the `search` parameter has precedence. (Because the the search feature not only filters the results but also automatically sort them by relevance.) 
+If there are both `search` and `sort` parameters in the URL then the `search` parameter has precedence. (Because the search feature not only filters the results but also automatically sort them by relevance.) 
 
 Although this functionality is present primary for the REST endpoints, you can also use it internally. You can pass a `Search` object for any repository methods which accept `Sort` or `Pageable` objects. The `Search` class is a subclass of `Sort` and `Pageable` also contains a `Sort` property.
 
@@ -567,7 +568,7 @@ Because of performance reasons the search logic handles only the first three wor
 Let's assume we have a Group entity with a members property. It has a 'members' property which is a collection of Users annotated with `@ManyToMany` annotation.
 The following request returns all the users who are members of a given group:
 `GET groups/12/members`
-If we want to create a state-of-the-art client for this API, then when a user want to add more users to a given group via the client, it would be nice if we could show all the available users who are NOT members of the given group, so the user can choose the new members from this shortened list instead of all the users.
+If we want to create a state-of-the-art client for this API, then when somebody wants to add more users to a given group via the client, it would be nice if we could show all the available users who are NOT members of the given group, so the user can choose the new members from this shortened list instead of all the users.
 The following request returns with these users:
 `GET groups/12/membersComplement`
 
